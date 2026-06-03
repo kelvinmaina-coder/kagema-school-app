@@ -1,0 +1,23 @@
+﻿# Flutter/Dart
+build/
+.dart_tool/
+.packages
+pubspec.lock
+
+# Android
+android/.gradle/
+android/app/.cxx/
+android/local.properties
+
+# iOS
+ios/.generated/
+ios/Pods/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
