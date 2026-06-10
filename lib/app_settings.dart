@@ -2,67 +2,39 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AppSettings extends ChangeNotifier {
-  static final AppSettings _instance = AppSettings._internal();
-  factory AppSettings() => _instance;
-  AppSettings._internal();
-
-  // Storage Keys
-  static const String themeModeKey = 'theme_mode';
-  static const String pushNotificationsKey = 'push_notifications';
-  static const String languageKey = 'language';
-
-  // State with Defaults (Light Mode is Default)
   ThemeMode _themeMode = ThemeMode.light;
-  bool _pushNotifications = true;
-  String _language = 'en';
+  bool _notificationsEnabled = true;
 
-  // Getters
   ThemeMode get themeMode => _themeMode;
-  bool get notificationsEnabled => _pushNotifications;
-  String get language => _language;
+  bool get notificationsEnabled => _notificationsEnabled;
 
   Future<void> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    // Default to index 1 (Light Mode)
-    int themeIndex = prefs.getInt(themeModeKey) ?? 1;
-    _themeMode = ThemeMode.values[themeIndex];
-    _pushNotifications = prefs.getBool(pushNotificationsKey) ?? true;
-    _language = prefs.getString(languageKey) ?? 'en';
+    final isDark = prefs.getBool('isDark') ?? false;
+    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    _notificationsEnabled = prefs.getBool('notifications') ?? true;
     notifyListeners();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     _themeMode = mode;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(themeModeKey, mode.index);
+    await prefs.setBool('isDark', mode == ThemeMode.dark);
     notifyListeners();
   }
 
   Future<void> setNotifications(bool enabled) async {
-    _pushNotifications = enabled;
+    _notificationsEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(pushNotificationsKey, enabled);
+    await prefs.setBool('notifications', enabled);
     notifyListeners();
   }
 
-  Future<void> setLanguage(String lang) async {
-    _language = lang;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(languageKey, lang);
-    notifyListeners();
-  }
-
-  // Shared settings list used by the UI
-  static List<Map<String, dynamic>> getSharedSettings() {
-    return [
-      {'title': 'Profile', 'icon': Icons.person_outline, 'type': 'profile'},
-      {'title': 'Account & Security', 'icon': Icons.security_outlined, 'type': 'security'},
-      {'title': 'Appearance', 'icon': Icons.palette_outlined, 'type': 'appearance'},
-      {'title': 'Notifications', 'icon': Icons.notifications_none_outlined, 'type': 'notifications'},
-      {'title': 'Language', 'icon': Icons.language_outlined, 'type': 'language'},
-      {'title': 'Help & Support', 'icon': Icons.help_outline, 'type': 'help'},
-      {'title': 'About', 'icon': Icons.info_outline, 'type': 'about'},
-      {'title': 'Logout', 'icon': Icons.logout_rounded, 'type': 'logout'},
-    ];
+  Future<void> toggleTheme() async {
+    if (_themeMode == ThemeMode.light) {
+      await setThemeMode(ThemeMode.dark);
+    } else {
+      await setThemeMode(ThemeMode.light);
+    }
   }
 }

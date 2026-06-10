@@ -18,9 +18,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   bool isPasswordVisible = false;
   bool isLoading = false;
 
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-
   final List<Map<String, dynamic>> roles = [
     {'title': 'Admin', 'icon': Icons.admin_panel_settings_rounded, 'color': const Color(0xFF1A237E), 'id': 'admin', 'hint': 'Administrator ID'},
     {'title': 'Teacher', 'icon': Icons.school_rounded, 'color': const Color(0xFF00695C), 'id': 'teacher', 'hint': 'Staff Work ID'},
@@ -30,78 +27,36 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     {'title': 'Staff', 'icon': Icons.badge_rounded, 'color': const Color(0xFF1B5E20), 'id': 'staff', 'hint': 'Staff Work ID'},
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
-    _fadeController.forward();
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    identifierController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
   void _handleLogin() async {
     if (selectedRole == null) {
       _showError('Security: Please select your authorization role.');
       return;
     }
-    if (identifierController.text.trim().isEmpty || passwordController.text.trim().isEmpty) {
-      _showError('Credentials Required: Please enter your ID and Password.');
-      return;
-    }
-
     setState(() => isLoading = true);
+    final authService = Provider.of<AuthenticationService>(context, listen: false);
+    final roleData = roles.firstWhere((r) => r['title'] == selectedRole);
+    
+    final success = await authService.login(
+      roleData['id'], 
+      identifierController.text.trim(), 
+      passwordController.text
+    );
 
-    try {
-      final authService = Provider.of<AuthenticationService>(context, listen: false);
-      final roleData = roles.firstWhere((r) => r['title'] == selectedRole);
-      
-      // Fixed signature call
-      final success = await authService.login(
-        roleData['id'], 
-        identifierController.text.trim(), 
-        passwordController.text
-      );
+    setState(() => isLoading = false);
 
-      if (!mounted) return;
-      setState(() => isLoading = false);
-
-      if (success) {
-        if (roleData['id'] == 'parent') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => ParentDashboard(parentPhone: identifierController.text.trim()))
-          );
-        } else {
-          Navigator.pushReplacementNamed(context, '/${roleData['id']}_dashboard');
-        }
+    if (success) {
+      if (roleData['id'] == 'parent') {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ParentDashboard(parentPhone: identifierController.text.trim())));
       } else {
-        _showError('Access Denied: Invalid credentials.');
+        Navigator.pushReplacementNamed(context, '/${roleData['id']}_dashboard');
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() => isLoading = false);
-        _showError('System Error: Unable to verify credentials.');
-      }
+    } else {
+      _showError('Access Denied: Invalid credentials.');
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.redAccent.shade700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      )
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.redAccent));
   }
 
   @override
@@ -112,28 +67,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return Scaffold(
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-              child: Column(
-                children: [
-                  _buildBranding(theme),
-                  const SizedBox(height: 40),
-                  _buildIdentityGrid(theme, gemini),
-                  const SizedBox(height: 40),
-                  _buildLoginForm(theme, gemini),
-                  const SizedBox(height: 24),
-                  if (selectedRole == 'Parent') 
-                    TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/signup'),
-                      child: const Text('New Parent? Register here', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  const SizedBox(height: 40),
-                  _buildFooter(theme),
-                ],
-              ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                const Icon(Icons.school_rounded, size: 80, color: Colors.orange),
+                const SizedBox(height: 16),
+                const Text('Kagema school', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 32),
+                _buildRoleGrid(),
+                const SizedBox(height: 32),
+                _buildLoginForm(theme),
+              ],
             ),
           ),
         ),
@@ -141,52 +87,28 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildBranding(ThemeData theme) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(Icons.school_rounded, size: 60, color: theme.primaryColor),
-        ),
-        const SizedBox(height: 16),
-        const Text('Kagema school', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-        Container(
-          margin: const EdgeInsets.only(top: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text('CLOUD-POWERED CAMPUS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 2)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildIdentityGrid(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildRoleGrid() {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.1,
-      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
       itemCount: roles.length,
       itemBuilder: (context, index) {
         final role = roles[index];
         final isSelected = selectedRole == role['title'];
         return InkWell(
           onTap: () => setState(() => selectedRole = role['title']),
-          borderRadius: BorderRadius.circular(20),
           child: Container(
             decoration: BoxDecoration(
-              color: isSelected ? role['color'] : theme.cardColor.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? role['color'] : theme.primaryColor.withOpacity(0.1), width: 2),
+              color: isSelected ? role['color'] : Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: isSelected ? role['color'] : Colors.grey.withOpacity(0.3)),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(role['icon'], color: isSelected ? Colors.white : role['color'], size: 28),
-                const SizedBox(height: 6),
-                Text(role['title'].toUpperCase(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey)),
+                Icon(role['icon'], color: isSelected ? Colors.white : role['color']),
+                Text(role['title'], style: TextStyle(fontSize: 10, color: isSelected ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -195,40 +117,23 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildLoginForm(ThemeData theme, GeminiThemeExtension? gemini) {
-    String dynamicHint = selectedRole != null ? roles.firstWhere((r) => r['title'] == selectedRole)['hint'] : "Select Identity Above";
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(28)),
-      child: Column(
-        children: [
-          TextField(controller: identifierController, decoration: InputDecoration(labelText: dynamicHint, prefixIcon: const Icon(Icons.person))),
-          const SizedBox(height: 16),
-          TextField(
-            controller: passwordController,
-            obscureText: !isPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock),
-              suffixIcon: IconButton(icon: Icon(isPasswordVisible ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible)),
-            ),
+  Widget _buildLoginForm(ThemeData theme) {
+    return Column(
+      children: [
+        TextField(controller: identifierController, decoration: const InputDecoration(labelText: 'Identifier', prefixIcon: Icon(Icons.person))),
+        const SizedBox(height: 16),
+        TextField(controller: passwordController, obscureText: !isPasswordVisible, decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock))),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('LOGIN'),
           ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: isLoading ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-              child: isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text('AUTHORIZE ACCESS'),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
-  }
-
-  Widget _buildFooter(ThemeData theme) {
-    return const Text('SYSTEM STATUS: SECURE CONNECTION ACTIVE', style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2));
   }
 }

@@ -6,7 +6,8 @@ class AuthenticationService extends ChangeNotifier {
   factory AuthenticationService() => _instance;
   AuthenticationService._internal();
 
-  final _supabase = Supabase.instance.client;
+  // Access client lazily to prevent crash if not initialized
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   String? _currentUserRole;
   String? _currentUserPhone;
@@ -17,10 +18,14 @@ class AuthenticationService extends ChangeNotifier {
   String get currentUserName => _currentUserName ?? "Authorized User";
 
   Future<bool> isAuthenticated() async {
-    final session = _supabase.auth.currentSession;
-    if (session != null) {
-      await _loadUserData(session.user.id);
-      return true;
+    try {
+      final session = _supabase.auth.currentSession;
+      if (session != null) {
+        await _loadUserData(session.user.id);
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Auth Session Error: $e");
     }
     return false;
   }
@@ -46,7 +51,6 @@ class AuthenticationService extends ChangeNotifier {
 
   Future<bool> login(String role, String identifier, String password) async {
     try {
-      // Identifier is usually email for Supabase Auth
       final response = await _supabase.auth.signInWithPassword(
         email: identifier.trim(),
         password: password.trim(),
@@ -64,7 +68,9 @@ class AuthenticationService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _supabase.auth.signOut();
+    try {
+      await _supabase.auth.signOut();
+    } catch (_) {}
     _currentUserRole = null;
     _currentUserPhone = null;
     _currentUserName = null;
@@ -91,12 +97,14 @@ class AuthenticationService extends ChangeNotifier {
   }
 
   Future<void> updateName(String newName) async {
-    final user = _supabase.auth.currentUser;
-    if (user != null) {
-      await _supabase.from('users').update({'name': newName}).eq('user_id', user.id);
-      _currentUserName = newName;
-      notifyListeners();
-    }
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        await _supabase.from('users').update({'name': newName}).eq('user_id', user.id);
+        _currentUserName = newName;
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<bool> changePassword(String oldPass, String newPass) async {
@@ -109,14 +117,16 @@ class AuthenticationService extends ChangeNotifier {
   }
 
   Future<void> signUp(String email, String password, String name, String role) async {
-    final res = await _supabase.auth.signUp(email: email, password: password);
-    if (res.user != null) {
-      await _supabase.from('users').insert({
-        'user_id': res.user!.id,
-        'identifier': email,
-        'name': name,
-        'role': role,
-      });
-    }
+    try {
+      final res = await _supabase.auth.signUp(email: email, password: password);
+      if (res.user != null) {
+        await _supabase.from('users').insert({
+          'user_id': res.user!.id,
+          'identifier': email,
+          'name': name,
+          'role': role,
+        });
+      }
+    } catch (_) {}
   }
 }

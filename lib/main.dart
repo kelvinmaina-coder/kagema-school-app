@@ -43,33 +43,32 @@ class AppRoutes {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  bool supabaseInitialized = false;
   try {
-    // Wrap Supabase in try-catch to prevent hang if URL is invalid
-    try {
-      await Supabase.initialize(
-        url: 'https://placeholder.supabase.co', // Use valid format even if placeholder
-        anonKey: 'sb_publishable_placeholder', 
-      );
-    } catch (e) {
-      debugPrint('Supabase initialization bypassed: $e');
-    }
+    const supabaseUrl = 'https://nautmoivgssuuzvzlqgy.supabase.co'; 
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hdXRtb2l2Z3NzdXV6dnpscWd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMjk2NzgsImV4cCI6MjA5NjYwNTY3OH0.FOWH8X-FM3p_VP7ewDF4efM6ja6nf3Ecw7_Rh4cTFPs';
 
-    final appSettings = AppSettings();
-    await appSettings.loadSettings();
-
-    runApp(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => AuthenticationService()),
-          ChangeNotifierProvider.value(value: appSettings),
-        ],
-        child: const KagemaSchoolApp(),
-      ),
+    await Supabase.initialize(
+      url: supabaseUrl,
+      anonKey: supabaseKey,
     );
+    supabaseInitialized = true;
   } catch (e) {
-    debugPrint('Fatal Error initializing app: $e');
-    runApp(const ErrorApp());
+    debugPrint('Supabase initialization failed: $e');
   }
+
+  final appSettings = AppSettings();
+  await appSettings.loadSettings();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthenticationService()),
+        ChangeNotifierProvider.value(value: appSettings),
+      ],
+      child: const KagemaSchoolApp(),
+    ),
+  );
 }
 
 class ErrorApp extends StatelessWidget {
@@ -120,7 +119,7 @@ class KagemaSchoolApp extends StatelessWidget {
         AppRoutes.login: (context) => const LoginScreen(),
         AppRoutes.signup: (context) => const SignupScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-        AppRoutes.adminDashboard: (context) => const TeacherDashboard(), // Redirect for debugging if needed
+        AppRoutes.adminDashboard: (context) => const TeacherDashboard(), 
         AppRoutes.teacherDashboard: (context) => const TeacherDashboard(),
         AppRoutes.parentDashboard: (context) => ParentDashboard(parentPhone: auth.currentUserPhone ?? ''), 
         AppRoutes.accountantDashboard: (context) => const AccountantDashboard(),
@@ -128,7 +127,6 @@ class KagemaSchoolApp extends StatelessWidget {
         AppRoutes.staffDashboard: (context) => const StaffDashboard(),
       },
 
-      // Standard route mapping for Admin
       onGenerateRoute: (settings) {
         if (settings.name == AppRoutes.adminDashboard) {
            return MaterialPageRoute(builder: (_) => const AdminDashboard());
@@ -176,20 +174,23 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _initializeApp() async {
     await Future.delayed(const Duration(milliseconds: 1500));
     if (mounted) setState(() => statusMessage = "Syncing School Protocol...");
-    await Future.delayed(const Duration(milliseconds: 1000));
     
     final updateService = UpdateService();
     await updateService.init();
 
-    final auth = Provider.of<AuthenticationService>(context, listen: false);
-    await auth.isAuthenticated(); // Restore session if exists
+    try {
+      final auth = Provider.of<AuthenticationService>(context, listen: false);
+      await auth.isAuthenticated(); 
+    } catch (e) {
+      debugPrint("Auth check skipped: No Supabase connection");
+    }
 
     if (mounted) setState(() => statusMessage = "System Verified. Welcome.");
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
     
-    // Check if already logged in
+    final auth = Provider.of<AuthenticationService>(context, listen: false);
     if (auth.currentUserRole != null) {
        Navigator.pushReplacementNamed(context, AppRoutes.getDashboardRoute(auth.currentUserRole!));
     } else {
@@ -246,31 +247,6 @@ class _SplashScreenState extends State<SplashScreen> {
       child: CircularProgressIndicator(
         strokeWidth: 3,
         valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.5)),
-      ),
-    );
-  }
-}
-
-class NotFoundScreen extends StatelessWidget {
-  const NotFoundScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text('404 - Page Not Found', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
-              child: const Text('Go to Login'),
-            ),
-          ],
-        ),
       ),
     );
   }
