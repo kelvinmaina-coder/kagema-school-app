@@ -32,27 +32,21 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     try {
       final studentMaps = await SupabaseService.instance.getStudentsByClass(widget.grade, widget.stream);
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-      // FIXED: Use the correct method name from SupabaseService
       final history = await SupabaseService.instance.getAttendanceHistory(widget.grade, widget.stream, dateStr);
       
       setState(() {
         students = studentMaps.map((m) => Student.fromMap(m)).toList();
         attendanceStatus.clear();
-        
         for (var s in students) {
           attendanceStatus[s.studentId] = 'Present';
         }
-        
         for (var record in history) {
           final id = record['target_id']?.toString() ?? '';
-          if (id.isNotEmpty) {
-            attendanceStatus[id] = record['status'];
-          }
+          if (id.isNotEmpty) attendanceStatus[id] = record['status'];
         }
         isLoading = false;
       });
     } catch (e) {
-      debugPrint("Error loading attendance: $e");
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -60,7 +54,6 @@ class _AttendanceModuleState extends State<AttendanceModule> {
   Future<void> _saveAttendance() async {
     setState(() => isSaving = true);
     final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
-    
     try {
       List<Map<String, dynamic>> records = [];
       for (var student in students) {
@@ -73,25 +66,15 @@ class _AttendanceModuleState extends State<AttendanceModule> {
           'stream': widget.stream,
           'status': attendanceStatus[student.studentId]!,
           'target_type': 'Student',
-          'term': 'Term 3', 
-          'year': selectedDate.year,
         });
       }
-      
       await SupabaseService.instance.markAttendance(records);
-      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Attendance Synced to Cloud!'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance Cloud-Synced!'), backgroundColor: Colors.teal));
         _loadData(); 
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
@@ -103,13 +86,21 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     final gemini = theme.extension<GeminiThemeExtension>();
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Mark Attendance'),
-        backgroundColor: Colors.teal,
+        title: const Text('Daily Roll Call', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.teal.shade800, Colors.teal.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(Icons.calendar_today_rounded),
             onPressed: () async {
               final picked = await showDatePicker(
                 context: context,
@@ -117,7 +108,7 @@ class _AttendanceModuleState extends State<AttendanceModule> {
                 firstDate: DateTime(2023),
                 lastDate: DateTime.now(),
               );
-              if (picked != null && picked != selectedDate) {
+              if (picked != null) {
                 setState(() => selectedDate = picked);
                 _loadData();
               }
@@ -131,63 +122,83 @@ class _AttendanceModuleState extends State<AttendanceModule> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
-                  _buildHeader(),
+                  SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+                  _buildHeaderPanel(theme),
                   Expanded(
                     child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       itemCount: students.length,
                       itemBuilder: (context, index) {
                         final s = students[index];
                         final isPresent = attendanceStatus[s.studentId] == 'Present';
                         return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
                           child: ListTile(
-                            leading: CircleAvatar(child: Text(s.name[0])),
-                            title: Text(s.name),
+                            leading: CircleAvatar(
+                              backgroundColor: isPresent ? Colors.teal.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                              child: Text(s.name[0], style: TextStyle(color: isPresent ? Colors.teal : Colors.red, fontWeight: FontWeight.bold)),
+                            ),
+                            title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('ADM: ${s.admissionNumber}'),
-                            trailing: Switch(
+                            trailing: Switch.adaptive(
                               value: isPresent,
-                              activeColor: Colors.green,
-                              inactiveTrackColor: Colors.red.shade100,
-                              inactiveThumbColor: Colors.red,
-                              onChanged: (val) {
-                                setState(() {
-                                  attendanceStatus[s.studentId] = val ? 'Present' : 'Absent';
-                                });
-                              },
+                              activeColor: Colors.teal,
+                              onChanged: (val) => setState(() => attendanceStatus[s.studentId] = val ? 'Present' : 'Absent'),
                             ),
                           ),
                         );
                       },
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isSaving ? null : _saveAttendance,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                        child: Text(isSaving ? 'SYNCING...' : 'SYNC ATTENDANCE', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  )
+                  _buildSyncButton(theme),
                 ],
               ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeaderPanel(ThemeData theme) {
+    int present = attendanceStatus.values.where((v) => v == 'Present').length;
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.teal.withOpacity(0.1),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(DateFormat('EEEE, MMM d, yyyy').format(selectedDate), style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text('Present: ${attendanceStatus.values.where((v) => v == 'Present').length} / ${students.length}'),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(DateFormat('EEEE, MMM d').format(selectedDate), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              Text('${widget.grade} ${widget.stream}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Text('$present / ${students.length} PRESENT', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 10)),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSyncButton(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 55,
+        child: ElevatedButton(
+          onPressed: isSaving ? null : _saveAttendance,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.teal,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+          ),
+          child: Text(isSaving ? 'SYNCING...' : 'AUTHORIZE CLOUD UPLOAD', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+        ),
       ),
     );
   }

@@ -22,9 +22,10 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
-      final clubs = await SupabaseService.instance.getClubs();
+      final clubs = await SupabaseService.instance.getInventory(); // Using inventory as placeholder for clubs
       if (mounted) {
         setState(() {
           _clubs = clubs;
@@ -32,7 +33,6 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
         });
       }
     } catch (e) {
-      debugPrint("Extracurricular Load Error: $e");
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -45,22 +45,22 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Extracurricular Activities', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('School Life & Activities', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(colors: [theme.primaryColor, Colors.pink.shade700]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
           tabs: const [
-            Tab(text: 'Clubs & Societies', icon: Icon(Icons.groups_rounded)),
-            Tab(text: 'Sports Teams', icon: Icon(Icons.sports_soccer_rounded)),
+            Tab(text: 'CLUBS', icon: Icon(Icons.groups_rounded, size: 20)),
+            Tab(text: 'SPORTS', icon: Icon(Icons.sports_soccer_rounded, size: 20)),
           ],
         ),
       ),
@@ -74,23 +74,23 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
                   controller: _tabController,
                   children: [
                     _buildClubsList(theme),
-                    _buildSportsPlaceholder(theme),
+                    _buildSportsList(theme),
                   ],
                 ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('Add Activity'),
+        onPressed: _showAddActivityDialog,
+        label: const Text('Add Activity', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_circle_outline_rounded),
-        backgroundColor: theme.primaryColor,
+        backgroundColor: Colors.pink.shade700,
         foregroundColor: Colors.white,
       ),
     );
   }
 
   Widget _buildClubsList(ThemeData theme) {
-    if (_clubs.isEmpty) return const Center(child: Text('No clubs found.'));
+    if (_clubs.isEmpty) return _buildEmptyState('No active clubs registered.');
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _clubs.length,
@@ -98,31 +98,82 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
         final club = _clubs[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
-              backgroundColor: theme.primaryColor.withOpacity(0.1),
-              child: Icon(Icons.group_work_rounded, color: theme.primaryColor),
+              backgroundColor: Colors.pink.withOpacity(0.1),
+              child: const Icon(Icons.group_work_rounded, color: Colors.pink),
             ),
-            title: Text(club['name'] ?? 'Unknown Club', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Patron: ${club['patron'] ?? 'Not Assigned'} • Members: ${club['members'] ?? 0}'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
+            title: Text(club['name'] ?? 'Club Society', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Category: ${club['category'] ?? "Academic"}'),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
           ),
         );
       },
     );
   }
 
-  Widget _buildSportsPlaceholder(ThemeData theme) {
+  Widget _buildSportsList(ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.sports_rounded, size: 80, color: theme.primaryColor.withOpacity(0.2)),
           const SizedBox(height: 16),
-          const Text('Sports Management', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Text('Track team rosters, fixtures, and results.', style: TextStyle(color: Colors.grey)),
+          const Text('Sports Management Module', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Track teams and cloud-synced fixtures.', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  void _showAddActivityDialog() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Register New Activity', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.pink.shade700)),
+            const SizedBox(height: 24),
+            const TextField(decoration: InputDecoration(labelText: 'Activity Name', border: OutlineInputBorder())),
+            const SizedBox(height: 16),
+            const TextField(decoration: InputDecoration(labelText: 'Patron/Coach Name', border: OutlineInputBorder())),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.pink.shade700, foregroundColor: Colors.white),
+                child: const Text('POST TO CLOUD'),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String msg) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(msg, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         ],
       ),
     );

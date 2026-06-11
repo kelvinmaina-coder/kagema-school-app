@@ -43,7 +43,6 @@ class AppRoutes {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  bool supabaseInitialized = false;
   try {
     const supabaseUrl = 'https://nautmoivgssuuzvzlqgy.supabase.co'; 
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hdXRtb2l2Z3NzdXV6dnpscWd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMjk2NzgsImV4cCI6MjA5NjYwNTY3OH0.FOWH8X-FM3p_VP7ewDF4efM6ja6nf3Ecw7_Rh4cTFPs';
@@ -52,9 +51,8 @@ void main() async {
       url: supabaseUrl,
       anonKey: supabaseKey,
     );
-    supabaseInitialized = true;
   } catch (e) {
-    debugPrint('Supabase initialization failed: $e');
+    debugPrint('Fatal: Supabase failed to initialize: $e');
   }
 
   final appSettings = AppSettings();
@@ -65,37 +63,11 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthenticationService()),
         ChangeNotifierProvider.value(value: appSettings),
+        ChangeNotifierProvider(create: (_) => UpdateService()),
       ],
       child: const KagemaSchoolApp(),
     ),
   );
-}
-
-class ErrorApp extends StatelessWidget {
-  const ErrorApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              const Text('Failed to initialize app', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => main(),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class KagemaSchoolApp extends StatelessWidget {
@@ -119,7 +91,7 @@ class KagemaSchoolApp extends StatelessWidget {
         AppRoutes.login: (context) => const LoginScreen(),
         AppRoutes.signup: (context) => const SignupScreen(),
         AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-        AppRoutes.adminDashboard: (context) => const TeacherDashboard(), 
+        AppRoutes.adminDashboard: (context) => const AdminDashboard(), 
         AppRoutes.teacherDashboard: (context) => const TeacherDashboard(),
         AppRoutes.parentDashboard: (context) => ParentDashboard(parentPhone: auth.currentUserPhone ?? ''), 
         AppRoutes.accountantDashboard: (context) => const AccountantDashboard(),
@@ -128,9 +100,6 @@ class KagemaSchoolApp extends StatelessWidget {
       },
 
       onGenerateRoute: (settings) {
-        if (settings.name == AppRoutes.adminDashboard) {
-           return MaterialPageRoute(builder: (_) => const AdminDashboard());
-        }
         if (settings.name == '/dashboard') {
           final role = settings.arguments as String?;
           return MaterialPageRoute(
@@ -175,23 +144,15 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 1500));
     if (mounted) setState(() => statusMessage = "Syncing School Protocol...");
     
-    final updateService = UpdateService();
-    await updateService.init();
-
-    try {
-      final auth = Provider.of<AuthenticationService>(context, listen: false);
-      await auth.isAuthenticated(); 
-    } catch (e) {
-      debugPrint("Auth check skipped: No Supabase connection");
-    }
+    final auth = Provider.of<AuthenticationService>(context, listen: false);
+    bool loggedIn = await auth.isAuthenticated(); 
 
     if (mounted) setState(() => statusMessage = "System Verified. Welcome.");
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
     
-    final auth = Provider.of<AuthenticationService>(context, listen: false);
-    if (auth.currentUserRole != null) {
+    if (loggedIn && auth.currentUserRole != null) {
        Navigator.pushReplacementNamed(context, AppRoutes.getDashboardRoute(auth.currentUserRole!));
     } else {
        Navigator.pushReplacementNamed(context, AppRoutes.login);
@@ -228,7 +189,14 @@ class _SplashScreenState extends State<SplashScreen> {
               style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 10),
             ),
             const SizedBox(height: 60),
-            _buildPulseIndicator(),
+            const SizedBox(
+              width: 40,
+              height: 40,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
               statusMessage,
@@ -236,17 +204,6 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPulseIndicator() {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: CircularProgressIndicator(
-        strokeWidth: 3,
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.5)),
       ),
     );
   }

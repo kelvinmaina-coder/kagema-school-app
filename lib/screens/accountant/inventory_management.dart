@@ -20,6 +20,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
   }
 
   Future<void> _loadInventory() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
       final list = await SupabaseService.instance.getInventory();
@@ -36,6 +37,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
   }
 
   void _showItemForm({Map<String, dynamic>? item}) {
+    final theme = Theme.of(context);
     final nameCtrl = TextEditingController(text: item?['name']);
     final qtyCtrl = TextEditingController(text: item?['quantity']?.toString());
     final valCtrl = TextEditingController(text: item?['value']?.toString());
@@ -44,8 +46,12 @@ class _InventoryManagementState extends State<InventoryManagement> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
           left: 24,
@@ -58,7 +64,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
           children: [
             Text(
               item == null ? 'Register New Asset' : 'Edit Asset Details',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor),
             ),
             const SizedBox(height: 24),
             TextField(
@@ -116,46 +122,9 @@ class _InventoryManagementState extends State<InventoryManagement> {
                 child: Text(item == null ? 'ADD TO REGISTER' : 'SAVE CHANGES', style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
-            if (item != null) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: OutlinedButton(
-                  onPressed: () => _confirmDelete(item['item_id']),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red)),
-                  child: const Text('REMOVE ASSET', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
             const SizedBox(height: 40),
           ],
         ),
-      ),
-    );
-  }
-
-  void _confirmDelete(String id) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Asset?'),
-        content: const Text('This action will permanently remove the item from the cloud register.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          ElevatedButton(
-            onPressed: () async {
-              await SupabaseService.instance.deleteInventory(id);
-              if (mounted) {
-                Navigator.pop(context); // dialog
-                Navigator.pop(context); // sheet
-                _loadInventory();
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('DELETE'),
-          ),
-        ],
       ),
     );
   }
@@ -166,28 +135,31 @@ class _InventoryManagementState extends State<InventoryManagement> {
     final gemini = theme.extension<GeminiThemeExtension>();
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeroAppBar(theme, gemini),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSummaryGlow(theme, gemini),
-                  const SizedBox(height: 32),
-                  Text('REGISTERED ASSETS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor.withOpacity(0.5), letterSpacing: 2)),
-                  const SizedBox(height: 16),
-                  _buildInventoryList(theme, gemini),
-                  const SizedBox(height: 100),
-                ],
+      extendBodyBehindAppBar: true,
+      body: gemini?.buildCreativeBackground(
+        isDark: theme.brightness == Brightness.dark,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildHeroAppBar(theme, gemini),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSummaryCard(theme),
+                    const SizedBox(height: 32),
+                    Text('REGISTERED ASSETS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor.withOpacity(0.5), letterSpacing: 2)),
+                    const SizedBox(height: 16),
+                    _buildInventoryList(theme),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showItemForm(),
@@ -203,7 +175,9 @@ class _InventoryManagementState extends State<InventoryManagement> {
       expandedHeight: 160.0,
       pinned: true,
       stretch: true,
-      backgroundColor: theme.primaryColor,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: Colors.white),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: false,
         titlePadding: const EdgeInsets.only(left: 20, bottom: 20),
@@ -212,39 +186,27 @@ class _InventoryManagementState extends State<InventoryManagement> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('ASSET TRACKING', style: TextStyle(fontSize: 10, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-            Text('Property Register', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5, color: Colors.white)),
+            Text('Property Register', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Colors.white)),
           ],
         ),
         background: Container(
           decoration: BoxDecoration(
-            gradient: gemini?.primaryGradient ?? LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                bottom: -10,
-                child: Icon(Icons.account_balance_wallet_rounded, size: 200, color: Colors.white.withOpacity(0.05)),
-              ),
-            ],
+            gradient: LinearGradient(colors: [theme.primaryColor, Colors.brown.shade800]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryGlow(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildSummaryCard(ThemeData theme) {
     double totalValue = items.fold(0.0, (sum, item) => sum + ((item['value'] ?? 0.0) * (item['quantity'] ?? 0)));
-
-    return gemini?.buildGlowContainer(
-      backgroundColor: theme.cardColor,
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(28)),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(Icons.analytics_rounded, color: theme.primaryColor),
-          ),
+          CircleAvatar(backgroundColor: theme.primaryColor.withOpacity(0.1), child: Icon(Icons.analytics_rounded, color: theme.primaryColor)),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
@@ -257,43 +219,26 @@ class _InventoryManagementState extends State<InventoryManagement> {
           ),
         ],
       ),
-    ) ?? Container();
+    );
   }
 
-  Widget _buildInventoryList(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildInventoryList(ThemeData theme) {
     if (isLoading) return const Center(child: CircularProgressIndicator());
-    if (items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
-          child: Column(
-            children: [
-              Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey.shade300),
-              const SizedBox(height: 12),
-              const Text('No school property recorded yet in cloud', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      );
-    }
+    if (items.isEmpty) return const Center(child: Text('No records in cloud database.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)));
 
     return Column(
       children: items.map((item) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
-          ),
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
               backgroundColor: theme.primaryColor.withOpacity(0.1),
               child: Icon(Icons.category_rounded, color: theme.primaryColor, size: 20),
             ),
-            title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-            subtitle: Text('${item['category']} • ${item['quantity']} units', style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+            title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('${item['category']} • ${item['quantity']} units'),
             trailing: Text('Ksh ${item['value']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green)),
             onTap: () => _showItemForm(item: item),
           ),

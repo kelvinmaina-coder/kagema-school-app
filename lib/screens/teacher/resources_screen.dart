@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ResourcesScreen extends StatefulWidget {
   const ResourcesScreen({super.key});
@@ -30,95 +31,98 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Resource Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showUploadDialog() {
+    final titleController = TextEditingController();
+    String selectedSubject = 'Mathematics';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Upload Learning Material', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Document Title', border: OutlineInputBorder())),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: selectedSubject,
+              items: ['Mathematics', 'English', 'Science'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+              onChanged: (v) => selectedSubject = v!,
+              decoration: const InputDecoration(labelText: 'Subject'),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  if (titleController.text.isNotEmpty) {
+                    await SupabaseService.instance.client.from('resources').insert({
+                      'title': titleController.text.trim(),
+                      'subject': selectedSubject,
+                      'grade': 'Grade 1',
+                      'file_path': 'https://placeholder.com/sample.pdf', // In production, use Supabase Storage
+                    });
+                    Navigator.pop(context);
+                    _fetchResources();
+                  }
+                },
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text('SYNC TO CLOUD'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.brown, foregroundColor: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('Digital Library', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.brown, Colors.brown.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-          ),
-        ),
-      ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
-          child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
-            : _resources.isEmpty
-                ? const Center(child: Text('No resources available.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
-                : GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, 
-                      mainAxisSpacing: 16, 
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.85,
-                    ),
-                    itemCount: _resources.length,
-                    itemBuilder: (context, index) {
-                      final r = _resources[index];
-                      return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
-                              child: const Icon(Icons.picture_as_pdf, size: 40, color: Colors.red),
-                            ),
-                            const SizedBox(height: 12),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: Text(
-                                r['title'] ?? 'Untitled', 
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(r['subject'] ?? 'General', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: () {}, 
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.brown,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                              ),
-                              child: const Text('VIEW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+      appBar: AppBar(title: const Text('Digital Library'), backgroundColor: Colors.brown, foregroundColor: Colors.white),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12),
+            itemCount: _resources.length,
+            itemBuilder: (context, index) {
+              final r = _resources[index];
+              return Card(
+                child: InkWell(
+                  onTap: () async {
+                    final url = Uri.parse(r['file_path'] ?? '');
+                    if (await canLaunchUrl(url)) await launchUrl(url);
+                  },
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.picture_as_pdf, size: 40, color: Colors.red),
+                      const SizedBox(height: 8),
+                      Text(r['title'] ?? 'Document', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                      Text(r['subject'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                    ],
                   ),
-        ),
-      ),
+                ),
+              );
+            },
+          ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {}, 
-        label: const Text('Upload PDF'),
-        icon: const Icon(Icons.upload_file),
+        onPressed: _showUploadDialog, 
+        label: const Text('New Resource'),
+        icon: const Icon(Icons.add),
         backgroundColor: Colors.brown,
-        foregroundColor: Colors.white,
       ),
     );
   }

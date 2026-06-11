@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/database_service.dart';
+import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
 
 class ParentCalendarScreen extends StatefulWidget {
@@ -20,12 +20,19 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
   }
 
   Future<void> _loadEvents() async {
-    final events = await DatabaseService.instance.getEvents();
-    if (mounted) {
-      setState(() {
-        _events = events;
-        _isLoading = false;
-      });
+    setState(() => _isLoading = true);
+    try {
+      // MIGRATED: Now pulls events from Supabase
+      final events = await SupabaseService.instance.getEvents();
+      if (mounted) {
+        setState(() {
+          _events = events;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Calendar Load Error: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -43,7 +50,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.indigo, Colors.indigo.withOpacity(0.8)]),
+            gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
             borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
           ),
         ),
@@ -55,7 +62,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _events.isEmpty
-                  ? const Center(child: Text('No upcoming events scheduled.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
+                  ? _buildEmptyState()
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _events.length,
@@ -82,6 +89,19 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
                       },
                     ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.calendar_today_outlined, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No upcoming school events.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
       ),
     );
   }

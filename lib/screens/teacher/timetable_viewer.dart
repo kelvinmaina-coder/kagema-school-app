@@ -9,41 +9,31 @@ class TimetableViewer extends StatefulWidget {
   State<TimetableViewer> createState() => _TimetableViewerState();
 }
 
-class _TimetableViewerState extends State<TimetableViewer> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  List<Map<String, dynamic>> _teachingEntries = [];
-  List<Map<String, dynamic>> _examEntries = [];
+class _TimetableViewerState extends State<TimetableViewer> {
+  List<Map<String, dynamic>> _schedule = [];
   bool _isLoading = true;
-  final List<String> _days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-  int _viewIndex = 0; // 0 for Teaching, 1 for Exam
+  String _selectedDay = 'Monday';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
-    _loadTimetables();
+    _loadTimetable();
   }
 
-  Future<void> _loadTimetables() async {
+  Future<void> _loadTimetable() async {
     setState(() => _isLoading = true);
     try {
-      final teacherId = SupabaseService.instance.client.auth.currentUser?.id ?? "";
+      final String teacherId = SupabaseService.instance.client.auth.currentUser?.id ?? "";
+      final data = await SupabaseService.instance.getTeacherSchedule(teacherId);
       
-      // Fetch everything from Supabase cloud
-      final response = await SupabaseService.instance.client
-          .from('timetable')
-          .select()
-          .eq('teacher_id', teacherId);
-
-      final List<Map<String, dynamic>> allEntries = List<Map<String, dynamic>>.from(response);
-      
-      setState(() {
-        _teachingEntries = allEntries.where((e) => e['type'] == 'Teaching' || e['type'] == null).toList();
-        _examEntries = allEntries.where((e) => e['type'] == 'Exam').toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _schedule = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      debugPrint("Timetable Load Error: $e");
+      debugPrint("Timetable Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -52,63 +42,98 @@ class _TimetableViewerState extends State<TimetableViewer> with SingleTickerProv
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+    final daySchedule = _schedule.where((s) => s['day'] == _selectedDay).toList();
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(_viewIndex == 0 ? 'Teaching Timetable' : 'Exam Timetable', style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: _viewIndex == 0 ? Colors.teal : Colors.indigo,
+        title: const Text('My Teaching Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(_viewIndex == 0 ? Icons.quiz : Icons.menu_book),
-            onPressed: () => setState(() => _viewIndex = _viewIndex == 0 ? 1 : 0),
-          )
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          tabs: _days.map((day) => Tab(text: day.substring(0, 3).toUpperCase())).toList(),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.indigo.shade800, Colors.indigo.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+          ),
         ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabController,
-                children: _days.map((day) => _buildDaySchedule(day)).toList(),
-              ),
+        child: Column(
+          children: [
+            SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+            _buildDayPicker(theme),
+            Expanded(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : daySchedule.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: daySchedule.length,
+                        itemBuilder: (context, index) {
+                          final item = daySchedule[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              leading: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: Colors.indigo.withOpacity(0.1), shape: BoxShape.circle),
+                                child: const Icon(Icons.timer_outlined, color: Colors.indigo),
+                              ),
+                              title: Text(item['subject'] ?? 'Duty', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              subtitle: Text('${item['time_slot']} • ${item['grade']}'),
+                              trailing: Text(item['room'] ?? 'RM 1', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey)),
+                            ),
+                          );
+                        },
+                      ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDaySchedule(String day) {
-    final entries = (_viewIndex == 0 ? _teachingEntries : _examEntries).where((e) => e['day'] == day).toList();
-    entries.sort((a, b) => (a['time_slot'] ?? '').compareTo(b['time_slot'] ?? ''));
-
-    if (entries.isEmpty) {
-      return const Center(child: Text('No duties scheduled for this day in cloud.', style: TextStyle(color: Colors.grey)));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(entry['time_slot'] ?? '--:--', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
+  Widget _buildDayPicker(ThemeData theme) {
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) {
+          final isSelected = _selectedDay == day;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: ChoiceChip(
+              label: Text(day, style: TextStyle(color: isSelected ? Colors.white : Colors.indigo, fontWeight: FontWeight.bold)),
+              selected: isSelected,
+              selectedColor: Colors.indigo,
+              backgroundColor: Colors.white,
+              side: BorderSide(color: Colors.indigo.withOpacity(0.2)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (v) => setState(() => _selectedDay = day),
             ),
-            title: Text(entry['subject'] ?? 'Subject', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${entry['grade'] ?? ''} ${entry['stream'] ?? ''} • Room ${entry['room'] ?? 'N/A'}'),
-          ),
-        );
-      },
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.event_available_rounded, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No lessons scheduled for this day.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
+      ),
     );
   }
 }

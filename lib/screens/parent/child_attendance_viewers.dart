@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/school_models.dart';
-import '../../services/database_service.dart';
+import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
 
 class ChildAttendanceScreen extends StatefulWidget {
@@ -26,21 +26,30 @@ class _ChildAttendanceScreenState extends State<ChildAttendanceScreen> {
   }
 
   Future<void> _load() async {
-    final list = await DatabaseService.instance.getAttendanceForStudent(widget.student.studentId);
-    int p = 0, a = 0, l = 0;
-    for (var r in list) {
-      if (r.status == 'Present') p++;
-      else if (r.status == 'Absent') a++;
-      else if (r.status == 'Late') l++;
-    }
-    if (mounted) {
-      setState(() {
-        _records = list.reversed.toList();
-        _present = p;
-        _absent = a;
-        _late = l;
-        _isLoading = false;
-      });
+    try {
+      // MIGRATED: Now uses Supabase Cloud instead of local SQLite
+      final listData = await SupabaseService.instance.getChildAttendance(widget.student.studentId);
+      final list = (listData ?? []).map((m) => Attendance.fromMap(m)).toList();
+
+      int p = 0, a = 0, l = 0;
+      for (var r in list) {
+        if (r.status == 'Present') p++;
+        else if (r.status == 'Absent') a++;
+        else if (r.status == 'Late') l++;
+      }
+      
+      if (mounted) {
+        setState(() {
+          _records = list.reversed.toList();
+          _present = p;
+          _absent = a;
+          _late = l;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Parent Attendance Load Error: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -167,7 +176,7 @@ class _ChildAttendanceScreenState extends State<ChildAttendanceScreen> {
         children: [
           Icon(Icons.event_busy, size: 64, color: Colors.grey),
           SizedBox(height: 16),
-          Text('No attendance records found.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text('No cloud records found.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         ],
       ),
     );

@@ -140,8 +140,8 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
 
   Widget _buildStudentRecordCard(ThemeData theme, Map<String, dynamic> record) {
     final Student student = record['student'];
-    final double balance = record['balance'];
-    final double paid = record['totalPaid'];
+    final double balance = (record['balance'] as num).toDouble();
+    final double paid = (record['totalPaid'] as num).toDouble();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),

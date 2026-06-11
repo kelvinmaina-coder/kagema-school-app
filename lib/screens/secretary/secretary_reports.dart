@@ -1,51 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../../models/school_models.dart';
 import '../../app_theme.dart';
 
-class SecretaryReportsScreen extends StatefulWidget {
+class SecretaryReportsScreen extends StatelessWidget {
   const SecretaryReportsScreen({super.key});
-
-  @override
-  State<SecretaryReportsScreen> createState() => _SecretaryReportsScreenState();
-}
-
-class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
-  String _selectedReport = 'Student List';
-  List<dynamic> _data = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchReportData();
-  }
-
-  Future<void> _fetchReportData() async {
-    setState(() => _isLoading = true);
-    try {
-      if (_selectedReport == 'Student List') {
-        final students = await SupabaseService.instance.getAllStudents();
-        setState(() => _data = students);
-      } else if (_selectedReport == 'Admission Report') {
-        final res = await SupabaseService.instance.client
-            .from('students')
-            .select()
-            .order('admission_date', ascending: false);
-        setState(() => _data = res);
-      } else if (_selectedReport == 'Parent Contacts') {
-        final res = await SupabaseService.instance.getParents();
-        setState(() => _data = res);
-      } else if (_selectedReport == 'Attendance Summary') {
-        final res = await SupabaseService.instance.getSchoolAttendanceSummary();
-        setState(() => _data = res);
-      }
-    } catch (e) {
-      debugPrint("Report Error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,112 +13,75 @@ class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Cloud Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Administrative Reports', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: theme.cardColor.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: DropdownButtonFormField<String>(
-                  value: _selectedReport,
-                  items: ['Student List', 'Admission Report', 'Parent Contacts', 'Attendance Summary']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.bold))))
-                      .toList(),
-                  onChanged: (v) {
-                    setState(() => _selectedReport = v!);
-                    _fetchReportData();
-                  },
-                  decoration: const InputDecoration(labelText: 'Select Report Type', border: InputBorder.none),
-                ),
-              ),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _data.isEmpty
-                        ? const Center(child: Text('No cloud data found.'))
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _data.length,
-                            itemBuilder: (context, i) {
-                              final item = _data[i];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                child: _buildListItem(item),
-                              );
-                            },
-                          ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.cloud_download),
-                    label: const Text('SYNC & EXPORT PDF', style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primaryColor, 
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                  ),
-                ),
-              )
-            ],
+        child: ListView(
+          padding: EdgeInsets.only(
+            top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20,
+            left: 20, right: 20, bottom: 40
           ),
+          children: [
+            _reportCategory(theme, 'ENROLLMENT ANALYTICS', Icons.person_add_rounded, Colors.blue, [
+              'Current Student List',
+              'Class Stream Summary',
+              'Admission Log (This Term)',
+            ]),
+            const SizedBox(height: 24),
+            _reportCategory(theme, 'OFFICE LOGS', Icons.business_center_rounded, Colors.teal, [
+              'Daily Visitor Summary',
+              'Appointment History',
+              'Staff Attendance Export',
+            ]),
+            const SizedBox(height: 24),
+            _reportCategory(theme, 'COMMUNICATION', Icons.campaign_rounded, Colors.orange, [
+              'Broadcast Archive',
+              'Parent Notification Log',
+            ]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildListItem(dynamic item) {
-    if (_selectedReport == 'Student List') {
-      final s = Student.fromMap(item);
-      return ListTile(
-        leading: const Icon(Icons.person, color: Colors.blue),
-        title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('ADM: ${s.admissionNumber} | ${s.grade}'),
-      );
-    } else if (_selectedReport == 'Parent Contacts') {
-      return ListTile(
-        leading: const Icon(Icons.family_restroom, color: Colors.green),
-        title: Text(item['name'] ?? 'No Name', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(item['phone'] ?? 'No Phone'),
-        trailing: const Icon(Icons.phone, size: 18, color: Colors.green),
-      );
-    } else if (_selectedReport == 'Admission Report') {
-      return ListTile(
-        leading: const Icon(Icons.assignment_ind, color: Colors.orange),
-        title: Text(item['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Date: ${item['admission_date'] ?? 'N/A'}'),
-        trailing: Text(item['admission_number'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-      );
-    } else {
-      return ListTile(
-        leading: const Icon(Icons.fact_check, color: Colors.purple),
-        title: Text('Grade: ${item['grade']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Status: ${item['status']}'),
-      );
-    }
+  Widget _reportCategory(ThemeData theme, String title, IconData icon, Color color, List<String> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 8),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: 10),
+              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color.withOpacity(0.7), letterSpacing: 1.5)),
+            ],
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: items.map((item) => ListTile(
+              title: Text(item, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              trailing: const Icon(Icons.download_for_offline_rounded, size: 20, color: Colors.blueGrey),
+              onTap: () {}, // Future PDF export logic
+            )).toList(),
+          ),
+        ),
+      ],
+    );
   }
 }

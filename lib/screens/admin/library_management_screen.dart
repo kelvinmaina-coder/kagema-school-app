@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../../models/school_models.dart';
 import '../../app_theme.dart';
 
 class LibraryManagementScreen extends StatefulWidget {
@@ -21,6 +20,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
   }
 
   Future<void> _loadBooks() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getBooks();
@@ -31,36 +31,39 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Library Load Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showBookForm({Map<String, dynamic>? book}) {
-    final titleController = TextEditingController(text: book?['title']);
-    final authorController = TextEditingController(text: book?['author']);
-    final isbnController = TextEditingController(text: book?['isbn']);
-    final qtyController = TextEditingController(text: book?['total_copies']?.toString() ?? '1');
+  void _showAddBookDialog() {
+    final theme = Theme.of(context);
+    final titleController = TextEditingController();
+    final authorController = TextEditingController();
+    final qtyController = TextEditingController(text: '1');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(book == null ? 'Catalog New Book' : 'Update Catalog Entry', 
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Book Title', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: authorController, decoration: const InputDecoration(labelText: 'Author Name', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: isbnController, decoration: const InputDecoration(labelText: 'ISBN Number', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: qtyController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Total Copies', border: OutlineInputBorder())),
+            Text('Catalog New Volume', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
+            const SizedBox(height: 8),
+            const Text('Add a new book record to the cloud library', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 24),
+            TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Book Title', border: OutlineInputBorder(), prefixIcon: Icon(Icons.book))),
+            const SizedBox(height: 16),
+            TextField(controller: authorController, decoration: const InputDecoration(labelText: 'Author Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person_outline))),
+            const SizedBox(height: 16),
+            TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Copies Available', border: OutlineInputBorder(), prefixIcon: Icon(Icons.copy)), keyboardType: TextInputType.number),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -69,24 +72,20 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                 onPressed: () async {
                   if (titleController.text.isNotEmpty) {
                     await SupabaseService.instance.saveBook({
-                      'bookId': book?['book_id'],
                       'title': titleController.text.trim(),
                       'author': authorController.text.trim(),
-                      'isbn': isbnController.text.trim(),
-                      'category': 'General',
-                      'availableCopies': int.tryParse(qtyController.text) ?? 1,
-                      'totalCopies': int.tryParse(qtyController.text) ?? 1,
+                      'total_copies': int.tryParse(qtyController.text) ?? 1,
+                      'available_copies': int.tryParse(qtyController.text) ?? 1,
                     });
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _loadBooks();
-                    }
+                    Navigator.pop(context);
+                    _loadBooks();
                   }
                 },
-                child: const Text('SYNC TO CATALOG'),
+                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                child: const Text('SYNC TO LIBRARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -99,55 +98,62 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     final gemini = theme.extension<GeminiThemeExtension>();
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Library Catalog'),
-        backgroundColor: Colors.brown.shade700,
+        title: const Text('Knowledge Base', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.blueGrey.shade800, Colors.blueGrey.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+          ),
+        ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: _isLoading
+        child: Padding(
+          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+          child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
             : _books.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _books.length,
-                    itemBuilder: (context, index) {
-                      final book = _books[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        child: ListTile(
-                          leading: const CircleAvatar(backgroundColor: Colors.brown, child: Icon(Icons.menu_book, color: Colors.white, size: 20)),
-                          title: Text(book['title'] ?? 'Unknown Book', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('By ${book['author']} • ${book['available_copies']}/${book['total_copies']} In Stock'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit_note, color: Colors.blue),
-                                onPressed: () => _showBookForm(book: book),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_sweep_outlined, color: Colors.red),
-                                onPressed: () async {
-                                  await SupabaseService.instance.deleteBook(book['book_id']);
-                                  _loadBooks();
-                                },
-                              ),
-                            ],
-                          ),
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _books.length,
+                  itemBuilder: (context, index) {
+                    final b = _books[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blueGrey.withOpacity(0.1),
+                          child: const Icon(Icons.menu_book_rounded, color: Colors.blueGrey),
                         ),
-                      );
-                    },
-                  ),
+                        title: Text(b['title'] ?? 'Unknown Volume', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Author: ${b['author'] ?? "N/A"} • Available: ${b['available_copies'] ?? 0}'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () async {
+                            await SupabaseService.instance.deleteBook(b['book_id']);
+                            _loadBooks();
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showBookForm(),
-        backgroundColor: Colors.brown.shade700,
-        label: const Text('New Book', style: TextStyle(color: Colors.white)),
-        icon: const Icon(Icons.add, color: Colors.white),
+        onPressed: _showAddBookDialog,
+        backgroundColor: Colors.blueGrey.shade700,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.library_add_rounded),
+        label: const Text('Add Book', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -159,7 +165,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
         children: [
           Icon(Icons.library_books_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('Your library catalog is empty.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text('Cloud library is currently empty.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         ],
       ),
     );

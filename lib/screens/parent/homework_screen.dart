@@ -52,8 +52,8 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.purple, Colors.purple.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(colors: [Colors.purple.shade800, Colors.purple.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
       ),
@@ -64,33 +64,40 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _assignments.isEmpty
-                  ? const Center(child: Text('No homework assigned for this class.', style: TextStyle(fontWeight: FontWeight.bold)))
+                  ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       itemCount: _assignments.length,
                       itemBuilder: (context, index) {
                         final h = _assignments[index];
                         return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
+                          margin: const EdgeInsets.only(bottom: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           child: ExpansionTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.purple, 
-                              child: Icon(Icons.assignment, color: Colors.white, size: 20)
+                            leading: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), shape: BoxShape.circle),
+                              child: const Icon(Icons.assignment_rounded, color: Colors.purple, size: 20),
                             ),
                             title: Text(h.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('${h.subject} | Due: ${h.dueDate}'),
+                            subtitle: Text('${h.subject} • Due: ${h.dueDate}'),
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Instructions:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey)),
+                                    const Text('TEACHER INSTRUCTIONS:', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey, letterSpacing: 1)),
                                     const SizedBox(height: 8),
-                                    Text(h.description, style: const TextStyle(height: 1.5)),
+                                    Text(h.description, style: const TextStyle(height: 1.5, fontSize: 13)),
                                     const Divider(height: 32),
-                                    Text('Posted on: ${h.postedDate}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Posted: ${h.postedDate}', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                                        const Text('PENDING SYNC', style: TextStyle(fontSize: 8, color: Colors.orange, fontWeight: FontWeight.w900)),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               )
@@ -100,6 +107,19 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                       },
                     ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.assignment_turned_in_rounded, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('All assignments completed!', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
       ),
     );
   }

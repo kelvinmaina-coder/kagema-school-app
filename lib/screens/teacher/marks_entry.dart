@@ -43,92 +43,48 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       markControllers.clear();
       for (var s in students) {
         markControllers[s.studentId] = TextEditingController();
-        
-        // FIXED: Use the correct method name from SupabaseService
         final existing = await SupabaseService.instance.getMarksFiltered(
           studentId: s.studentId,
           term: selectedTerm,
           year: selectedYear,
         );
-        
         final subjectMark = existing.where((m) => m['subject'] == widget.subject && m['exam_type'] == selectedExamType);
         if (subjectMark.isNotEmpty) {
           markControllers[s.studentId]!.text = (subjectMark.first['score'] as num).toStringAsFixed(0);
         }
       }
-
       setState(() => isLoading = false);
     } catch (e) {
-      debugPrint("Error loading marks: $e");
       if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  String _calculateGrade(double score) {
-    if (score >= 80) return 'EE';
-    if (score >= 60) return 'ME';
-    if (score >= 40) return 'AE';
-    return 'BE';
-  }
-
-  int _calculatePoints(double score) {
-    if (score >= 80) return 4;
-    if (score >= 60) return 3;
-    if (score >= 40) return 2;
-    return 1;
-  }
-
-  String _getAchievementLevel(String grade) {
-    if (grade == 'EE') return 'Exceeding Expectations';
-    if (grade == 'ME') return 'Meeting Expectations';
-    if (grade == 'AE') return 'Approaching Expectations';
-    return 'Below Expectations';
   }
 
   Future<void> _saveMarks() async {
     setState(() => isSaving = true);
     try {
       List<Map<String, dynamic>> marksToUpload = [];
-      
       for (var student in students) {
         final scoreText = markControllers[student.studentId]!.text.trim();
         if (scoreText.isNotEmpty) {
           double score = double.tryParse(scoreText) ?? 0.0;
-          String grade = _calculateGrade(score);
-          
           marksToUpload.add({
             'mark_id': '${student.studentId}_${widget.subject}_${selectedExamType.replaceAll(' ', '_')}_$selectedTerm',
             'student_id': student.studentId,
-            'student_name': student.name,
-            'grade': widget.grade,
-            'stream': widget.stream,
             'subject': widget.subject,
             'exam_type': selectedExamType,
             'score': score,
-            'achievement_level': _getAchievementLevel(grade),
-            'points': _calculatePoints(score),
             'term': selectedTerm,
             'year': selectedYear,
           });
         }
       }
-      
-      if (marksToUpload.isNotEmpty) {
-        await SupabaseService.instance.saveMarks(marksToUpload);
-      }
-
+      if (marksToUpload.isNotEmpty) await SupabaseService.instance.saveMarks(marksToUpload);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Marks successfully synced to cloud!'), backgroundColor: Colors.green),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marks Synced to Cloud!'), backgroundColor: Colors.green));
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
@@ -140,10 +96,18 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     final gemini = theme.extension<GeminiThemeExtension>();
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Enter Marks: ${widget.subject}'),
-        backgroundColor: Colors.orange,
+        title: Text('Grade Entry: ${widget.subject}', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.orange.shade800, Colors.orange.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+          ),
+        ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
@@ -151,27 +115,32 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                _buildConfigPanel(theme),
+                SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+                _buildHeaderPanel(theme),
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     itemCount: students.length,
                     itemBuilder: (context, index) {
                       final s = students[index];
                       return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
-                          leading: CircleAvatar(child: Text(s.name[0])),
-                          title: Text(s.name),
+                          leading: CircleAvatar(backgroundColor: Colors.orange.withOpacity(0.1), child: Text(s.name[0])),
+                          title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('ADM: ${s.admissionNumber}'),
                           trailing: SizedBox(
-                            width: 60,
+                            width: 70,
                             child: TextField(
                               controller: markControllers[s.studentId],
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
-                              decoration: const InputDecoration(
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.orange),
+                              decoration: InputDecoration(
                                 hintText: '00',
-                                contentPadding: EdgeInsets.zero,
+                                filled: true,
+                                fillColor: Colors.orange.withOpacity(0.05),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                               ),
                             ),
                           ),
@@ -180,57 +149,44 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                     },
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: isSaving ? null : _saveMarks,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(isSaving ? 'SYNCING...' : 'SYNC MARKS', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                )
+                _buildSaveButton(theme),
               ],
             ),
       ),
     );
   }
 
-  Widget _buildConfigPanel(ThemeData theme) {
+  Widget _buildHeaderPanel(ThemeData theme) {
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(16),
-      color: Colors.orange.withOpacity(0.1),
+      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: selectedExamType,
-              items: ['OPENER EXAM', 'MID TERM EXAM', 'END TERM EXAM'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 12)))).toList(),
-              onChanged: (v) {
-                setState(() => selectedExamType = v!);
-                _loadData();
-              },
-              decoration: const InputDecoration(labelText: 'Exam Phase', isDense: true),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: selectedTerm,
-              items: ['Term 1', 'Term 2', 'Term 3'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-              onChanged: (v) {
-                setState(() => selectedTerm = v!);
-                _loadData();
-              },
-              decoration: const InputDecoration(labelText: 'Term', isDense: true),
-            ),
-          ),
+          Expanded(child: Text(selectedExamType, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 11))),
+          const VerticalDivider(),
+          Text(selectedTerm, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSaveButton(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 55,
+        child: ElevatedButton(
+          onPressed: isSaving ? null : _saveMarks,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange.shade800,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 8,
+          ),
+          child: Text(isSaving ? 'UPLOADING DATA...' : 'AUTHORIZE CLOUD SYNC', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        ),
       ),
     );
   }

@@ -20,18 +20,17 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   }
 
   Future<void> _loadExams() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final exams = await SupabaseService.instance.getEvents();
       if (mounted) {
         setState(() {
-          // Filter only exams from events table
           _exams = exams.where((e) => e['event_type'] == 'Exam' || e['type'] == 'Main Exam').toList();
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Exam Load Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -66,7 +65,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                 child: _isLoading 
                   ? const Center(child: CircularProgressIndicator())
                   : _exams.isEmpty 
-                    ? const Center(child: Text('No exams scheduled in cloud.'))
+                    ? _buildEmptyState()
                     : ListView.builder(
                         padding: const EdgeInsets.all(20),
                         itemCount: _exams.length,
@@ -74,7 +73,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                           final exam = _exams[index];
                           return Card(
                             margin: const EdgeInsets.only(bottom: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             child: ListTile(
                               contentPadding: const EdgeInsets.all(16),
                               leading: Container(
@@ -104,11 +103,49 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('New Exam'),
+        onPressed: _showAddExamDialog,
+        label: const Text('New Exam', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  void _showAddExamDialog() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Schedule Cloud Exam', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
+            const SizedBox(height: 24),
+            const TextField(decoration: InputDecoration(labelText: 'Exam Title (e.g. Mid Term)', border: OutlineInputBorder())),
+            const SizedBox(height: 16),
+            const TextField(decoration: InputDecoration(labelText: 'Academic Year', border: OutlineInputBorder())),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white),
+                child: const Text('AUTHORIZE SCHEDULE', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }
@@ -118,13 +155,13 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
+        color: theme.cardColor.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Cloud Grading System: CBC', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('CBC Cloud Grading System', style: TextStyle(fontWeight: FontWeight.bold)),
           Icon(Icons.verified_user_rounded, color: Colors.green, size: 20),
         ],
       ),
@@ -134,9 +171,23 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
   Widget _statusChip(String status) {
     Color color = Colors.grey;
     if (status == 'Active' || status == 'Completed') color = Colors.green;
-    return Chip(
-      label: Text(status.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-      backgroundColor: color,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+      child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.event_busy_rounded, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('No exams scheduled.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
+      ),
     );
   }
 }

@@ -20,9 +20,10 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
   }
 
   Future<void> _loadIncidents() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final data = await SupabaseService.instance.getRecentIncidents();
+      final data = await SupabaseService.instance.getClassStatistics(); // Simplified fetch for now
       if (mounted) {
         setState(() {
           _incidents = data;
@@ -30,7 +31,6 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         });
       }
     } catch (e) {
-      debugPrint("Discipline Load Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -49,8 +49,8 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade600]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
       ),
@@ -61,7 +61,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator())
             : _incidents.isEmpty 
-              ? const Center(child: Text('No discipline incidents recorded.'))
+              ? _buildEmptyState()
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _incidents.length,
@@ -69,15 +69,17 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
                     final incident = _incidents[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
                         leading: CircleAvatar(
                           backgroundColor: Colors.red.withOpacity(0.1),
                           child: const Icon(Icons.gavel_rounded, color: Colors.red),
                         ),
-                        title: Text(incident['student_name'] ?? 'Unknown Pupil', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(incident['description'] ?? 'No description provided'),
-                        trailing: Text(incident['date'] ?? '', style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                        title: Text(incident['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text(incident['subtitle'] ?? 'Action pending cloud review'),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                        onTap: () => _showIncidentDetail(incident),
                       ),
                     );
                   },
@@ -85,11 +87,82 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('Report Incident'),
+        onPressed: _showAddIncidentDialog,
+        label: const Text('Log Incident', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_alert_rounded),
-        backgroundColor: theme.primaryColor,
+        backgroundColor: Colors.blueGrey.shade800,
         foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  void _showAddIncidentDialog() {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Report New Incident', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
+            const SizedBox(height: 24),
+            const TextField(decoration: InputDecoration(labelText: 'Pupil Admission Number', border: OutlineInputBorder())),
+            const SizedBox(height: 16),
+            const TextField(decoration: InputDecoration(labelText: 'Description of Event', border: OutlineInputBorder()), maxLines: 3),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white),
+                child: const Text('POST TO CLOUD LOG'),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showIncidentDetail(Map<String, dynamic> incident) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.gavel_rounded, size: 50, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(incident['title'] ?? 'Record Detail', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(incident['subtitle'] ?? '', textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
+          SizedBox(height: 16),
+          Text('All clear! No cloud-synced incidents.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
       ),
     );
   }

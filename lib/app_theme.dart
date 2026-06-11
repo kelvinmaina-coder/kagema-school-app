@@ -7,51 +7,74 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
   final List<BoxShadow>? glowingShadows;
 
   const GeminiThemeExtension({
-    this.primaryGradient, 
+    this.primaryGradient,
     this.glowingBorderGradient,
     this.glowingShadows,
   });
 
   @override
   GeminiThemeExtension copyWith({
-    LinearGradient? primaryGradient, 
+    LinearGradient? primaryGradient,
     LinearGradient? glowingBorderGradient,
     List<BoxShadow>? glowingShadows,
   }) {
     return GeminiThemeExtension(
       primaryGradient: primaryGradient ?? this.primaryGradient,
-      glowingBorderGradient: glowingBorderGradient ?? this.glowingBorderGradient,
+      glowingBorderGradient:
+          glowingBorderGradient ?? this.glowingBorderGradient,
       glowingShadows: glowingShadows ?? this.glowingShadows,
     );
   }
 
   @override
-  GeminiThemeExtension lerp(ThemeExtension<GeminiThemeExtension>? other, double t) {
+  GeminiThemeExtension lerp(
+      ThemeExtension<GeminiThemeExtension>? other, double t) {
     if (other is! GeminiThemeExtension) return this;
     return GeminiThemeExtension(
-      primaryGradient: LinearGradient.lerp(primaryGradient, other.primaryGradient, t),
-      glowingBorderGradient: LinearGradient.lerp(glowingBorderGradient, other.glowingBorderGradient, t),
-      glowingShadows: other.glowingShadows,
+      primaryGradient:
+          LinearGradient.lerp(primaryGradient, other.primaryGradient, t),
+      glowingBorderGradient: LinearGradient.lerp(
+          glowingBorderGradient, other.glowingBorderGradient, t),
+      glowingShadows: BoxShadow.lerpList(glowingShadows, other.glowingShadows, t),
     );
   }
 
   Widget buildCreativeBackground({required Widget child, bool isDark = false}) {
     return Stack(
       children: [
-        Container(color: isDark ? const Color(0xFF0F0C0B) : const Color(0xFFFAF9F6)),
+        Container(
+            color: isDark ? const Color(0xFF0F0C0B) : const Color(0xFFFAF9F6)),
         Positioned(
-          top: -100,
+          top: -150,
           right: -100,
-          child: Container(
-            width: 400,
-            height: 400,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle, 
-              color: const Color(0xFF4285F4).withOpacity(isDark ? 0.15 : 0.1)
-            ),
+          child: _BlurredBlob(
+            color: const Color(0xFFD84315)
+                .withOpacity(isDark ? 0.25 : 0.15),
+            size: 500,
           ),
         ),
-        BackdropFilter(filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70), child: child),
+        Positioned(
+          bottom: -200,
+          left: -150,
+          child: _BlurredBlob(
+            color: const Color(0xFF3F51B5)
+                .withOpacity(isDark ? 0.2 : 0.1),
+            size: 600,
+          ),
+        ),
+        Positioned(
+          top: 300,
+          left: -50,
+          child: _BlurredBlob(
+            color: const Color(0xFF009688)
+                .withOpacity(isDark ? 0.15 : 0.05),
+            size: 300,
+          ),
+        ),
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
+          child: child,
+        ),
       ],
     );
   }
@@ -73,11 +96,28 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
         margin: EdgeInsets.all(borderThickness),
         padding: padding ?? const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: backgroundColor ?? (backgroundColor == null ? Colors.white.withOpacity(0.8) : backgroundColor),
+          color: backgroundColor ??
+              (backgroundColor == null
+                  ? Colors.white.withOpacity(0.8)
+                  : backgroundColor),
           borderRadius: BorderRadius.circular(borderRadius - borderThickness),
         ),
         child: child,
       ),
+    );
+  }
+}
+
+class _BlurredBlob extends StatelessWidget {
+  final Color color;
+  final double size;
+  const _BlurredBlob({required this.color, required this.size});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }
@@ -95,36 +135,51 @@ class AppTheme {
   );
 
   static ThemeData get lightTheme => ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.light,
-    primaryColor: primaryWarm,
-    colorScheme: ColorScheme.fromSeed(seedColor: primaryWarm),
-    extensions: [
-      const GeminiThemeExtension(
-        primaryGradient: LinearGradient(colors: [primaryWarm, Color(0xFFFF7043)]),
-        glowingBorderGradient: aiGlowGradient,
-        glowingShadows: [
-          BoxShadow(color: Color(0x304285F4), blurRadius: 10, spreadRadius: 1),
-          BoxShadow(color: Color(0x309B72CB), blurRadius: 20, spreadRadius: -2),
+        useMaterial3: true,
+        brightness: Brightness.light,
+        primaryColor: primaryWarm,
+        colorScheme: ColorScheme.fromSeed(seedColor: primaryWarm),
+        cardTheme: const CardThemeData(
+          elevation: 0,
+          color: Color(0xCCFFFFFF),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(24))),
+        ),
+        extensions: [
+          const GeminiThemeExtension(
+            primaryGradient:
+                LinearGradient(colors: [primaryWarm, Color(0xFFFF7043)]),
+            glowingBorderGradient: aiGlowGradient,
+            glowingShadows: [
+              BoxShadow(
+                  color: Color(0x204285F4), blurRadius: 20, spreadRadius: 1),
+            ],
+          ),
         ],
-      ),
-    ],
-  );
+      );
 
   static ThemeData get darkTheme => ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    primaryColor: primaryWarm,
-    colorScheme: ColorScheme.fromSeed(seedColor: primaryWarm, brightness: Brightness.dark),
-    extensions: [
-      const GeminiThemeExtension(
-        primaryGradient: LinearGradient(colors: [primaryWarm, Color(0xFFFF7043)]),
-        glowingBorderGradient: aiGlowGradient,
-        glowingShadows: [
-          BoxShadow(color: Color(0x604285F4), blurRadius: 15, spreadRadius: 2),
-          BoxShadow(color: Color(0x609B72CB), blurRadius: 30, spreadRadius: -2),
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        primaryColor: primaryWarm,
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: primaryWarm, brightness: Brightness.dark),
+        cardTheme: const CardThemeData(
+          elevation: 0,
+          color: Color(0xB3242424),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(24))),
+        ),
+        extensions: [
+          const GeminiThemeExtension(
+            primaryGradient:
+                LinearGradient(colors: [primaryWarm, Color(0xFFFF7043)]),
+            glowingBorderGradient: aiGlowGradient,
+            glowingShadows: [
+              BoxShadow(
+                  color: Color(0x40D84315), blurRadius: 25, spreadRadius: 2),
+            ],
+          ),
         ],
-      ),
-    ],
-  );
+      );
 }
