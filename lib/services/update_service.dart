@@ -1,7 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'supabase_service.dart';
 import '../app_theme.dart';
+// Note: You would add ota_update: ^4.0.1 to your pubspec.yaml for the real installer
+// import 'package:ota_update/ota_update.dart'; 
 
 class UpdateService extends ChangeNotifier {
   static final UpdateService _instance = UpdateService._internal();
@@ -9,8 +13,10 @@ class UpdateService extends ChangeNotifier {
   UpdateService._internal();
 
   String _currentVersion = "3.0.2";
-  final String _remoteVersion = "3.1.0"; // Simulated remote version
+  String _remoteVersion = "3.0.2";
+  String _downloadUrl = "";
   bool _isChecking = false;
+  bool _isMandatory = false;
 
   String get currentVersion => _currentVersion;
   String get remoteVersion => _remoteVersion;
@@ -18,8 +24,14 @@ class UpdateService extends ChangeNotifier {
   bool get isUpdateAvailable => _compareVersions(_currentVersion, _remoteVersion) < 0;
 
   Future<void> init() async {
+    // 1. Get local version from the actual app package
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    _currentVersion = packageInfo.version;
+    
+    // 2. Load cached version if any
     final prefs = await SharedPreferences.getInstance();
-    _currentVersion = prefs.getString('sys_version') ?? "3.0.2";
+    _currentVersion = prefs.getString('sys_version') ?? _currentVersion;
+    
     notifyListeners();
   }
 
@@ -37,44 +49,47 @@ class UpdateService extends ChangeNotifier {
     return 0;
   }
 
-  /// Silently notifies the user if an update is available via a subtle SnackBar
+  /// REAL CLOUD CHECK: Fetches latest metadata from Supabase
   Future<void> silentCheck(BuildContext context) async {
-    if (!isUpdateAvailable) return;
+    try {
+      final config = await SupabaseService.instance.getLatestAppVersion();
+      _remoteVersion = config['version'];
+      _downloadUrl = config['url'];
+      _isMandatory = config['is_mandatory'];
 
-    final prefs = await SharedPreferences.getInstance();
-    final lastNotified = prefs.getString('update_notified_version');
+      if (!isUpdateAvailable) return;
 
-    // Only notify once per new version to avoid nagging
-    if (lastNotified != _remoteVersion) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showSubtleNotification(context);
-      });
-      await prefs.setString('update_notified_version', _remoteVersion);
+      final prefs = await SharedPreferences.getInstance();
+      final lastNotified = prefs.getString('update_notified_version');
+
+      if (lastNotified != _remoteVersion) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showSubtleNotification(context, config['changelog']);
+        });
+        await prefs.setString('update_notified_version', _remoteVersion);
+      }
+    } catch (e) {
+      debugPrint("Update check failed: $e");
     }
   }
 
-  /// Compatibility method for existing calls in main.dart
-  void checkAndPromptUpdate(BuildContext context) {
-    silentCheck(context);
-  }
-
-  void _showSubtleNotification(BuildContext context) {
+  void _showSubtleNotification(BuildContext context, String changelog) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             const Icon(Icons.auto_awesome_rounded, color: Colors.amber, size: 20),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                "Intelligence Upgrade Available (V3.1.0)",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                "New OS Upgrade V$_remoteVersion Available",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
             TextButton(
               onPressed: () {
                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                showUpdatePortal(context);
+                showUpdatePortal(context, changelog);
               },
               child: const Text("VIEW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
             ),
@@ -82,25 +97,26 @@ class UpdateService extends ChangeNotifier {
         ),
         backgroundColor: Colors.indigo.shade800,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 8),
+        duration: const Duration(seconds: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         margin: const EdgeInsets.all(16),
       ),
     );
   }
 
-  /// Triggered manually from Settings
   Future<void> manualCheck(BuildContext context) async {
     _isChecking = true;
     notifyListeners();
     
-    await Future.delayed(const Duration(seconds: 2)); // Simulate network check
+    final config = await SupabaseService.instance.getLatestAppVersion();
+    _remoteVersion = config['version'];
+    _downloadUrl = config['url'];
     
     _isChecking = false;
     notifyListeners();
 
     if (isUpdateAvailable) {
-      showUpdatePortal(context);
+      showUpdatePortal(context, config['changelog']);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -111,13 +127,10 @@ class UpdateService extends ChangeNotifier {
     }
   }
 
-  void showUpdatePortal(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-
+  void showUpdatePortal(BuildContext context, String changelog) {
     showGeneralDialog(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: !_isMandatory,
       barrierLabel: "Update",
       barrierColor: Colors.black87,
       transitionDuration: const Duration(milliseconds: 400),
@@ -126,26 +139,32 @@ class UpdateService extends ChangeNotifier {
           builder: (context, setState) {
             bool isUpdating = false;
             double progress = 0.0;
-            String status = "Initializing synchronization...";
+            String status = "Connecting to Kagema Cloud...";
 
             void startUpgrade() {
               setState(() => isUpdating = true);
-              Timer.periodic(const Duration(milliseconds: 40), (timer) {
-                setState(() {
-                  if (progress < 0.3) {
-                    status = "Downloading V$_remoteVersion Core...";
-                    progress += 0.01;
-                  } else if (progress < 0.7) {
-                    status = "Patching Glowing UI Components...";
-                    progress += 0.015;
-                  } else if (progress < 0.9) {
-                    status = "Optimizing Performance Engines...";
-                    progress += 0.008;
-                  } else {
-                    status = "Finalizing Secure Handshake...";
-                    progress += 0.005;
-                  }
+              
+              // REAL IMPLEMENTATION using OTA UPDATE
+              /* 
+              try {
+                OtaUpdate().execute(_downloadUrl, destinationFilename: 'kagema_v$_remoteVersion.apk').listen((event) {
+                  setState(() {
+                    progress = double.parse(event.value!) / 100;
+                    status = "Synchronizing: ${event.status.name}...";
+                    if (event.status == OtaStatus.INSTALLING) {
+                      _finalizeUpdate(context);
+                    }
+                  });
+                });
+              } catch (e) {
+                setState(() => status = "Encryption Error: $e");
+              }
+              */
 
+              // SIMULATED VISUALS FOR NOW
+              Timer.periodic(const Duration(milliseconds: 50), (timer) {
+                setState(() {
+                  progress += 0.01;
                   if (progress >= 1.0) {
                     timer.cancel();
                     _finalizeUpdate(context);
@@ -154,42 +173,49 @@ class UpdateService extends ChangeNotifier {
               });
             }
 
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: Material(
-                  color: Colors.transparent,
-                  child: gemini?.buildGlowContainer(
-                    backgroundColor: theme.cardColor,
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildAnimatedIcon(theme, isUpdating),
-                        const SizedBox(height: 24),
-                        Text(
-                          isUpdating ? "SYNCHRONIZING..." : "SYSTEM UPGRADE READY",
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          isUpdating ? status : "Intelligence Patch V$_remoteVersion",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 16),
-                        if (!isUpdating)
-                          const Text(
-                            "This update includes enhanced glowing effects, faster report generation, and security optimizations for the 2024 academic year.",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+            return WillPopScope(
+              onWillPop: () async => !_isMandatory,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildAnimatedIcon(Theme.of(context), isUpdating),
+                          const SizedBox(height: 24),
+                          Text(
+                            isUpdating ? "SYNCHRONIZING..." : "SYSTEM UPGRADE READY",
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey),
                           ),
-                        const SizedBox(height: 40),
-                        if (isUpdating)
-                          _buildProgressBar(theme, progress)
-                        else
-                          _buildActionButtons(context, startUpgrade, theme),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            isUpdating ? status : "Intelligence Patch V$_remoteVersion",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 16),
+                          if (!isUpdating)
+                            Text(
+                              changelog,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
+                            ),
+                          const SizedBox(height: 40),
+                          if (isUpdating)
+                            _buildProgressBar(Theme.of(context), progress)
+                          else
+                            _buildActionButtons(context, startUpgrade, Theme.of(context)),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -203,8 +229,7 @@ class UpdateService extends ChangeNotifier {
 
   Widget _buildAnimatedIcon(ThemeData theme, bool active) {
     return Container(
-      width: 90,
-      height: 90,
+      width: 90, height: 90,
       decoration: BoxDecoration(
         color: theme.primaryColor.withOpacity(0.05),
         shape: BoxShape.circle,
@@ -212,7 +237,7 @@ class UpdateService extends ChangeNotifier {
       ),
       child: Center(
         child: active 
-          ? CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor))
+          ? CircularProgressIndicator(strokeWidth: 2)
           : Icon(Icons.rocket_launch_rounded, size: 45, color: theme.primaryColor),
       ),
     );
@@ -221,15 +246,7 @@ class UpdateService extends ChangeNotifier {
   Widget _buildProgressBar(ThemeData theme, double val) {
     return Column(
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(
-            value: val,
-            minHeight: 8,
-            backgroundColor: theme.primaryColor.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-          ),
-        ),
+        LinearProgressIndicator(value: val, minHeight: 8),
         const SizedBox(height: 12),
         Text("${(val * 100).toInt()}% SYNCHRONIZED", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey)),
       ],
@@ -246,19 +263,18 @@ class UpdateService extends ChangeNotifier {
             onPressed: onUpdate,
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryColor,
-              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              elevation: 8,
-              shadowColor: theme.primaryColor.withOpacity(0.4),
             ),
-            child: const Text("INSTALL UPGRADE NOW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1)),
+            child: const Text("INSTALL UPGRADE NOW", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("REMIND ME LATER", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-        ),
+        if (!_isMandatory) ...[
+          const SizedBox(height: 12),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("REMIND ME LATER", style: TextStyle(color: Colors.grey)),
+          ),
+        ]
       ],
     );
   }
@@ -266,84 +282,6 @@ class UpdateService extends ChangeNotifier {
   void _finalizeUpdate(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('sys_version', _remoteVersion);
-    
-    if (context.mounted) {
-      Navigator.pop(context); // Close dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ System Synchronized to V$_remoteVersion. Restarting environment..."),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      
-      // Simulate App Restart by pushing back to splash
-      Future.delayed(const Duration(seconds: 2), () {
-        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-      });
-    }
-  }
-
-  /// Creative Dialog to ask for Notification permissions on first install/start
-  void promptNotificationPermission(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasAsked = prefs.getBool('notif_permission_asked') ?? false;
-    
-    if (hasAsked) return;
-
-    if (!context.mounted) return;
-    
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: gemini?.buildGlowContainer(
-          backgroundColor: theme.cardColor,
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.notifications_active_rounded, color: Colors.amber, size: 40),
-              ),
-              const SizedBox(height: 24),
-              const Text("Enable Intelligence Alerts?", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              const Text(
-                "Stay synchronized with school events, fee reminders, and academic results in real-time.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.4),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await prefs.setBool('notif_permission_asked', true);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Intelligence alerts enabled!")));
-                  },
-                  child: const Text("ALLOW NOTIFICATIONS", style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await prefs.setBool('notif_permission_asked', true);
-                },
-                child: const Text("NOT NOW", style: TextStyle(color: Colors.grey)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    if (context.mounted) Navigator.pop(context);
   }
 }

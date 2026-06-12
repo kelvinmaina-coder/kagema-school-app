@@ -115,6 +115,25 @@ class SupabaseService {
     }
   }
 
+  // --- 0. SYSTEM CONFIG & UPDATES ---
+  Future<Map<String, dynamic>> getLatestAppVersion() async {
+    try {
+      // Fetches from a 'system_config' table where you store your app metadata
+      final res = await client.from('system_config').select().eq('key', 'app_version').maybeSingle();
+      if (res != null) {
+        return {
+          'version': res['value'] ?? '3.0.0',
+          'url': res['metadata']?['download_url'] ?? '',
+          'changelog': res['metadata']?['changelog'] ?? 'Stability and performance improvements.',
+          'is_mandatory': res['metadata']?['is_mandatory'] ?? false,
+        };
+      }
+    } catch (e) {
+      debugPrint("Error fetching version: $e");
+    }
+    return {'version': '3.0.0', 'url': '', 'changelog': '', 'is_mandatory': false};
+  }
+
   // --- 1. INTELLIGENCE & ANALYTICS ---
   Future<List<Map<String, dynamic>>> getActionableInsights() async {
     return await _getDataWithCache('insights', () async {
