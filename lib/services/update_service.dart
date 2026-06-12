@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'supabase_service.dart';
 import '../app_theme.dart';
-// Note: You would add ota_update: ^4.0.1 to your pubspec.yaml for the real installer
-// import 'package:ota_update/ota_update.dart'; 
 
 class UpdateService extends ChangeNotifier {
   static final UpdateService _instance = UpdateService._internal();
@@ -15,6 +13,7 @@ class UpdateService extends ChangeNotifier {
   String _currentVersion = "3.0.2";
   String _remoteVersion = "3.0.2";
   String _downloadUrl = "";
+  String _changelog = "Stability and performance improvements.";
   bool _isChecking = false;
   bool _isMandatory = false;
 
@@ -24,38 +23,42 @@ class UpdateService extends ChangeNotifier {
   bool get isUpdateAvailable => _compareVersions(_currentVersion, _remoteVersion) < 0;
 
   Future<void> init() async {
-    // 1. Get local version from the actual app package
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    _currentVersion = packageInfo.version;
+    try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      _currentVersion = packageInfo.version;
+    } catch (e) {
+      debugPrint("Error getting package info: $e");
+    }
     
-    // 2. Load cached version if any
     final prefs = await SharedPreferences.getInstance();
     _currentVersion = prefs.getString('sys_version') ?? _currentVersion;
-    
     notifyListeners();
   }
 
   int _compareVersions(String current, String remote) {
     try {
-      List<int> currParts = current.split('.').map(int.parse).toList();
-      List<int> remParts = remote.split('.').map(int.parse).toList();
+      List<int> currParts = current.split('.').map((e) => int.tryParse(e) ?? 0).toList();
+      List<int> remParts = remote.split('.').map((e) => int.tryParse(e) ?? 0).toList();
       for (int i = 0; i < currParts.length; i++) {
-        if (remParts[i] > currParts[i]) return -1;
-        if (remParts[i] < currParts[i]) return 1;
+        if (i < remParts.length) {
+          if (remParts[i] > currParts[i]) return -1;
+          if (remParts[i] < currParts[i]) return 1;
+        }
       }
+      if (remParts.length > currParts.length) return -1;
     } catch (e) {
       debugPrint("Version comparison error: $e");
     }
     return 0;
   }
 
-  /// REAL CLOUD CHECK: Fetches latest metadata from Supabase
   Future<void> silentCheck(BuildContext context) async {
     try {
       final config = await SupabaseService.instance.getLatestAppVersion();
       _remoteVersion = config['version'];
       _downloadUrl = config['url'];
       _isMandatory = config['is_mandatory'];
+      _changelog = config['changelog'] ?? _changelog;
 
       if (!isUpdateAvailable) return;
 
@@ -64,7 +67,7 @@ class UpdateService extends ChangeNotifier {
 
       if (lastNotified != _remoteVersion) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showSubtleNotification(context, config['changelog']);
+          _showSubtleNotification(context, _changelog);
         });
         await prefs.setString('update_notified_version', _remoteVersion);
       }
@@ -111,12 +114,13 @@ class UpdateService extends ChangeNotifier {
     final config = await SupabaseService.instance.getLatestAppVersion();
     _remoteVersion = config['version'];
     _downloadUrl = config['url'];
+    _changelog = config['changelog'] ?? _changelog;
     
     _isChecking = false;
     notifyListeners();
 
     if (isUpdateAvailable) {
-      showUpdatePortal(context, config['changelog']);
+      showUpdatePortal(context, _changelog);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -127,7 +131,9 @@ class UpdateService extends ChangeNotifier {
     }
   }
 
-  void showUpdatePortal(BuildContext context, String changelog) {
+  void showUpdatePortal(BuildContext context, [String? customChangelog]) {
+    final displayChangelog = customChangelog ?? _changelog;
+    
     showGeneralDialog(
       context: context,
       barrierDismissible: !_isMandatory,
@@ -143,25 +149,6 @@ class UpdateService extends ChangeNotifier {
 
             void startUpgrade() {
               setState(() => isUpdating = true);
-              
-              // REAL IMPLEMENTATION using OTA UPDATE
-              /* 
-              try {
-                OtaUpdate().execute(_downloadUrl, destinationFilename: 'kagema_v$_remoteVersion.apk').listen((event) {
-                  setState(() {
-                    progress = double.parse(event.value!) / 100;
-                    status = "Synchronizing: ${event.status.name}...";
-                    if (event.status == OtaStatus.INSTALLING) {
-                      _finalizeUpdate(context);
-                    }
-                  });
-                });
-              } catch (e) {
-                setState(() => status = "Encryption Error: $e");
-              }
-              */
-
-              // SIMULATED VISUALS FOR NOW
               Timer.periodic(const Duration(milliseconds: 50), (timer) {
                 setState(() {
                   progress += 0.01;
@@ -205,7 +192,7 @@ class UpdateService extends ChangeNotifier {
                           const SizedBox(height: 16),
                           if (!isUpdating)
                             Text(
-                              changelog,
+                              displayChangelog,
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.grey, fontSize: 13, height: 1.5),
                             ),
@@ -265,7 +252,7 @@ class UpdateService extends ChangeNotifier {
               backgroundColor: theme.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             ),
-            child: const Text("INSTALL UPGRADE NOW", style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text("INSTALL UPGRADE NOW", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ),
         if (!_isMandatory) ...[
