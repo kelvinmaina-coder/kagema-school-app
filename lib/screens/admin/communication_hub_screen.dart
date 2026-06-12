@@ -14,6 +14,7 @@ class _CommunicationHubScreenState extends State<CommunicationHubScreen> {
   final TextEditingController _messageController = TextEditingController();
   String _selectedRole = 'All';
   bool _isSending = false;
+  Map<String, dynamic>? _editingNotification;
 
   final List<String> _roles = ['All', 'Teacher', 'Parent', 'Staff', 'Admin'];
 
@@ -24,22 +25,63 @@ class _CommunicationHubScreenState extends State<CommunicationHubScreen> {
     }
     setState(() => _isSending = true);
     try {
-      await SupabaseService.instance.postAnnouncement(
-        _titleController.text.trim(),
-        _messageController.text.trim(),
-        _selectedRole,
-      );
+      if (_editingNotification != null) {
+        await SupabaseService.instance.client.from('notifications').update({
+          'title': _titleController.text.trim(),
+          'message': _messageController.text.trim(),
+          'target_role': _selectedRole,
+        }).eq('notification_id', _editingNotification!['notification_id']);
+        
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Broadcast Updated Successfully!'), backgroundColor: Colors.blue));
+      } else {
+        await SupabaseService.instance.postAnnouncement(
+          _titleController.text.trim(),
+          _messageController.text.trim(),
+          _selectedRole,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud Broadcast Successful!'), backgroundColor: Colors.green));
+      }
+      
       if (mounted) {
-        setState(() => _isSending = false);
+        setState(() {
+          _isSending = false;
+          _editingNotification = null;
+        });
         _titleController.clear();
         _messageController.clear();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cloud Broadcast Successful!'), backgroundColor: Colors.green));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSending = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Broadcast Error: $e'), backgroundColor: Colors.red));
       }
+    }
+  }
+
+  void _editNotification(Map<String, dynamic> n) {
+    setState(() {
+      _editingNotification = n;
+      _titleController.text = n['title'] ?? '';
+      _messageController.text = n['message'] ?? '';
+      _selectedRole = n['target_role'] ?? 'All';
+    });
+  }
+
+  void _deleteNotification(Map<String, dynamic> n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Retract Broadcast?'),
+        content: Text('Delete "${n['title']}"? It will disappear from all portals.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('RETRACT', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await SupabaseService.instance.deleteNotification(n['notification_id'].toString());
     }
   }
 
@@ -87,7 +129,24 @@ class _CommunicationHubScreenState extends State<CommunicationHubScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(28)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(_editingNotification != null ? 'EDIT BROADCAST' : 'NEW BROADCAST', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.purple)),
+              if (_editingNotification != null)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: () => setState(() {
+                    _editingNotification = null;
+                    _titleController.clear();
+                    _messageController.clear();
+                  }),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _selectedRole,
             decoration: const InputDecoration(labelText: 'Target Audience', prefixIcon: Icon(Icons.groups_rounded)),
@@ -104,9 +163,9 @@ class _CommunicationHubScreenState extends State<CommunicationHubScreen> {
             height: 55,
             child: ElevatedButton.icon(
               onPressed: _isSending ? null : _sendAnnouncement,
-              icon: _isSending ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.rocket_launch_rounded),
-              label: const Text('AUTHORIZE BROADCAST', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+              icon: _isSending ? const CircularProgressIndicator(color: Colors.white) : Icon(_editingNotification != null ? Icons.save_rounded : Icons.rocket_launch_rounded),
+              label: Text(_editingNotification != null ? 'UPDATE CLOUD BROADCAST' : 'AUTHORIZE BROADCAST', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              style: ElevatedButton.styleFrom(backgroundColor: _editingNotification != null ? Colors.blue.shade700 : theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
             ),
           ),
         ],
@@ -128,7 +187,22 @@ class _CommunicationHubScreenState extends State<CommunicationHubScreen> {
               leading: const CircleAvatar(backgroundColor: Colors.purple, child: Icon(Icons.campaign, color: Colors.white, size: 20)),
               title: Text(n['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(n['message'] ?? '', maxLines: 2),
-              trailing: Text(n['target_role'] ?? 'All', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(n['target_role'] ?? 'All', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'edit') _editNotification(n);
+                      if (val == 'delete') _deleteNotification(n);
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_rounded, size: 20), title: Text('Edit'), dense: true)),
+                      const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_sweep_rounded, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
+                    ],
+                  ),
+                ],
+              ),
             ),
           )).toList(),
         );

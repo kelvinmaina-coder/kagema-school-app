@@ -35,6 +35,94 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
     }
   }
 
+  void _showRouteDialog({Map<String, dynamic>? routeToEdit}) {
+    final theme = Theme.of(context);
+    final isEditing = routeToEdit != null;
+    final nameCtrl = TextEditingController(text: routeToEdit?['name']);
+    final driverCtrl = TextEditingController(text: routeToEdit?['driver_name']);
+    final vehicleCtrl = TextEditingController(text: routeToEdit?['vehicle_number']);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isEditing ? 'Adjust Transport Route' : 'Deploy New Route', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.deepPurple.shade700)),
+              const SizedBox(height: 8),
+              Text(isEditing ? 'Modify fleet details for this route' : 'Add a new transport path to the cloud logistics', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 32),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Route Name (e.g. Route A)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.map_rounded))),
+              const SizedBox(height: 16),
+              TextField(controller: driverCtrl, decoration: const InputDecoration(labelText: 'Driver Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person))),
+              const SizedBox(height: 16),
+              TextField(controller: vehicleCtrl, decoration: const InputDecoration(labelText: 'Vehicle Plate Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.directions_bus_filled_rounded))),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (nameCtrl.text.isNotEmpty) {
+                      final data = {
+                        'name': nameCtrl.text.trim(),
+                        'driver_name': driverCtrl.text.trim(),
+                        'vehicle_number': vehicleCtrl.text.trim(),
+                        'status': routeToEdit?['status'] ?? 'ACTIVE',
+                      };
+                      if (isEditing) {
+                        data['route_id'] = routeToEdit['route_id'];
+                      }
+                      await SupabaseService.instance.saveBusRoute(data);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadData();
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple.shade700,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: Text(isEditing ? 'UPDATE LOGISTICS' : 'INITIALIZE ROUTE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteRoute(Map<String, dynamic> route) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Decommission Route?'),
+        content: Text('Are you sure you want to delete "${route['name']}"? All student links to this route will be broken.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await SupabaseService.instance.deleteBusRoute(route['route_id'].toString());
+      _loadData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -78,10 +166,25 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
                             ),
                             title: Text(route['name'] ?? 'Route', style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('Driver: ${route['driver_name'] ?? "Pending"} • ${route['vehicle_number'] ?? "No Van"}'),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                              child: Text(route['status'] ?? 'ACTIVE', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                                  child: Text(route['status'] ?? 'ACTIVE', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
+                                ),
+                                PopupMenuButton<String>(
+                                  onSelected: (val) {
+                                    if (val == 'edit') _showRouteDialog(routeToEdit: route);
+                                    if (val == 'delete') _deleteRoute(route);
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit'), dense: true)),
+                                    const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -90,7 +193,7 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => _showRouteDialog(),
         backgroundColor: Colors.deepPurple.shade700,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_location_alt_rounded),

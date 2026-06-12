@@ -1,28 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'offline_db_service.dart';
 
 class AuthenticationService extends ChangeNotifier {
   static final AuthenticationService _instance = AuthenticationService._internal();
   factory AuthenticationService() => _instance;
   AuthenticationService._internal();
 
-  // Access client lazily to prevent crash if not initialized
   SupabaseClient get _supabase => Supabase.instance.client;
 
   String? _currentUserRole;
   String? _currentUserPhone;
   String? _currentUserName;
+  bool _isOffline = false;
 
   String? get currentUserRole => _currentUserRole;
   String? get currentUserPhone => _currentUserPhone;
   String get currentUserName => _currentUserName ?? "Authorized User";
+  bool get isOffline => _isOffline;
 
   Future<bool> isAuthenticated() async {
     try {
       final session = _supabase.auth.currentSession;
       if (session != null) {
         await _loadUserData(session.user.id);
+        _isOffline = false;
         return true;
+      } else {
+        final offlineProfile = await OfflineDbService.instance.getUserProfile();
+        if (offlineProfile != null) {
+          _currentUserRole = offlineProfile['role'];
+          _currentUserPhone = offlineProfile['phone'];
+          _currentUserName = offlineProfile['name'];
+          _isOffline = true;
+          notifyListeners();
+          return true;
+        }
       }
     } catch (e) {
       debugPrint("Auth Session Error: $e");
@@ -42,6 +55,15 @@ class AuthenticationService extends ChangeNotifier {
         _currentUserRole = data['role'];
         _currentUserPhone = data['identifier'];
         _currentUserName = data['name'];
+        
+        await OfflineDbService.instance.saveUserProfile({
+          'id': userId,
+          'name': _currentUserName,
+          'role': _currentUserRole,
+          'phone': _currentUserPhone,
+          'last_login': DateTime.now().toIso8601String(),
+        });
+        
         notifyListeners();
       }
     } catch (e) {
@@ -58,11 +80,21 @@ class AuthenticationService extends ChangeNotifier {
 
       if (response.user != null) {
         await _loadUserData(response.user!.id);
+        _isOffline = false;
         return true;
       }
       return false;
     } catch (e) {
       debugPrint("Login Error: $e");
+      final offlineProfile = await OfflineDbService.instance.getUserProfile();
+      if (offlineProfile != null && offlineProfile['phone'] == identifier.trim()) {
+        _currentUserRole = offlineProfile['role'];
+        _currentUserPhone = offlineProfile['phone'];
+        _currentUserName = offlineProfile['name'];
+        _isOffline = true;
+        notifyListeners();
+        return true;
+      }
       return false;
     }
   }
@@ -74,6 +106,7 @@ class AuthenticationService extends ChangeNotifier {
     _currentUserRole = null;
     _currentUserPhone = null;
     _currentUserName = null;
+    _isOffline = false;
     notifyListeners();
   }
 
@@ -102,6 +135,14 @@ class AuthenticationService extends ChangeNotifier {
       if (user != null) {
         await _supabase.from('users').update({'name': newName}).eq('user_id', user.id);
         _currentUserName = newName;
+        
+        final offlineProfile = await OfflineDbService.instance.getUserProfile();
+        if (offlineProfile != null) {
+          await OfflineDbService.instance.saveUserProfile({
+            ...offlineProfile,
+            'name': newName,
+          });
+        }
         notifyListeners();
       }
     } catch (_) {}

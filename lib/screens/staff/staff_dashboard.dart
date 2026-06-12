@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import '../../services/supabase_service.dart';
-import '../../services/authentication_service.dart';
 import '../settings/settings_screen.dart';
-import '../common/communication_screen.dart';
 import '../../app_theme.dart';
 import 'dart:async';
 
@@ -22,6 +19,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   bool _isLoading = true;
   bool _isCheckedIn = false;
   String? _lastCheckInTime;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -31,15 +29,31 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Future<void> _loadDashboardData() async {
     final String staffId = SupabaseService.instance.client.auth.currentUser?.id ?? ""; 
-    if (staffId.isEmpty) return;
+    if (staffId.isEmpty) {
+       setState(() {
+         _isLoading = false;
+         _errorMessage = "User session not found. Please log in again.";
+       });
+       return;
+    }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     
     try {
-      final profile = await SupabaseService.instance.getStaffProfile(staffId);
-      final tasks = await SupabaseService.instance.getTasks(staffId);
-      final announcements = await SupabaseService.instance.getNotifications('staff');
-      final attendance = await SupabaseService.instance.getStaffAttendanceHistory(staffId);
+      final results = await Future.wait([
+        SupabaseService.instance.getStaffProfile(staffId),
+        SupabaseService.instance.getTasks(staffId),
+        SupabaseService.instance.getNotifications('staff'),
+        SupabaseService.instance.getStaffAttendanceHistory(staffId),
+      ]);
+      
+      final profile = results[0] as Map<String, dynamic>?;
+      final tasks = results[1] as List<Map<String, dynamic>>;
+      final announcements = results[2] as List<Map<String, dynamic>>;
+      final attendance = results[3] as List<Map<String, dynamic>>;
       
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final todayRecords = attendance.where((a) => a['date'] == today).toList();
@@ -52,13 +66,25 @@ class _StaffDashboardState extends State<StaffDashboard> {
           
           if (todayRecords.isNotEmpty) {
             _isCheckedIn = todayRecords.any((a) => a['status'] == 'Checked-In');
-            _lastCheckInTime = todayRecords.where((a) => a['status'] == 'Checked-In').last['time'];
+            final checkInRecord = todayRecords.where((a) => a['status'] == 'Checked-In').toList();
+            if (checkInRecord.isNotEmpty) {
+              _lastCheckInTime = checkInRecord.last['time'];
+            }
           }
           _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint("Staff Dashboard Error: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Sync Error: Could not reach cloud services.";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -75,7 +101,11 @@ class _StaffDashboardState extends State<StaffDashboard> {
         _loadDashboardData();
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Attendance Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -96,6 +126,22 @@ class _StaffDashboardState extends State<StaffDashboard> {
               child: CustomScrollView(
                 slivers: [
                   _buildHeroAppBar(theme, gemini),
+                  if (_errorMessage != null)
+                    SliverToBoxAdapter(
+                      child: Container(
+                        margin: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, color: Colors.red),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12))),
+                            IconButton(icon: const Icon(Icons.refresh, color: Colors.red, size: 20), onPressed: _loadDashboardData),
+                          ],
+                        ),
+                      ),
+                    ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -187,7 +233,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_isCheckedIn ? 'ON DUTY' : 'OFF DUTY', style: TextStyle(fontWeight: FontWeight.w900, color: _isCheckedIn ? Colors.green : Colors.red)),
-                if (_isCheckedIn) Text('Started at $_lastCheckInTime', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                if (_isCheckedIn && _lastCheckInTime != null) Text('Started at $_lastCheckInTime', style: const TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
@@ -220,8 +266,8 @@ class _StaffDashboardState extends State<StaffDashboard> {
       children: _tasks.map((t) => Card(
         child: ListTile(
           leading: const Icon(Icons.assignment_outlined, color: Colors.orange),
-          title: Text(t['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('Due: ${t['due_date']}'),
+          title: Text(t['title'] ?? 'Untitled Task', style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Text('Due: ${t['due_date'] ?? "No date"}'),
           trailing: const Icon(Icons.chevron_right),
         ),
       )).toList(),

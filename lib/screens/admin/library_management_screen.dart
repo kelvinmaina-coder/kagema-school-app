@@ -35,11 +35,12 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     }
   }
 
-  void _showAddBookDialog() {
+  void _showAddBookDialog({Map<String, dynamic>? bookToEdit}) {
     final theme = Theme.of(context);
-    final titleController = TextEditingController();
-    final authorController = TextEditingController();
-    final qtyController = TextEditingController(text: '1');
+    final isEditing = bookToEdit != null;
+    final titleController = TextEditingController(text: bookToEdit?['title']);
+    final authorController = TextEditingController(text: bookToEdit?['author']);
+    final qtyController = TextEditingController(text: bookToEdit?['total_copies']?.toString() ?? '1');
 
     showModalBottomSheet(
       context: context,
@@ -51,45 +52,71 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Catalog New Volume', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
-            const SizedBox(height: 8),
-            const Text('Add a new book record to the cloud library', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 24),
-            TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Book Title', border: OutlineInputBorder(), prefixIcon: Icon(Icons.book))),
-            const SizedBox(height: 16),
-            TextField(controller: authorController, decoration: const InputDecoration(labelText: 'Author Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person_outline))),
-            const SizedBox(height: 16),
-            TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Copies Available', border: OutlineInputBorder(), prefixIcon: Icon(Icons.copy)), keyboardType: TextInputType.number),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (titleController.text.isNotEmpty) {
-                    await SupabaseService.instance.saveBook({
-                      'title': titleController.text.trim(),
-                      'author': authorController.text.trim(),
-                      'total_copies': int.tryParse(qtyController.text) ?? 1,
-                      'available_copies': int.tryParse(qtyController.text) ?? 1,
-                    });
-                    Navigator.pop(context);
-                    _loadBooks();
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                child: const Text('SYNC TO LIBRARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isEditing ? 'Modify Volume Details' : 'Catalog New Volume', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
+              const SizedBox(height: 8),
+              Text(isEditing ? 'Update existing bibliographic data' : 'Add a new book record to the cloud library', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 24),
+              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Book Title', border: OutlineInputBorder(), prefixIcon: Icon(Icons.book))),
+              const SizedBox(height: 16),
+              TextField(controller: authorController, decoration: const InputDecoration(labelText: 'Author Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person_outline))),
+              const SizedBox(height: 16),
+              TextField(controller: qtyController, decoration: const InputDecoration(labelText: 'Total Copies', border: OutlineInputBorder(), prefixIcon: Icon(Icons.copy)), keyboardType: TextInputType.number),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (titleController.text.isNotEmpty) {
+                      final data = {
+                        'title': titleController.text.trim(),
+                        'author': authorController.text.trim(),
+                        'total_copies': int.tryParse(qtyController.text) ?? 1,
+                        'available_copies': isEditing ? (bookToEdit['available_copies'] ?? 1) : (int.tryParse(qtyController.text) ?? 1),
+                      };
+                      if (isEditing) {
+                        data['book_id'] = bookToEdit['book_id'];
+                      }
+                      await SupabaseService.instance.saveBook(data);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadBooks();
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text(isEditing ? 'UPDATE CATALOG' : 'SYNC TO LIBRARY', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _deleteBook(Map<String, dynamic> b) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Volume?'),
+        content: Text('Delete "${b['title']}" from the digital catalog? This cannot be reversed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await SupabaseService.instance.deleteBook(b['book_id']);
+      _loadBooks();
+    }
   }
 
   @override
@@ -135,12 +162,18 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                         ),
                         title: Text(b['title'] ?? 'Unknown Volume', style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('Author: ${b['author'] ?? "N/A"} • Available: ${b['available_copies'] ?? 0}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: () async {
-                            await SupabaseService.instance.deleteBook(b['book_id']);
-                            _loadBooks();
-                          },
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                              onPressed: () => _showAddBookDialog(bookToEdit: b),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => _deleteBook(b),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -149,7 +182,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddBookDialog,
+        onPressed: () => _showAddBookDialog(),
         backgroundColor: Colors.blueGrey.shade700,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.library_add_rounded),

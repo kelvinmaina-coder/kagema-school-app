@@ -47,12 +47,13 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     }
   }
 
-  void _showPaymentDialog() {
+  void _showPaymentDialog({Map<String, dynamic>? paymentToEdit}) {
     final theme = Theme.of(context);
-    String? selectedStudentId;
-    final amountController = TextEditingController();
-    final receiptController = TextEditingController(text: 'RCP-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}');
-    String selectedMethod = 'Cash';
+    String? selectedStudentId = paymentToEdit?['student_id']?.toString();
+    final amountController = TextEditingController(text: paymentToEdit?['amount_paid']?.toString() ?? '');
+    final receiptController = TextEditingController(text: paymentToEdit?['receipt_number'] ?? 'RCP-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}');
+    String selectedMethod = paymentToEdit?['payment_method'] ?? 'Cash';
+    final isEditing = paymentToEdit != null;
 
     showModalBottomSheet(
       context: context,
@@ -69,15 +70,15 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Log Revenue Entry', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
+              Text(isEditing ? 'Adjust Revenue Record' : 'Log Revenue Entry', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.green.shade700)),
               const SizedBox(height: 8),
-              const Text('Record a student fee payment to the cloud treasury', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(isEditing ? 'Modify the details of this financial transaction' : 'Record a student fee payment to the cloud treasury', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 32),
               DropdownButtonFormField<String>(
                 value: selectedStudentId,
                 hint: const Text('Select Pupil'),
                 items: _students.map((s) => DropdownMenuItem(value: s['student_id'].toString(), child: Text('${s['name']} (${s['admission_number']})'))).toList(),
-                onChanged: (v) => selectedStudentId = v,
+                onChanged: isEditing ? null : (v) => selectedStudentId = v,
                 decoration: const InputDecoration(labelText: 'Student Reference', border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
@@ -93,6 +94,11 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                 onChanged: (v) => selectedMethod = v!,
                 decoration: const InputDecoration(labelText: 'Payment Gateway', border: OutlineInputBorder()),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: receiptController,
+                decoration: const InputDecoration(labelText: 'Receipt / Ref Number', border: OutlineInputBorder()),
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -100,17 +106,27 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (selectedStudentId != null && amountController.text.isNotEmpty) {
-                      await SupabaseService.instance.insertFeePayment({
+                      final data = {
                         'student_id': selectedStudentId,
                         'amount_paid': double.parse(amountController.text),
                         'payment_method': selectedMethod,
                         'receipt_number': receiptController.text,
-                        'payment_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                        'term': 'Term 1',
-                        'year': DateTime.now().year,
-                      });
-                      Navigator.pop(context);
-                      _loadData();
+                        'payment_date': paymentToEdit?['payment_date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                        'term': paymentToEdit?['term'] ?? 'Term 1',
+                        'year': paymentToEdit?['year'] ?? DateTime.now().year,
+                      };
+                      
+                      if (isEditing) {
+                        data['fee_id'] = paymentToEdit['fee_id'];
+                        await SupabaseService.instance.updateFeePayment(data);
+                      } else {
+                        await SupabaseService.instance.insertFeePayment(data);
+                      }
+                      
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadData();
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -118,7 +134,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('AUTHORIZE PAYMENT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  child: Text(isEditing ? 'UPDATE RECORD' : 'AUTHORIZE PAYMENT', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(height: 40),
@@ -127,6 +143,29 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(Map<String, dynamic> payment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Void Transaction?'),
+        content: Text('Are you sure you want to delete this payment of Ksh ${payment['amount_paid']}? This will affect financial reports.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('VOID', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await SupabaseService.instance.deleteFeePayment(payment['fee_id'].toString());
+        _loadData();
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   @override
@@ -176,7 +215,24 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                                 ),
                                 title: Text(p['students']?['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 subtitle: Text('${p['payment_method']} • ${p['payment_date']}'),
-                                trailing: Text('Ksh ${p['amount_paid']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green)),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Ksh ${p['amount_paid']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.green)),
+                                    const SizedBox(width: 8),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                                      onSelected: (val) {
+                                        if (val == 'edit') _showPaymentDialog(paymentToEdit: p);
+                                        if (val == 'delete') _confirmDelete(p);
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit, size: 20), title: Text('Edit'), dense: true)),
+                                        const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -187,7 +243,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showPaymentDialog, 
+        onPressed: () => _showPaymentDialog(),
         backgroundColor: Colors.green.shade700, 
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_card_rounded), 

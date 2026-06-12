@@ -36,82 +36,157 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
     }
   }
 
-  void _showLogVisitorDialog() {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final purposeController = TextEditingController();
+  void _showLogVisitorDialog({Map<String, dynamic>? visitorToEdit}) {
+    final theme = Theme.of(context);
+    final isEditing = visitorToEdit != null;
+    final nameController = TextEditingController(text: visitorToEdit?['name']);
+    final phoneController = TextEditingController(text: visitorToEdit?['phone']);
+    final purposeController = TextEditingController(text: visitorToEdit?['purpose']);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Log New Visitor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Visitor Name', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder()), keyboardType: TextInputType.phone),
-            const SizedBox(height: 12),
-            TextField(controller: purposeController, decoration: const InputDecoration(labelText: 'Purpose', border: OutlineInputBorder())),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameController.text.isNotEmpty) {
-                    await SupabaseService.instance.insertVisitor({
-                      'name': nameController.text.trim(),
-                      'phone': phoneController.text.trim(),
-                      'purpose': purposeController.text.trim(),
-                      'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      'time_in': DateTime.now().toIso8601String(),
-                    });
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _loadVisitors();
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isEditing ? 'Update Visitor Info' : 'Log New Visitor', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.green)),
+              const SizedBox(height: 24),
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Visitor Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person))),
+              const SizedBox(height: 16),
+              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Phone Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.phone)), keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              TextField(controller: purposeController, decoration: const InputDecoration(labelText: 'Purpose', border: OutlineInputBorder(), prefixIcon: Icon(Icons.info_outline))),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.isNotEmpty) {
+                      final data = {
+                        'name': nameController.text.trim(),
+                        'phone': phoneController.text.trim(),
+                        'purpose': purposeController.text.trim(),
+                        'date': visitorToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                        'time_in': visitorToEdit?['time_in'] ?? DateTime.now().toIso8601String(),
+                      };
+                      
+                      if (isEditing) {
+                        await SupabaseService.instance.client.from('visitors').update(data).eq('visitor_id', visitorToEdit['visitor_id']);
+                      } else {
+                        await SupabaseService.instance.insertVisitor(data);
+                      }
+                      
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadVisitors();
+                      }
                     }
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                child: const Text('LOG ENTRY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text(isEditing ? 'UPDATE RECORD' : 'LOG ENTRY', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-            const SizedBox(height: 30),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  Future<void> _deleteVisitor(Map<String, dynamic> v) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Entry?'),
+        content: Text('Remove visitor log for "${v['name']}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await SupabaseService.instance.client.from('visitors').delete().eq('visitor_id', v['visitor_id']);
+      _loadVisitors();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Visitor Logs'), backgroundColor: Colors.green, foregroundColor: Colors.white),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _visitors.length,
-            itemBuilder: (context, index) {
-              final v = _visitors[index];
-              return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(backgroundColor: Colors.green, child: Icon(Icons.badge, color: Colors.white)),
-                  title: Text(v['name'] ?? 'Visitor'),
-                  subtitle: Text('${v['purpose']} • ${v['date']}'),
-                  trailing: const Text('IN', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-                ),
-              );
-            },
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('Visitor Logs', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.green.shade800, Colors.green.shade400]),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showLogVisitorDialog,
+        ),
+      ),
+      body: gemini?.buildCreativeBackground(
+        isDark: theme.brightness == Brightness.dark,
+        child: Padding(
+          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _visitors.length,
+                itemBuilder: (context, index) {
+                  final v = _visitors[index];
+                  return Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    child: ListTile(
+                      leading: CircleAvatar(backgroundColor: Colors.green.withOpacity(0.1), child: const Icon(Icons.badge, color: Colors.green)),
+                      title: Text(v['name'] ?? 'Visitor', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('${v['purpose']} • ${v['date']}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('IN', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
+                          PopupMenuButton<String>(
+                            onSelected: (val) {
+                              if (val == 'edit') _showLogVisitorDialog(visitorToEdit: v);
+                              if (val == 'delete') _deleteVisitor(v);
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit, size: 20), title: Text('Edit'), dense: true)),
+                              const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showLogVisitorDialog(),
         backgroundColor: Colors.green,
-        child: const Icon(Icons.add, color: Colors.white),
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_rounded),
+        label: const Text('Log Visitor', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

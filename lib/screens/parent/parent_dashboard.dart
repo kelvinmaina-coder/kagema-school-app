@@ -9,6 +9,10 @@ import 'child_attendance_viewers.dart';
 import 'homework_screen.dart';
 import 'child_list_screen.dart';
 import 'announcements_screen.dart';
+import 'child_discipline_screen.dart';
+import 'child_timetable_screen.dart';
+import 'child_library_screen.dart';
+import 'parent_calendar_screen.dart';
 import '../../app_theme.dart';
 
 class ParentDashboard extends StatefulWidget {
@@ -36,6 +40,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 
   Future<void> _loadAllData() async {
+    if (!mounted) return;
     setState(() => isLoading = true);
     try {
       final childMaps = await SupabaseService.instance.getParentChildren(widget.parentPhone);
@@ -70,7 +75,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           final balanceData = results[2] as Map<String, dynamic>;
           _avgGrade = marks.isEmpty ? 0.0 : marks.fold(0.0, (sum, m) => sum + (m['score'] ?? 0)) / marks.length;
           _attendancePercent = att.isEmpty ? 0.0 : (att.where((a) => a['status'] == 'Present').length / att.length) * 100;
-          _feeBalance = balanceData['balance'] ?? 0.0;
+          _feeBalance = (balanceData['balance'] ?? 0.0).toDouble();
         });
       }
     } catch (e) {}
@@ -102,30 +107,33 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 
   Widget _buildHomeTab(ThemeData theme, GeminiThemeExtension? gemini) {
-    return CustomScrollView(
-      slivers: [
-        _buildHeroAppBar(theme, gemini),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildChildSelector(theme),
-                const SizedBox(height: 24),
-                _buildSectionLabel(theme, 'REAL-TIME VITALS'),
-                const SizedBox(height: 16),
-                _buildVitalsRow(theme),
-                const SizedBox(height: 32),
-                _buildSectionLabel(theme, 'ACADEMIC SERVICES'),
-                const SizedBox(height: 16),
-                _buildServiceGrid(theme),
-                const SizedBox(height: 100),
-              ],
+    return RefreshIndicator(
+      onRefresh: _loadAllData,
+      child: CustomScrollView(
+        slivers: [
+          _buildHeroAppBar(theme, gemini),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildChildSelector(theme),
+                  const SizedBox(height: 24),
+                  _buildSectionLabel(theme, 'REAL-TIME VITALS'),
+                  const SizedBox(height: 16),
+                  _buildVitalsRow(theme),
+                  const SizedBox(height: 32),
+                  _buildSectionLabel(theme, 'ACADEMIC & SCHOOL SERVICES'),
+                  const SizedBox(height: 16),
+                  _buildServiceGrid(theme),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -152,6 +160,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 
   Widget _buildServiceGrid(ThemeData theme) {
+    if (selectedChild == null) return const Center(child: Text("Please select a child to view services"));
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -164,6 +174,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
         _serviceCard(theme, 'Performance', Icons.auto_graph_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
         _serviceCard(theme, 'Fee Portal', Icons.payments_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
         _serviceCard(theme, 'Homework', Icons.assignment_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
+        _serviceCard(theme, 'Timetable', Icons.calendar_view_week_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
+        _serviceCard(theme, 'Library', Icons.local_library_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
+        _serviceCard(theme, 'Discipline', Icons.gavel_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
+        _serviceCard(theme, 'Calendar', Icons.event_note_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentCalendarScreen()))),
       ],
     );
   }
@@ -205,6 +219,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   }
 
   Widget _buildChildSelector(ThemeData theme) {
+    if (children.isEmpty) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),

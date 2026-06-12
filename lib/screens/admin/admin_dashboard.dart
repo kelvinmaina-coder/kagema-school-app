@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../settings/settings_screen.dart';
 import '../common/student_management_screen.dart';
-import '../common/staff_management.dart';
 import 'inventory_manager.dart';
 import 'fee_management_screen.dart';
 import 'communication_hub_screen.dart';
@@ -14,6 +13,8 @@ import 'academic_management.dart';
 import 'hr_management_screen.dart';
 import 'discipline_management_screen.dart';
 import 'extracurricular_management_screen.dart';
+import 'attendance_admin_screen.dart';
+import 'user_management_hub.dart';
 import '../../app_theme.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -29,8 +30,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // Unified Data State
   Map<String, dynamic> stats = {};
   List<Map<String, dynamic>> _insights = [];
-  List<Map<String, dynamic>> _classStats = [];
   bool isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -39,24 +40,35 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _loadIntelligenceData() async {
-    setState(() => isLoading = true);
+    if (!mounted) return;
+    setState(() {
+      isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final results = await Future.wait<dynamic>([
         SupabaseService.instance.getDashboardSummary(),
-        SupabaseService.instance.getClassStatistics(),
         SupabaseService.instance.getActionableInsights(),
       ]);
 
       if (mounted) {
         setState(() {
           stats = results[0] as Map<String, dynamic>;
-          _classStats = results[1] as List<Map<String, dynamic>>;
-          _insights = results[2] as List<Map<String, dynamic>>;
+          _insights = results[1] as List<Map<String, dynamic>>;
           isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => isLoading = false);
+      debugPrint("Admin Sync Error: $e");
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          _errorMessage = "Cloud Intelligence Sync Failed. Please retry.";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -81,6 +93,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
       child: CustomScrollView(
         slivers: [
           _buildHeroAppBar(theme, gemini),
+          if (_errorMessage != null)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12))),
+                    IconButton(icon: const Icon(Icons.refresh, color: Colors.red, size: 20), onPressed: _loadIntelligenceData),
+                  ],
+                ),
+              ),
+            ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -110,41 +138,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
       children: [
         _buildSectionLabel(theme, 'SCHOOL INTELLIGENCE'),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _insights.length,
-            itemBuilder: (context, index) {
-              final insight = _insights[index];
-              final color = insight['type'] == 'critical' ? Colors.red : (insight['type'] == 'success' ? Colors.green : Colors.blue);
-              return Container(
-                width: 280,
-                margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: color.withOpacity(0.1)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(insight['type'] == 'critical' ? Icons.warning_rounded : Icons.tips_and_updates_rounded, color: color, size: 18),
-                        const SizedBox(width: 8),
-                        Text(insight['title'], style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 13)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(insight['msg'], style: const TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              );
-            },
+        if (_insights.isEmpty && !isLoading)
+           const Padding(
+             padding: EdgeInsets.symmetric(vertical: 20),
+             child: Text('No active insights available.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+           )
+        else
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _insights.length,
+              itemBuilder: (context, index) {
+                final insight = _insights[index];
+                final color = insight['type'] == 'critical' ? Colors.red : (insight['type'] == 'success' ? Colors.green : Colors.blue);
+                return Container(
+                  width: 280,
+                  margin: const EdgeInsets.only(right: 16),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: color.withOpacity(0.1)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(insight['type'] == 'critical' ? Icons.warning_rounded : Icons.tips_and_updates_rounded, color: color, size: 18),
+                          const SizedBox(width: 8),
+                          Text(insight['title'], style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 13)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(insight['subtitle'] ?? insight['msg'] ?? '', style: const TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
@@ -153,17 +187,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
       children: [
+        _buildSectionLabel(theme, 'USER & ACCESS CONTROL'),
+        _operationTile(theme, 'User Registry', 'Enroll students, staff & parents', Icons.people_alt_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
+        const SizedBox(height: 24),
         _buildSectionLabel(theme, 'ACADEMICS & EXAMS'),
         _operationTile(theme, 'Exam Center', 'Manage assessments & grades', Icons.quiz_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()))),
         _operationTile(theme, 'Academic Structures', 'Curriculum & subjects', Icons.auto_stories_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicManagementScreen()))),
+        _operationTile(theme, 'Attendance Hub', 'Live pupil & staff tracking', Icons.fingerprint_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceAdminScreen()))),
         const SizedBox(height: 24),
-        _buildSectionLabel(theme, 'LOGISTICS'),
+        _buildSectionLabel(theme, 'LOGISTICS & ASSETS'),
         _operationTile(theme, 'Bus Fleet', 'Routes & drivers', Icons.bus_alert_rounded, Colors.deepPurple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransportManagementScreen()))),
         _operationTile(theme, 'Asset Register', 'Inventory & stock control', Icons.inventory_2_rounded, Colors.brown, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagerScreen()))),
+        _operationTile(theme, 'Library Repository', 'Books & lending history', Icons.local_library_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryManagementScreen()))),
         const SizedBox(height: 24),
         _buildSectionLabel(theme, 'ADMINISTRATION'),
-        _operationTile(theme, 'Global Bulletins', 'Cloud announcements', Icons.campaign_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunicationHubScreen()))),
+        _operationTile(theme, 'Global Bulletins', 'Cloud announcements', Icons.campaign_rounded, Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunicationHubScreen()))),
         _operationTile(theme, 'HR & Payroll', 'Staff leave & treasury', Icons.badge_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
+        _operationTile(theme, 'Discipline Log', 'Incidents & behavior', Icons.gavel_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DisciplineManagementScreen()))),
+        _operationTile(theme, 'Activities', 'Clubs & sports events', Icons.sports_basketball_rounded, Colors.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExtracurricularManagementScreen()))),
+        _operationTile(theme, 'Business Intel', 'Analytics & reports', Icons.insights_rounded, Colors.cyan, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsModuleScreen()))),
+        const SizedBox(height: 80),
       ],
     );
   }
@@ -232,7 +275,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       mainAxisSpacing: 12,
       childAspectRatio: 1.6,
       children: [
-        _quickCard(theme, 'PUPILS', Icons.school, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentManagementScreen(role: 'Admin')))),
+        _quickCard(theme, 'USER HUB', Icons.people_alt, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
         _quickCard(theme, 'TREASURY', Icons.account_balance, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
       ],
     );
@@ -285,19 +328,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey)),
-    );
-  }
-
-  Widget _buildAdminDrawer(BuildContext context, ThemeData theme) {
-    return Drawer(
-      child: Column(
-        children: [
-          DrawerHeader(decoration: BoxDecoration(color: theme.primaryColor), child: const Center(child: Text('KAGEMA OS', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)))),
-          const Spacer(),
-          ListTile(leading: const Icon(Icons.logout, color: Colors.red), title: const Text('Logout Session'), onTap: () => Navigator.pushReplacementNamed(context, '/login')),
-          const SizedBox(height: 20),
-        ],
-      ),
     );
   }
 }

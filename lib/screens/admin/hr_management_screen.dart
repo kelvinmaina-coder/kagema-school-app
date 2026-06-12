@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
 import 'package:intl/intl.dart';
+import 'staff_registration_screen.dart';
 
 class HRManagementScreen extends StatefulWidget {
   const HRManagementScreen({super.key});
@@ -13,13 +14,14 @@ class HRManagementScreen extends StatefulWidget {
 class _HRManagementScreenState extends State<HRManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _leaveRequests = [];
+  List<Map<String, dynamic>> _staffList = [];
   Map<String, dynamic> _payrollSummary = {'total': 0.0, 'staffCount': 0};
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadHRData();
   }
 
@@ -29,11 +31,13 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
     try {
       final payroll = await SupabaseService.instance.getPayrollSummary();
       final leaves = await SupabaseService.instance.getLeaveRequests();
+      final staff = await SupabaseService.instance.getAllStaff();
       
       if (mounted) {
         setState(() {
           _payrollSummary = payroll;
           _leaveRequests = leaves;
+          _staffList = staff;
           _isLoading = false;
         });
       }
@@ -61,10 +65,20 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            onPressed: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffRegistrationScreen()));
+              if (result == true) _loadHRData();
+            },
+          )
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
           tabs: const [
+            Tab(text: 'DIRECTORY', icon: Icon(Icons.groups_rounded, size: 18)),
             Tab(text: 'PAYROLL', icon: Icon(Icons.payments_rounded, size: 18)),
             Tab(text: 'LEAVE', icon: Icon(Icons.beach_access_rounded, size: 18)),
           ],
@@ -79,6 +93,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
             : TabBarView(
                 controller: _tabController,
                 children: [
+                  _buildDirectoryTab(theme),
                   _buildPayrollTab(theme),
                   _buildLeaveTab(theme),
                 ],
@@ -86,6 +101,76 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
         ),
       ),
     );
+  }
+
+  Widget _buildDirectoryTab(ThemeData theme) {
+    if (_staffList.isEmpty) {
+      return _buildEmptyState(Icons.group_off_rounded, 'No staff members registered.');
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _staffList.length,
+      itemBuilder: (context, index) {
+        final staff = _staffList[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            leading: CircleAvatar(
+              backgroundColor: theme.primaryColor.withOpacity(0.1),
+              child: Text(staff['role']?[0] ?? 'S', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+            ),
+            title: Text(staff['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(staff['role'] ?? 'Staff'),
+                Text(staff['phone'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                  onPressed: () async {
+                    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => StaffRegistrationScreen(staffToEdit: staff)));
+                    if (result == true) _loadHRData();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                  onPressed: () => _confirmDelete(staff['staff_id']),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDelete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Staff?'),
+        content: const Text('This action cannot be undone. All related records will be affected.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await SupabaseService.instance.deleteStaff(id);
+        _loadHRData();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   Widget _buildPayrollTab(ThemeData theme) {
@@ -147,16 +232,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
 
   Widget _buildLeaveTab(ThemeData theme) {
     if (_leaveRequests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.beach_access_rounded, size: 80, color: Colors.grey.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            const Text('No pending leave requests found.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      );
+      return _buildEmptyState(Icons.beach_access_rounded, 'No pending leave requests found.');
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -182,6 +258,19 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String msg) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: Colors.grey.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(msg, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 }

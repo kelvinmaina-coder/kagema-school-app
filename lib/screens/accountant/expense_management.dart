@@ -39,11 +39,12 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     }
   }
 
-  void _showAddExpenseDialog() {
+  void _showAddExpenseDialog({Map<String, dynamic>? expenseToEdit}) {
     final theme = Theme.of(context);
-    final categoryController = TextEditingController();
-    final amountController = TextEditingController();
-    final descController = TextEditingController();
+    final isEditing = expenseToEdit != null;
+    final categoryController = TextEditingController(text: expenseToEdit?['category']);
+    final amountController = TextEditingController(text: expenseToEdit?['amount']?.toString());
+    final descController = TextEditingController(text: expenseToEdit?['description']);
 
     showModalBottomSheet(
       context: context,
@@ -60,9 +61,9 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Record Cloud Expense', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.redAccent)),
+              Text(isEditing ? 'Adjust Expense Record' : 'Record Cloud Expense', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.redAccent)),
               const SizedBox(height: 8),
-              const Text('Log a new expenditure record to the school treasury', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(isEditing ? 'Update the details of this expenditure' : 'Log a new expenditure record to the school treasury', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 32),
               TextField(
                 controller: categoryController, 
@@ -86,14 +87,23 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (categoryController.text.isNotEmpty && amountController.text.isNotEmpty) {
-                      await SupabaseService.instance.client.from('expenses').insert({
+                      final data = {
                         'category': categoryController.text.trim(),
                         'amount': double.tryParse(amountController.text) ?? 0.0,
                         'description': descController.text.trim(),
-                        'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      });
-                      Navigator.pop(context);
-                      _loadExpenses();
+                        'date': expenseToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                      };
+                      
+                      if (isEditing) {
+                        await SupabaseService.instance.client.from('expenses').update(data).eq('expense_id', expenseToEdit['expense_id']);
+                      } else {
+                        await SupabaseService.instance.client.from('expenses').insert(data);
+                      }
+                      
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadExpenses();
+                      }
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -101,7 +111,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('AUTHORIZE DISBURSEMENT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  child: Text(isEditing ? 'UPDATE RECORD' : 'AUTHORIZE DISBURSEMENT', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(height: 40),
@@ -110,6 +120,25 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _deleteExpense(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense?'),
+        content: Text('Remove this record of Ksh ${item['amount']}? This will permanently adjust financial reports.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await SupabaseService.instance.client.from('expenses').delete().eq('expense_id', item['expense_id']);
+      _loadExpenses();
+    }
   }
 
   @override
@@ -155,7 +184,22 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                           ),
                           title: Text(item['category'] ?? 'General Expense', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('${item['date']} • ${item['description'] ?? "No details"}'),
-                          trailing: Text('-Ksh ${item['amount']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.redAccent, fontSize: 16)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('-Ksh ${item['amount']}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.redAccent, fontSize: 16)),
+                              PopupMenuButton<String>(
+                                onSelected: (val) {
+                                  if (val == 'edit') _showAddExpenseDialog(expenseToEdit: item);
+                                  if (val == 'delete') _deleteExpense(item);
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit, size: 20), title: Text('Edit'), dense: true)),
+                                  const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -163,7 +207,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddExpenseDialog,
+        onPressed: () => _showAddExpenseDialog(),
         label: const Text('Add Expense', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.redAccent,

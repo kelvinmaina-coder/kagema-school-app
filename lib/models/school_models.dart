@@ -9,6 +9,7 @@ class Teacher {
   final List<String> subjects;
   final String role;
   final String qualification;
+  final double salary;
 
   Teacher({
     required this.teacherId,
@@ -19,28 +20,31 @@ class Teacher {
     required this.subjects,
     required this.role,
     this.qualification = '',
+    this.salary = 0.0,
   });
 
   Map<String, dynamic> toMap() => {
-    'teacherId': teacherId,
+    'staff_id': teacherId,
     'name': name,
     'email': email,
     'phone': phone,
-    'assignedClasses': assignedClasses.join(','),
+    'assigned_classes': assignedClasses.join(','),
     'subjects': subjects.join(','),
     'role': role,
     'qualification': qualification,
+    'salary': salary,
   };
 
   factory Teacher.fromMap(Map<String, dynamic> map) => Teacher(
-    teacherId: map['teacherId'] ?? '',
+    teacherId: map['staff_id'] ?? map['teacher_id'] ?? map['teacherId'] ?? '',
     name: map['name'] ?? '',
     email: map['email'] ?? '',
     phone: map['phone'] ?? '',
-    assignedClasses: (map['assignedClasses'] as String? ?? '').split(',').where((e) => e.isNotEmpty).toList(),
+    assignedClasses: (map['assigned_classes'] ?? map['assignedClasses'] as String? ?? '').split(',').where((e) => e.isNotEmpty).toList(),
     subjects: (map['subjects'] as String? ?? '').split(',').where((e) => e.isNotEmpty).toList(),
     role: map['role'] ?? '',
     qualification: map['qualification'] ?? '',
+    salary: (map['salary'] as num? ?? 0.0).toDouble(),
   );
 }
 
@@ -81,42 +85,53 @@ class Student {
     this.admissionDate,
   });
 
+  int get age {
+    if (dateOfBirth.isEmpty) return 0;
+    try {
+      DateTime dob = DateTime.parse(dateOfBirth);
+      DateTime now = DateTime.now();
+      int age = now.year - dob.year;
+      if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) age--;
+      return age;
+    } catch (_) { return 0; }
+  }
+
   Map<String, dynamic> toMap() => {
-    'studentId': studentId,
-    'admissionNumber': admissionNumber,
+    'student_id': studentId,
+    'admission_number': admissionNumber,
     'name': name,
     'gender': gender,
     'grade': grade,
     'stream': stream,
-    'dateOfBirth': dateOfBirth,
-    'parentName': parentName,
-    'parentPhone': parentPhone,
-    'parentEmail': parentEmail,
+    'date_of_birth': dateOfBirth,
+    'parent_name': parentName,
+    'parent_phone': parentPhone,
+    'parent_email': parentEmail,
     'address': address,
-    'medicalInfo': medicalInfo,
-    'photoUrl': photoUrl,
+    'medical_info': medicalInfo,
+    'photo_url': photoUrl,
     'status': status,
-    'parentId': parentId,
-    'admissionDate': admissionDate,
+    'parent_id': parentId,
+    'admission_date': admissionDate,
   };
 
   factory Student.fromMap(Map<String, dynamic> map) => Student(
-    studentId: map['studentId'] ?? '',
-    admissionNumber: map['admissionNumber'] ?? '',
+    studentId: map['student_id'] ?? map['studentId'] ?? '',
+    admissionNumber: map['admission_number'] ?? map['admissionNumber'] ?? '',
     name: map['name'] ?? '',
     gender: map['gender'] ?? 'Other',
     grade: map['grade'] ?? '',
     stream: map['stream'] ?? '',
-    dateOfBirth: map['dateOfBirth'] ?? '',
-    parentName: map['parentName'] ?? '',
-    parentPhone: map['parentPhone'] ?? '',
-    parentEmail: map['parentEmail'],
+    dateOfBirth: map['date_of_birth'] ?? map['dateOfBirth'] ?? '',
+    parentName: map['parent_name'] ?? map['parentName'] ?? '',
+    parentPhone: map['parent_phone'] ?? map['parentPhone'] ?? '',
+    parentEmail: map['parent_email'] ?? map['parentEmail'],
     address: map['address'] ?? '',
-    medicalInfo: map['medicalInfo'] ?? '',
-    photoUrl: map['photoUrl'] ?? '',
+    medicalInfo: map['medical_info'] ?? map['medicalInfo'] ?? '',
+    photoUrl: map['photo_url'] ?? map['photoUrl'] ?? '',
     status: map['status'] ?? 'Active',
-    parentId: map['parentId'],
-    admissionDate: map['admissionDate'],
+    parentId: map['parent_id'] ?? map['parentId'],
+    admissionDate: map['admission_date'] ?? map['admissionDate'],
   );
 }
 
@@ -138,7 +153,7 @@ class ParentModel {
   });
 
   Map<String, dynamic> toMap() => {
-    'parentId': parentId,
+    'parent_id': parentId,
     'name': name,
     'phone': phone,
     'email': email,
@@ -147,7 +162,7 @@ class ParentModel {
   };
 
   factory ParentModel.fromMap(Map<String, dynamic> map) => ParentModel(
-    parentId: map['parentId'] ?? '',
+    parentId: map['parent_id'] ?? map['parentId'] ?? '',
     name: map['name'] ?? '',
     phone: map['phone'] ?? '',
     email: map['email'] ?? '',
@@ -178,25 +193,25 @@ class NotificationModel {
   });
 
   Map<String, dynamic> toMap() => {
-    'notificationId': notificationId,
+    'notification_id': notificationId,
     'title': title,
     'message': message,
-    'targetRole': targetRole,
-    'targetId': targetId,
-    'senderId': senderId,
+    'target_role': targetRole,
+    'target_id': targetId,
+    'sender_id': senderId,
     'timestamp': timestamp,
-    'isRead': isRead ? 1 : 0,
+    'is_read': isRead ? 1 : 0,
   };
 
   factory NotificationModel.fromMap(Map<String, dynamic> map) => NotificationModel(
-    notificationId: map['notificationId'] ?? '',
+    notificationId: map['notification_id'] ?? map['notificationId'] ?? '',
     title: map['title'] ?? '',
     message: map['message'] ?? '',
-    targetRole: map['targetRole'] ?? '',
-    targetId: map['targetId'],
-    senderId: map['senderId'] ?? '',
+    targetRole: map['target_role'] ?? map['targetRole'] ?? '',
+    targetId: map['target_id'] ?? map['targetId'],
+    senderId: map['sender_id'] ?? map['senderId'] ?? '',
     timestamp: map['timestamp'] ?? '',
-    isRead: (map['isRead'] as int? ?? 0) == 1,
+    isRead: (map['is_read'] ?? map['isRead'] as int? ?? 0) == 1,
   );
 }
 
@@ -223,8 +238,8 @@ class Attendance {
 
   Map<String, dynamic> toMap() => {
     'date': date,
-    'targetId': studentId,
-    'targetName': studentName,
+    'target_id': studentId,
+    'target_name': studentName,
     'grade': grade,
     'stream': stream,
     'status': status,
@@ -234,8 +249,8 @@ class Attendance {
 
   factory Attendance.fromMap(Map<String, dynamic> map) => Attendance(
     date: map['date'] ?? '',
-    studentId: map['targetId'] ?? map['studentId'] ?? '',
-    studentName: map['targetName'] ?? map['studentName'] ?? '',
+    studentId: map['target_id'] ?? map['targetId'] ?? map['student_id'] ?? map['studentId'] ?? '',
+    studentName: map['target_name'] ?? map['targetName'] ?? map['student_name'] ?? map['studentName'] ?? '',
     grade: map['grade'] ?? '',
     stream: map['stream'] ?? '',
     status: map['status'] ?? '',
@@ -274,33 +289,33 @@ class Mark {
   });
 
   Map<String, dynamic> toMap() => {
-    'markId': markId,
-    'studentId': studentId,
-    'studentName': studentName,
+    'mark_id': markId,
+    'student_id': studentId,
+    'student_name': studentName,
     'grade': grade,
     'stream': stream,
     'subject': subject,
     'score': score,
     'points': points,
-    'achievementLevel': achievementLevel,
+    'achievement_level': achievementLevel,
     'term': term,
     'year': year,
-    'examType': examType,
+    'exam_type': examType,
   };
 
   factory Mark.fromMap(Map<String, dynamic> map) => Mark(
-    markId: map['markId'] ?? '',
-    studentId: map['studentId'] ?? '',
-    studentName: map['studentName'] ?? '',
+    markId: map['mark_id'] ?? map['markId'] ?? '',
+    studentId: map['student_id'] ?? map['studentId'] ?? '',
+    studentName: map['student_name'] ?? map['studentName'] ?? '',
     grade: map['grade'] ?? '',
     stream: map['stream'] ?? '',
     subject: map['subject'] ?? '',
     score: (map['score'] as num? ?? 0).toDouble(),
     points: (map['points'] as num? ?? 0).toInt(),
-    achievementLevel: map['achievementLevel'] ?? '',
+    achievementLevel: map['achievement_level'] ?? map['achievementLevel'] ?? '',
     term: map['term'] ?? '',
     year: map['year'] as int? ?? 0,
-    examType: map['examType'] ?? 'Opener',
+    examType: map['exam_type'] ?? map['examType'] ?? 'Opener',
   );
 }
 
@@ -328,27 +343,27 @@ class Homework {
   });
 
   Map<String, dynamic> toMap() => {
-    'homeworkId': homeworkId,
+    'homework_id': homeworkId,
     'title': title,
     'description': description,
     'subject': subject,
     'grade': grade,
     'stream': stream,
-    'dueDate': dueDate,
-    'postedDate': postedDate,
-    'postedBy': postedBy,
+    'due_date': dueDate,
+    'posted_date': postedDate,
+    'posted_by': postedBy,
   };
 
   factory Homework.fromMap(Map<String, dynamic> map) => Homework(
-    homeworkId: map['homeworkId'] ?? '',
+    homeworkId: map['homework_id'] ?? map['homeworkId'] ?? '',
     title: map['title'] ?? '',
     description: map['description'] ?? '',
     subject: map['subject'] ?? '',
     grade: map['grade'] ?? '',
     stream: map['stream'] ?? '',
-    dueDate: map['dueDate'] ?? '',
-    postedDate: map['postedDate'] ?? '',
-    postedBy: map['postedBy'] ?? '',
+    dueDate: map['due_date'] ?? map['dueDate'] ?? '',
+    postedDate: map['posted_date'] ?? map['postedDate'] ?? '',
+    postedBy: map['posted_by'] ?? map['postedBy'] ?? '',
   );
 }
 
@@ -372,22 +387,22 @@ class Book {
   });
 
   Map<String, dynamic> toMap() => {
-    'bookId': bookId,
+    'book_id': bookId,
     'title': title,
     'author': author,
     'isbn': isbn,
     'category': category,
-    'totalCopies': totalCopies,
-    'availableCopies': availableCopies,
+    'total_copies': totalCopies,
+    'available_copies': availableCopies,
   };
 
   factory Book.fromMap(Map<String, dynamic> map) => Book(
-    bookId: map['bookId'] ?? '',
+    bookId: map['book_id'] ?? map['bookId'] ?? '',
     title: map['title'] ?? '',
     author: map['author'] ?? '',
     isbn: map['isbn'] ?? '',
     category: map['category'] ?? '',
-    totalCopies: map['totalCopies'] ?? 0,
-    availableCopies: map['availableCopies'] ?? 0,
+    totalCopies: map['total_copies'] ?? map['totalCopies'] ?? 0,
+    availableCopies: map['available_copies'] ?? map['availableCopies'] ?? 0,
   );
 }

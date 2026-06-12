@@ -303,3 +303,121 @@ class _ChildHomeworkScreenState extends State<ChildHomeworkScreen> {
     );
   }
 }
+
+class ChildGradesScreen extends StatefulWidget {
+  final Student student;
+  const ChildGradesScreen({super.key, required this.student});
+
+  @override
+  State<ChildGradesScreen> createState() => _ChildGradesScreenState();
+}
+
+class _ChildGradesScreenState extends State<ChildGradesScreen> {
+  List<Map<String, dynamic>> marks = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await SupabaseService.instance.getStudentMarks(widget.student.studentId);
+      if (mounted) {
+        setState(() {
+          marks = data;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
+
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      body: gemini?.buildCreativeBackground(
+        isDark: theme.brightness == Brightness.dark,
+        child: Column(
+          children: [
+            AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              title: const Text('Academic Performance', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: isLoading 
+                ? const Center(child: CircularProgressIndicator()) 
+                : ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildPerformanceSummary(theme),
+                      const SizedBox(height: 24),
+                      const Text('SUBJECT BREAKDOWN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+                      const SizedBox(height: 12),
+                      ...marks.map((m) => _buildGradeCard(theme, m)),
+                      if (marks.isEmpty) _buildEmptyState('No academic records available yet.'),
+                    ],
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceSummary(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade700.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('CURRENT STANDING', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          Text('Exceeding Expectations', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradeCard(ThemeData theme, Map<String, dynamic> m) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        title: Text(m['subject'] ?? 'Subject', style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text('Term: ${m['term']} ${m['year']}'),
+        trailing: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+          child: Text('${m['score']}', style: TextStyle(fontWeight: FontWeight.w900, color: theme.primaryColor)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String msg) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 100),
+        child: Column(
+          children: [
+            Icon(Icons.analytics_outlined, size: 60, color: Colors.grey.shade300),
+            const SizedBox(height: 12),
+            Text(msg, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+}

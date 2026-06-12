@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
 
@@ -23,7 +25,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final data = await SupabaseService.instance.getClassStatistics(); // Simplified fetch for now
+      final data = await SupabaseService.instance.getIncidents();
       if (mounted) {
         setState(() {
           _incidents = data;
@@ -77,9 +79,20 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
                           child: const Icon(Icons.gavel_rounded, color: Colors.red),
                         ),
                         title: Text(incident['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(incident['subtitle'] ?? 'Action pending cloud review'),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        onTap: () => _showIncidentDetail(incident),
+                        subtitle: Text('${incident['date']} • ADM: ${incident['admission_number']}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                              onPressed: () => _showAddIncidentDialog(incidentToEdit: incident),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                              onPressed: () => _deleteIncident(incident),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -87,7 +100,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddIncidentDialog,
+        onPressed: () => _showAddIncidentDialog(),
         label: const Text('Log Incident', style: TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add_alert_rounded),
         backgroundColor: Colors.blueGrey.shade800,
@@ -96,8 +109,13 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     );
   }
 
-  void _showAddIncidentDialog() {
+  void _showAddIncidentDialog({Map<String, dynamic>? incidentToEdit}) {
     final theme = Theme.of(context);
+    final isEditing = incidentToEdit != null;
+    final admCtrl = TextEditingController(text: incidentToEdit?['admission_number']);
+    final titleCtrl = TextEditingController(text: incidentToEdit?['title']);
+    final descCtrl = TextEditingController(text: incidentToEdit?['description']);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -108,50 +126,73 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Report New Incident', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
-            const SizedBox(height: 24),
-            const TextField(decoration: InputDecoration(labelText: 'Pupil Admission Number', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            const TextField(decoration: InputDecoration(labelText: 'Description of Event', border: OutlineInputBorder()), maxLines: 3),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white),
-                child: const Text('POST TO CLOUD LOG'),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isEditing ? 'Modify Incident Report' : 'Report New Incident', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade900)),
+              const SizedBox(height: 24),
+              TextField(controller: admCtrl, decoration: const InputDecoration(labelText: 'Pupil Admission Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.badge))),
+              const SizedBox(height: 16),
+              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Incident Type (e.g. Lateness)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.title))),
+              const SizedBox(height: 16),
+              TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Detailed Description', border: OutlineInputBorder(), prefixIcon: Icon(Icons.notes)), maxLines: 3),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (admCtrl.text.isNotEmpty && titleCtrl.text.isNotEmpty) {
+                      final data = {
+                        'admission_number': admCtrl.text.trim(),
+                        'title': titleCtrl.text.trim(),
+                        'description': descCtrl.text.trim(),
+                        'date': incidentToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                      };
+                      if (isEditing) {
+                        data['incident_id'] = incidentToEdit['incident_id'];
+                      } else {
+                        data['incident_id'] = 'INC-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+                      }
+                      
+                      await SupabaseService.instance.upserIncident(data); // Typo in my previous upsert name? I'll check SupabaseService
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadIncidents();
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey.shade800, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                  child: Text(isEditing ? 'UPDATE REPORT' : 'POST TO CLOUD LOG', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  void _showIncidentDetail(Map<String, dynamic> incident) {
-    showModalBottomSheet(
+  Future<void> _deleteIncident(Map<String, dynamic> item) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.gavel_rounded, size: 50, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(incident['title'] ?? 'Record Detail', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(incident['subtitle'] ?? '', textAlign: TextAlign.center),
-            const SizedBox(height: 24),
-          ],
-        ),
+      builder: (context) => AlertDialog(
+        title: const Text('Expunge Record?'),
+        content: Text('Delete this discipline entry for ADM: ${item['admission_number']}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
       ),
     );
+
+    if (confirmed == true) {
+      await SupabaseService.instance.deleteIncident(item['incident_id'].toString());
+      _loadIncidents();
+    }
   }
 
   Widget _buildEmptyState() {

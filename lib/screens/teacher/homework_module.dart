@@ -45,11 +45,14 @@ class _HomeworkModuleState extends State<HomeworkModule> {
     }
   }
 
-  void _showAddDialog() {
+  void _showAddDialog({Map<String, dynamic>? assignmentToEdit}) {
     final theme = Theme.of(context);
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    DateTime selectedDueDate = DateTime.now().add(const Duration(days: 1));
+    final isEditing = assignmentToEdit != null;
+    final titleController = TextEditingController(text: assignmentToEdit?['title']);
+    final descController = TextEditingController(text: assignmentToEdit?['description']);
+    DateTime selectedDueDate = isEditing 
+        ? DateTime.parse(assignmentToEdit['due_date']) 
+        : DateTime.now().add(const Duration(days: 1));
 
     showModalBottomSheet(
       context: context,
@@ -66,9 +69,9 @@ class _HomeworkModuleState extends State<HomeworkModule> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Post New Assignment', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.purple.shade700)),
+              Text(isEditing ? 'Adjust Assignment' : 'Post New Assignment', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.purple.shade700)),
               const SizedBox(height: 8),
-              const Text('Send academic tasks to the pupil\'s cloud portal', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(isEditing ? 'Modify the details of this cloud task' : 'Send academic tasks to the pupil\'s cloud portal', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(height: 32),
               TextField(
                 controller: titleController, 
@@ -100,7 +103,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                     final picked = await showDatePicker(
                       context: context, 
                       initialDate: selectedDueDate, 
-                      firstDate: DateTime.now(), 
+                      firstDate: DateTime.now().subtract(const Duration(days: 30)), 
                       lastDate: DateTime.now().add(const Duration(days: 365)),
                     );
                     if (picked != null) {
@@ -116,15 +119,21 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (titleController.text.isNotEmpty) {
-                      await SupabaseService.instance.postHomework({
+                      final data = {
                         'title': titleController.text.trim(),
                         'description': descController.text.trim(),
                         'subject': widget.subject,
                         'grade': widget.grade,
                         'stream': widget.stream,
                         'due_date': DateFormat('yyyy-MM-dd').format(selectedDueDate),
-                        'posted_date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      });
+                        'posted_date': assignmentToEdit?['posted_date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                      };
+                      
+                      if (isEditing) {
+                        data['homework_id'] = assignmentToEdit['homework_id'];
+                      }
+
+                      await SupabaseService.instance.postHomework(data);
                       if (mounted) {
                         Navigator.pop(context);
                         _loadHomework();
@@ -136,7 +145,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('AUTHORIZE BROADCAST', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  child: Text(isEditing ? 'UPDATE BROADCAST' : 'AUTHORIZE BROADCAST', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ),
               const SizedBox(height: 40),
@@ -145,6 +154,24 @@ class _HomeworkModuleState extends State<HomeworkModule> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(Map<String, dynamic> h) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Assignment?'),
+        content: Text('Are you sure you want to remove "${h['title']}"? Pupils will no longer see this in their portal.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await SupabaseService.instance.deleteHomework(h['homework_id']);
+      _loadHomework();
+    }
   }
 
   @override
@@ -190,12 +217,18 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                           ),
                           title: Text(h['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Due: ${h['due_date']} • ${h['subject']}'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                            onPressed: () async {
-                              await SupabaseService.instance.deleteHomework(h['homework_id']);
-                              _loadHomework();
-                            },
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                                onPressed: () => _showAddDialog(assignmentToEdit: h),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                onPressed: () => _confirmDelete(h),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -204,7 +237,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddDialog,
+        onPressed: () => _showAddDialog(),
         backgroundColor: Colors.purple.shade700,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add_task_rounded),

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:math' as math;
 
 class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
   final LinearGradient? primaryGradient;
@@ -48,8 +49,7 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
           top: -150,
           right: -100,
           child: _BlurredBlob(
-            color: const Color(0xFFD84315)
-                .withOpacity(isDark ? 0.25 : 0.15),
+            color: const Color(0xFFD84315).withOpacity(isDark ? 0.25 : 0.15),
             size: 500,
           ),
         ),
@@ -57,8 +57,7 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
           bottom: -200,
           left: -150,
           child: _BlurredBlob(
-            color: const Color(0xFF3F51B5)
-                .withOpacity(isDark ? 0.2 : 0.1),
+            color: const Color(0xFF3F51B5).withOpacity(isDark ? 0.2 : 0.1),
             size: 600,
           ),
         ),
@@ -66,8 +65,7 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
           top: 300,
           left: -50,
           child: _BlurredBlob(
-            color: const Color(0xFF009688)
-                .withOpacity(isDark ? 0.15 : 0.05),
+            color: const Color(0xFF009688).withOpacity(isDark ? 0.15 : 0.05),
             size: 300,
           ),
         ),
@@ -79,31 +77,102 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     );
   }
 
+  /// THE "GROWING FRAME" FEATURE: Animated rotating gradient border with pulse
   Widget buildGlowContainer({
     required Widget child,
     double borderRadius = 24,
-    double borderThickness = 2,
+    double borderThickness = 2.5,
     Color? backgroundColor,
     EdgeInsets? padding,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        gradient: glowingBorderGradient,
-        boxShadow: glowingShadows,
-      ),
-      child: Container(
-        margin: EdgeInsets.all(borderThickness),
-        padding: padding ?? const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: backgroundColor ??
-              (backgroundColor == null
-                  ? Colors.white.withOpacity(0.8)
-                  : backgroundColor),
-          borderRadius: BorderRadius.circular(borderRadius - borderThickness),
-        ),
-        child: child,
-      ),
+    return AnimatedGlowFrame(
+      borderRadius: borderRadius,
+      borderThickness: borderThickness,
+      backgroundColor: backgroundColor,
+      padding: padding,
+      child: child,
+    );
+  }
+}
+
+class AnimatedGlowFrame extends StatefulWidget {
+  final Widget child;
+  final double borderRadius;
+  final double borderThickness;
+  final Color? backgroundColor;
+  final EdgeInsets? padding;
+
+  const AnimatedGlowFrame({
+    super.key,
+    required this.child,
+    required this.borderRadius,
+    required this.borderThickness,
+    this.backgroundColor,
+    this.padding,
+  });
+
+  @override
+  State<AnimatedGlowFrame> createState() => _AnimatedGlowFrameState();
+}
+
+class _AnimatedGlowFrameState extends State<AnimatedGlowFrame>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: SweepGradient(
+              center: Alignment.center,
+              colors: const [
+                Color(0xFFD84315), // Deep Orange
+                Color(0xFF3F51B5), // Indigo
+                Color(0xFF009688), // Teal
+                Color(0xFFE91E63), // Pink
+                Color(0xFFD84315),
+              ],
+              transform: GradientRotation(_controller.value * 2 * math.pi),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF3F51B5).withOpacity(0.3),
+                blurRadius: 15 + (math.sin(_controller.value * 2 * math.pi) * 8),
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Container(
+            margin: EdgeInsets.all(widget.borderThickness),
+            padding: widget.padding ?? const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: widget.backgroundColor ?? Theme.of(context).cardTheme.color ?? Colors.white.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(
+                  widget.borderRadius - widget.borderThickness),
+            ),
+            child: widget.child,
+          ),
+        );
+      },
     );
   }
 }
@@ -129,7 +198,7 @@ class AppTheme {
   static const Color aiPink = Color(0xFFD96570);
 
   static const LinearGradient aiGlowGradient = LinearGradient(
-    colors: [aiBlue, aiPurple, aiPink],
+    colors: [aiBlue, aiPurple, aiPink, Color(0xFF00D2FF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import '../admin/parent_registration_screen.dart';
 
 class ParentManagementScreen extends StatefulWidget {
   const ParentManagementScreen({super.key});
@@ -35,78 +36,27 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
     }
   }
 
-  void _showAddParentDialog() {
-    final theme = Theme.of(context);
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-
-    showModalBottomSheet(
+  Future<void> _deleteParent(Map<String, dynamic> parent) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Register New Guardian', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
-            const SizedBox(height: 8),
-            const Text('Link a parent/guardian to the school system', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 32),
-            _buildDialogField(nameCtrl, 'Guardian Full Name', Icons.person_outline),
-            const SizedBox(height: 16),
-            _buildDialogField(phoneCtrl, 'Active Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-            const SizedBox(height: 16),
-            _buildDialogField(emailCtrl, 'Email Address (Optional)', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.isNotEmpty && phoneCtrl.text.isNotEmpty) {
-                    await SupabaseService.instance.insertParent({
-                      'name': nameCtrl.text.trim(),
-                      'phone': phoneCtrl.text.trim(),
-                      'email': emailCtrl.text.trim(),
-                    });
-                    Navigator.pop(context);
-                    _loadParents();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 5,
-                ),
-                child: const Text('AUTHORIZE & SYNC', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Guardian?'),
+        content: Text('Are you sure you want to delete ${parent['name']}? This will also unlink their children.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+        ],
       ),
     );
-  }
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType? keyboardType}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-        filled: true,
-      ),
-    );
+    if (confirmed == true) {
+      try {
+        await SupabaseService.instance.deleteParent(parent['parentId']);
+        _loadParents();
+      } catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 
   @override
@@ -152,7 +102,22 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
                           ),
                           title: Text(p['name'] ?? 'Guardian', style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text(p['phone'] ?? ''),
-                          trailing: const Icon(Icons.verified_user_rounded, color: Colors.green, size: 20),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                                onPressed: () async {
+                                  final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => ParentRegistrationScreen(parentToEdit: p)));
+                                  if (res == true) _loadParents();
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                                onPressed: () => _deleteParent(p),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -160,7 +125,10 @@ class _ParentManagementScreenState extends State<ParentManagementScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddParentDialog,
+        onPressed: () async {
+          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentRegistrationScreen()));
+          if (res == true) _loadParents();
+        },
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_alt_1_rounded),
