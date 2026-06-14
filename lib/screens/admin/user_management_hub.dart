@@ -31,24 +31,53 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Registry & Controls', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Registry & Controls', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 1.5, color: Colors.white)
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [theme.primaryColor, Colors.indigo.shade900],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [
+              BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.hub_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 4,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            color: Colors.white.withOpacity(0.2),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+          ),
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
           tabs: const [
-            Tab(text: 'STUDENTS', icon: Icon(Icons.school_rounded)),
-            Tab(text: 'STAFF', icon: Icon(Icons.badge_rounded)),
-            Tab(text: 'PARENTS', icon: Icon(Icons.family_restroom_rounded)),
+            Tab(text: 'STUDENTS', icon: Icon(Icons.school_rounded, size: 20)),
+            Tab(text: 'STAFF', icon: Icon(Icons.badge_rounded, size: 20)),
+            Tab(text: 'PARENTS', icon: Icon(Icons.family_restroom_rounded, size: 20)),
           ],
         ),
       ),
@@ -58,7 +87,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
           controller: _tabController,
           children: [
             _buildManagementTab(
-              context,
+              context, gemini,
               'Student Intelligence',
               'Enroll new pupils and manage academic profiles',
               Icons.person_add_alt_1_rounded,
@@ -67,7 +96,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentManagementScreen(role: 'Admin'))),
             ),
             _buildManagementTab(
-              context,
+              context, gemini,
               'Staff Directory',
               'Register Teachers, Accountants, and Support Staff',
               Icons.group_add_rounded,
@@ -76,7 +105,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen())),
             ),
             _buildManagementTab(
-              context,
+              context, gemini,
               'Parent Registry',
               'Onboard guardians and link them to their children',
               Icons.person_add_rounded,
@@ -92,6 +121,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
 
   Widget _buildManagementTab(
     BuildContext context,
+    GeminiThemeExtension? gemini,
     String title,
     String subtitle,
     IconData actionIcon,
@@ -100,81 +130,109 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
     VoidCallback onView,
   ) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 180, 24, 24),
+      padding: const EdgeInsets.fromLTRB(24, 200, 24, 40),
       children: [
         _buildActionCard(
-          context,
+          context, gemini,
           'Register New Entry',
           subtitle,
           actionIcon,
           color,
           onAdd,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _buildActionCard(
-          context,
+          context, gemini,
           'Manage Existing Records',
           'Search, edit, and update information in real-time',
           Icons.manage_accounts_rounded,
           Colors.blueGrey,
           onView,
         ),
-        const SizedBox(height: 40),
-        const Text(
-          'REGISTRY OVERVIEW',
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2),
+        const SizedBox(height: 48),
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            'REGISTRY OVERVIEW',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2),
+          ),
         ),
         const SizedBox(height: 16),
-        _buildQuickStat('System verified profiles', '98%', Colors.green),
-        _buildQuickStat('Pending cloud syncs', '0', Colors.blue),
+        _buildQuickStat(context, 'System verified profiles', '98%', Colors.green),
+        _buildQuickStat(context, 'Active cloud sessions', 'Syncing...', Colors.blue),
       ],
     );
   }
 
-  Widget _buildActionCard(BuildContext context, String title, String sub, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
+  Widget _buildActionCard(
+    BuildContext context, 
+    GeminiThemeExtension? gemini,
+    String title, 
+    String sub, 
+    IconData icon, 
+    Color color, 
+    VoidCallback onTap
+  ) {
+    final theme = Theme.of(context);
+    final content = InkWell(
       onTap: onTap,
-      child: Container(
+      borderRadius: BorderRadius.circular(30),
+      child: Padding(
         padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(30),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
-          border: Border.all(color: color.withOpacity(0.1)),
-        ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-              child: Icon(icon, color: color, size: 32),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 30),
             ),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey, height: 1.3)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                  const SizedBox(height: 6),
+                  Text(sub, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.6), height: 1.4, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color),
+            Icon(Icons.chevron_right_rounded, size: 24, color: theme.dividerColor),
           ],
         ),
       ),
     );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 1.5,
+      backgroundColor: theme.cardColor.withOpacity(0.85),
+      padding: EdgeInsets.zero,
+      child: content,
+    ) ?? Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+      ),
+      child: content,
+    );
   }
 
-  Widget _buildQuickStat(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+  Widget _buildQuickStat(BuildContext context, String label, String value, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.05)),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.blueGrey)),
+          Text(value, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 13)),
         ],
       ),
     );

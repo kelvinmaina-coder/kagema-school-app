@@ -3,6 +3,7 @@ import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
 import '../secretary/student_registration.dart';
 import 'student_detail_screen.dart';
+import '../../app_theme.dart';
 
 class StudentManagementScreen extends StatefulWidget {
   final String role; 
@@ -24,6 +25,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
   }
 
   Future<void> _loadStudents() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getAllStudents();
@@ -49,108 +51,173 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool canEdit = widget.role == 'Admin' || widget.role == 'Secretary';
-    bool canDelete = widget.role == 'Admin';
-    bool canAdd = widget.role == 'Admin' || widget.role == 'Secretary';
+    final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
+    bool canManage = widget.role == 'Admin' || widget.role == 'Secretary';
+    final Color primaryColor = _getRoleColor();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEFF6FF),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Student Directory', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF26A69A),
-        foregroundColor: Colors.white,
+        title: const Text('Pupil Registry', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryColor.withOpacity(0.9), primaryColor.withOpacity(0.6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.school_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
             onPressed: _loadStudents,
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredStudents.isEmpty
-                    ? _buildEmptyState()
-                    : _buildStudentList(canEdit, canDelete),
-          ),
-        ],
+      body: gemini?.buildCreativeBackground(
+        isDark: theme.brightness == Brightness.dark,
+        child: Column(
+          children: [
+            SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+            _buildSearchBox(theme, primaryColor, gemini),
+            const SizedBox(height: 20),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredStudents.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          itemCount: _filteredStudents.length,
+                          itemBuilder: (context, index) {
+                            final student = _filteredStudents[index];
+                            final content = ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              leading: CircleAvatar(
+                                radius: 25,
+                                backgroundColor: primaryColor.withOpacity(0.1),
+                                child: Text(student.name.isNotEmpty ? student.name[0].toUpperCase() : '?', 
+                                  style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 18)
+                                ),
+                              ),
+                              title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                              subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', 
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
+                              ),
+                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                              onTap: () {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role)));
+                              },
+                            );
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: gemini?.buildGlowContainer(
+                                borderRadius: 24,
+                                borderThickness: 1,
+                                backgroundColor: theme.cardColor.withOpacity(0.85),
+                                padding: EdgeInsets.zero,
+                                child: content,
+                              ) ?? Card(child: content),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: canAdd ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()));
-          if (result == true) _loadStudents();
-        },
-        backgroundColor: const Color(0xFF26A69A),
-        child: const Icon(Icons.person_add),
+      floatingActionButton: canManage ? gemini?.buildGlowContainer(
+        borderRadius: 30,
+        borderThickness: 2,
+        backgroundColor: primaryColor,
+        padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(
+          onPressed: () async {
+            final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()));
+            if (result == true) _loadStudents();
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.person_add_rounded),
+          label: const Text('Enroll Pupil', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
       ) : null,
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: const Color(0xFF26A69A),
-      child: TextField(
-        onChanged: (v) => setState(() => _searchQuery = v),
-        decoration: InputDecoration(
-          hintText: 'Search Name or Admission No...',
-          prefixIcon: const Icon(Icons.search, color: Colors.grey),
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-        ),
+  Widget _buildSearchBox(ThemeData theme, Color color, GeminiThemeExtension? gemini) {
+    final content = TextField(
+      onChanged: (v) => setState(() => _searchQuery = v),
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        hintText: 'Neural search by name or ADM...',
+        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(vertical: 15),
       ),
     );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: gemini?.buildGlowContainer(
+        borderRadius: 20,
+        borderThickness: 1.5,
+        backgroundColor: theme.cardColor.withOpacity(0.9),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: content,
+      ) ?? Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: content,
+      ),
+    );
+  }
+
+  Color _getRoleColor() {
+    switch (widget.role.toLowerCase()) {
+      case 'admin': return const Color(0xFF1A237E);
+      case 'teacher': return const Color(0xFF00695C);
+      case 'secretary': return const Color(0xFF4A148C);
+      default: return const Color(0xFFD84315);
+    }
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.group_off_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          const Text('No Students Found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(_searchQuery.isEmpty ? 'Enroll your first student to see them here.' : 'Try a different search term.', style: TextStyle(color: Colors.grey[600])),
+          Icon(Icons.group_off_rounded, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('NO NEURAL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
-    );
-  }
-
-  Widget _buildStudentList(bool canEdit, bool canDelete) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _filteredStudents.length,
-      itemBuilder: (context, index) {
-        final student = _filteredStudents[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: const Color(0xFF26A69A).withOpacity(0.1),
-              child: Text(student.name.isNotEmpty ? student.name[0].toUpperCase() : '?', style: const TextStyle(color: Color(0xFF26A69A), fontWeight: FontWeight.bold)),
-            ),
-            title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ADM: ${student.admissionNumber}'),
-                Text('${student.grade} - ${student.stream}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role)));
-            },
-          ),
-        );
-      },
     );
   }
 }

@@ -9,27 +9,34 @@ class AttendanceAdminScreen extends StatefulWidget {
   State<AttendanceAdminScreen> createState() => _AttendanceAdminScreenState();
 }
 
-class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> {
-  Map<String, dynamic> _stats = {'present': 0, 'total': 0};
+class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  Map<String, dynamic> _studentStats = {'present': 0, 'total': 0};
+  Map<String, dynamic> _staffStats = {'present': 0, 'total': 0};
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadAttendanceStats();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadAllStats();
   }
 
-  Future<void> _loadAttendanceStats() async {
+  Future<void> _loadAllStats() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final summary = await SupabaseService.instance.getDashboardSummary();
-      // Simplified stats logic for overview
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final attendance = await SupabaseService.instance.getGlobalAttendanceByDate(today);
+      
+      int sPresent = attendance.where((a) => a['status'] == 'Present' && a['target_type'] != 'Staff').length;
+      int stPresent = attendance.where((a) => a['status'] == 'Checked-In').length;
+
       if (mounted) {
         setState(() {
-          _stats = {
-            'present': (summary['students'] ?? 0) * 0.95.toInt(), 
-            'total': summary['students'] ?? 0
-          };
+          _studentStats = {'present': sPresent, 'total': summary['students'] ?? 0};
+          _staffStats = {'present': stPresent, 'total': summary['staff'] ?? 0};
           _isLoading = false;
         });
       }
@@ -42,40 +49,39 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
-    double rate = _stats['total'] == 0 ? 0 : (_stats['present'] / _stats['total']) * 100;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Attendance Intelligence', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Attendance Intelligence', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.purple.shade800, Colors.purple.shade400]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(colors: [theme.primaryColor, Colors.purple.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.verified_user_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          indicator: BoxDecoration(borderRadius: BorderRadius.circular(50), color: Colors.white.withOpacity(0.2)),
+          indicatorPadding: const EdgeInsets.all(8),
+          tabs: const [Tab(text: 'STUDENTS'), Tab(text: 'FACULTY')],
         ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         child: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.purple))
           : Padding(
-              padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 24, right: 24),
-              child: Column(
+              padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
+              child: TabBarView(
+                controller: _tabController,
                 children: [
-                  _buildCircularProgress(theme, rate),
-                  const SizedBox(height: 40),
-                  _statRow(theme, 'Active Pupils Present', '${_stats['present']}', Colors.green, Icons.check_circle_outline),
-                  const SizedBox(height: 16),
-                  _statRow(theme, 'Total School Enrollment', '${_stats['total']}', Colors.blue, Icons.groups_rounded),
-                  const SizedBox(height: 16),
-                  _statRow(theme, 'Absent / No Signal', '${_stats['total'] - _stats['present']}', Colors.red, Icons.error_outline),
-                  const Spacer(),
-                  _buildActionButtons(theme),
-                  const SizedBox(height: 40),
+                  _buildStatsPage(theme, gemini, _studentStats, 'Pupil Quota'),
+                  _buildStatsPage(theme, gemini, _staffStats, 'Staff Quota'),
                 ],
               ),
             ),
@@ -83,70 +89,37 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> {
     );
   }
 
-  Widget _buildCircularProgress(ThemeData theme, double rate) {
-    return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(30)),
+  Widget _buildStatsPage(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> stats, String label) {
+    double rate = stats['total'] == 0 ? 0 : (stats['present'] / stats['total']) * 100;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Text('OVERALL DAILY QUOTA', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
-          const SizedBox(height: 24),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox(
-                width: 140,
-                height: 140,
-                child: CircularProgressIndicator(
-                  value: rate / 100,
-                  strokeWidth: 14,
-                  backgroundColor: Colors.purple.withOpacity(0.1),
-                  color: Colors.purple,
-                  strokeCap: StrokeCap.round,
-                ),
-              ),
-              Column(
-                children: [
-                  Text('${rate.toInt()}%', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
-                  const Text('SYNCED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)),
-                ],
-              ),
-            ],
-          ),
+          gemini?.buildGlowContainer(
+            borderRadius: 35, borderThickness: 2, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.all(40),
+            child: Column(children: [
+              Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+              const SizedBox(height: 32),
+              Stack(alignment: Alignment.center, children: [
+                SizedBox(width: 160, height: 160, child: CircularProgressIndicator(value: rate/100, strokeWidth: 16, backgroundColor: theme.primaryColor.withOpacity(0.1), color: theme.primaryColor, strokeCap: StrokeCap.round)),
+                Text('${rate.toInt()}%', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
+              ]),
+            ]),
+          ) ?? const SizedBox(),
+          const SizedBox(height: 48),
+          _miniCard(theme, 'Active Nodes Present', '${stats['present']}', Colors.green),
+          const SizedBox(height: 12),
+          _miniCard(theme, 'Total Registry Count', '${stats['total']}', Colors.blue),
         ],
       ),
     );
   }
 
-  Widget _statRow(ThemeData theme, String label, String val, Color color, IconData icon) {
+  Widget _miniCard(ThemeData theme, String l, String v, Color c) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.8), borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 12),
-              Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            ],
-          ),
-          Text(val, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(ThemeData theme) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-        child: const Text('GENERATE ANALYTICS REPORT', style: TextStyle(fontWeight: FontWeight.bold)),
-      ),
+      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24), border: Border.all(color: c.withOpacity(0.1))),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(fontWeight: FontWeight.bold)), Text(v, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: c))]),
     );
   }
 }

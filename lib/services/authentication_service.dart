@@ -45,25 +45,18 @@ class AuthenticationService extends ChangeNotifier {
 
   Future<void> _loadUserData(String userId) async {
     try {
-      final data = await _supabase
-          .from('users')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-      
+      final data = await _supabase.from('users').select().eq('user_id', userId).maybeSingle();
       if (data != null) {
         _currentUserRole = data['role'];
         _currentUserPhone = data['identifier'];
         _currentUserName = data['name'];
-        
         await OfflineDbService.instance.saveUserProfile({
           'id': userId,
           'name': _currentUserName,
           'role': _currentUserRole,
           'phone': _currentUserPhone,
-          'last_login': DateTime.now().toIso8601String(),
+          'last_login': DateTime.now().toIso8601String()
         });
-        
         notifyListeners();
       }
     } catch (e) {
@@ -73,11 +66,12 @@ class AuthenticationService extends ChangeNotifier {
 
   Future<bool> login(String role, String identifier, String password) async {
     try {
-      final response = await _supabase.auth.signInWithPassword(
-        email: identifier.trim(),
-        password: password.trim(),
-      );
+      String finalEmail = identifier.trim();
+      if (!finalEmail.contains('@')) {
+        finalEmail = "${finalEmail.toLowerCase()}@kagema.com";
+      }
 
+      final response = await _supabase.auth.signInWithPassword(email: finalEmail, password: password.trim());
       if (response.user != null) {
         await _loadUserData(response.user!.id);
         _isOffline = false;
@@ -86,27 +80,13 @@ class AuthenticationService extends ChangeNotifier {
       return false;
     } catch (e) {
       debugPrint("Login Error: $e");
-      final offlineProfile = await OfflineDbService.instance.getUserProfile();
-      if (offlineProfile != null && offlineProfile['phone'] == identifier.trim()) {
-        _currentUserRole = offlineProfile['role'];
-        _currentUserPhone = offlineProfile['phone'];
-        _currentUserName = offlineProfile['name'];
-        _isOffline = true;
-        notifyListeners();
-        return true;
-      }
       return false;
     }
   }
 
   Future<void> logout() async {
-    try {
-      await _supabase.auth.signOut();
-    } catch (_) {}
-    _currentUserRole = null;
-    _currentUserPhone = null;
-    _currentUserName = null;
-    _isOffline = false;
+    try { await _supabase.auth.signOut(); } catch (_) {}
+    _currentUserRole = null; _currentUserPhone = null; _currentUserName = null; _isOffline = false;
     notifyListeners();
   }
 
@@ -135,14 +115,6 @@ class AuthenticationService extends ChangeNotifier {
       if (user != null) {
         await _supabase.from('users').update({'name': newName}).eq('user_id', user.id);
         _currentUserName = newName;
-        
-        final offlineProfile = await OfflineDbService.instance.getUserProfile();
-        if (offlineProfile != null) {
-          await OfflineDbService.instance.saveUserProfile({
-            ...offlineProfile,
-            'name': newName,
-          });
-        }
         notifyListeners();
       }
     } catch (_) {}

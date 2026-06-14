@@ -45,14 +45,33 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Discipline Records', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Discipline Matrix', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade600]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: Colors.blueGrey.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.gavel_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -61,56 +80,77 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.blueGrey))
             : _incidents.isEmpty 
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   itemCount: _incidents.length,
                   itemBuilder: (context, index) {
                     final incident = _incidents[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.red.withOpacity(0.1),
-                          child: const Icon(Icons.gavel_rounded, color: Colors.red),
-                        ),
-                        title: Text(incident['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${incident['date']} • ADM: ${incident['admission_number']}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
-                              onPressed: () => _showAddIncidentDialog(incidentToEdit: incident),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                              onPressed: () => _deleteIncident(incident),
-                            ),
-                          ],
+                    final content = ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      leading: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.gavel_rounded, color: Colors.red, size: 24),
+                      ),
+                      title: Text(incident['title'] ?? 'Incident Node', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('${incident['date']} • ADM: ${incident['admission_number']}', 
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
                         ),
                       ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                            onPressed: () => _showAddIncidentDialog(incidentToEdit: incident),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                            onPressed: () => _deleteIncident(incident),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: gemini?.buildGlowContainer(
+                        borderRadius: 28,
+                        borderThickness: 1,
+                        backgroundColor: theme.cardColor.withOpacity(0.85),
+                        padding: EdgeInsets.zero,
+                        child: content,
+                      ) ?? Card(child: content),
                     );
                   },
                 ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddIncidentDialog(),
-        label: const Text('Log Incident', style: TextStyle(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add_alert_rounded),
+      floatingActionButton: gemini?.buildGlowContainer(
+        borderRadius: 30,
+        borderThickness: 2,
         backgroundColor: Colors.blueGrey.shade800,
-        foregroundColor: Colors.white,
+        padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddIncidentDialog(),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_alert_rounded),
+          label: const Text('Log Neural Incident', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
       ),
     );
   }
 
   void _showAddIncidentDialog({Map<String, dynamic>? incidentToEdit}) {
     final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
     final isEditing = incidentToEdit != null;
     final admCtrl = TextEditingController(text: incidentToEdit?['admission_number']);
     final titleCtrl = TextEditingController(text: incidentToEdit?['title']);
@@ -122,56 +162,92 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
         ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isEditing ? 'Modify Incident Report' : 'Report New Incident', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade900)),
-              const SizedBox(height: 24),
-              TextField(controller: admCtrl, decoration: const InputDecoration(labelText: 'Pupil Admission Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.badge))),
-              const SizedBox(height: 16),
-              TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Incident Type (e.g. Lateness)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.title))),
-              const SizedBox(height: 16),
-              TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Detailed Description', border: OutlineInputBorder(), prefixIcon: Icon(Icons.notes)), maxLines: 3),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (admCtrl.text.isNotEmpty && titleCtrl.text.isNotEmpty) {
-                      final data = {
-                        'admission_number': admCtrl.text.trim(),
-                        'title': titleCtrl.text.trim(),
-                        'description': descCtrl.text.trim(),
-                        'date': incidentToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      };
-                      if (isEditing) {
-                        data['incident_id'] = incidentToEdit['incident_id'];
-                      } else {
-                        data['incident_id'] = 'INC-${const Uuid().v4().substring(0, 8).toUpperCase()}';
-                      }
-                      
-                      await SupabaseService.instance.upserIncident(data); // Typo in my previous upsert name? I'll check SupabaseService
-                      if (mounted) {
-                        Navigator.pop(context);
-                        _loadIncidents();
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueGrey.shade800, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                  child: Text(isEditing ? 'UPDATE REPORT' : 'POST TO CLOUD LOG', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
+        child: gemini?.buildCreativeBackground(
+          isDark: theme.brightness == Brightness.dark,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 24),
+                  Text(isEditing ? 'MODIFY RECORD' : 'POST NEURAL ALERT', 
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
+                  ),
+                  const SizedBox(height: 8),
+                  Text(isEditing ? 'Update Incident Intel' : 'New Conduct Report', 
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
+                  ),
+                  const SizedBox(height: 32),
+                  _buildNeuralField('Pupil Admission Identifier', Icons.badge_outlined, admCtrl, theme),
+                  const SizedBox(height: 16),
+                  _buildNeuralField('Incident Classification', Icons.title_rounded, titleCtrl, theme),
+                  const SizedBox(height: 16),
+                  _buildNeuralField('Detailed Intelligence', Icons.notes_rounded, descCtrl, theme, maxLines: 3),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (admCtrl.text.isNotEmpty && titleCtrl.text.isNotEmpty) {
+                          final data = {
+                            'admission_number': admCtrl.text.trim(),
+                            'title': titleCtrl.text.trim(),
+                            'description': descCtrl.text.trim(),
+                            'date': incidentToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                          };
+                          if (isEditing) {
+                            data['incident_id'] = incidentToEdit['incident_id'];
+                          } else {
+                            data['incident_id'] = 'INC-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+                          }
+                          
+                          await SupabaseService.instance.upsertIncident(data);
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _loadIncidents();
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueGrey.shade800, 
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 8,
+                      ),
+                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE CLOUD LOG', 
+                        style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 40),
-            ],
+            ),
           ),
-        ),
+        ) ?? const SizedBox(),
+      ),
+    );
+  }
+
+  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+    return TextField(
+      controller: ctrl,
+      maxLines: maxLines,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.blueGrey, size: 20),
+        filled: true,
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
     );
   }
@@ -180,11 +256,12 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Expunge Record?'),
-        content: Text('Delete this discipline entry for ADM: ${item['admission_number']}?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text('Purge Record?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('Are you sure you want to erase this discipline entry for ADM: ${item['admission_number']}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -202,7 +279,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         children: [
           Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
           SizedBox(height: 16),
-          Text('All clear! No cloud-synced incidents.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text('ALL CLEAR: NO INCIDENTS DETECTED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

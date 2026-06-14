@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
+import '../../services/mpesa_service.dart';
 import '../../app_theme.dart';
 
 class FeesPaymentScreen extends StatefulWidget {
@@ -33,27 +34,24 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
   }
 
   Future<void> _loadFeeData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // Get balance details from Supabase
       final balanceData = await SupabaseService.instance.getStudentBalance(
         widget.student.studentId, 
         widget.student.grade
       );
-      
-      // Get history from Supabase
       final history = await SupabaseService.instance.getFeeHistory(widget.student.studentId);
       
       if (mounted) {
         setState(() {
-          _totalExpected = balanceData['required'];
-          _totalPaid = balanceData['paid'];
+          _totalExpected = (balanceData['total_fee'] ?? 0.0).toDouble();
+          _totalPaid = (balanceData['total_paid'] ?? 0.0).toDouble();
           _history = history;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint("Fee Data Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -62,10 +60,28 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     if (_amountController.text.isEmpty) return;
     
     setState(() => _isProcessing = true);
-    
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    final receiptNo = 'RCP-${DateTime.now().millisecondsSinceEpoch}';
 
+    // INTEGRATION: Real M-Pesa STK Push
+    if (selectedMethod == 'M-Pesa (Stk Push)') {
+      final result = await MpesaService.instance.initiateStkPush(
+        phoneNumber: widget.student.parentPhone,
+        amount: amount,
+        reference: "FEES-${widget.student.admissionNumber}",
+      );
+
+      if (!result['success']) {
+        if (mounted) {
+          setState(() => _isProcessing = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('M-Pesa Error: ${result['message']}'), backgroundColor: Colors.red)
+          );
+        }
+        return;
+      }
+    }
+
+    final receiptNo = 'RCP-${DateTime.now().millisecondsSinceEpoch}';
     final payment = {
       'student_id': widget.student.studentId,
       'student_name': widget.student.name,
@@ -86,15 +102,17 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
         _tabController.animateTo(1);
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment Successful! Synced to Cloud.'), backgroundColor: Colors.green)
+          SnackBar(
+            content: const Text('Neural Transaction Initiated: Check your phone!', style: TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.green.shade800,
+            behavior: SnackBarBehavior.floating,
+          )
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Payment Failed: $e'), backgroundColor: Colors.red)
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
       }
     }
   }
@@ -107,20 +125,51 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Fee Management', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Quantum Fee Portal', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.green, Colors.green.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [Colors.green.shade900, Colors.green.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.account_balance_wallet_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          tabs: const [Tab(text: 'MAKE PAYMENT'), Tab(text: 'HISTORY')],
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            color: Colors.white.withOpacity(0.2),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+          ),
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
+          tabs: const [
+            Tab(text: 'MAKE PAYMENT', icon: Icon(Icons.add_card_rounded, size: 18)),
+            Tab(text: 'HISTORY', icon: Icon(Icons.history_edu_rounded, size: 18)),
+          ],
         ),
       ),
       body: gemini?.buildCreativeBackground(
@@ -128,12 +177,12 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.green))
             : TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildPaymentTab(theme),
-                  _buildHistoryTab(),
+                  _buildPaymentTab(theme, gemini),
+                  _buildHistoryTab(theme, gemini),
                 ],
               ),
         ),
@@ -141,135 +190,195 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     );
   }
 
-  Widget _buildPaymentTab(ThemeData theme) {
+  Widget _buildPaymentTab(ThemeData theme, GeminiThemeExtension? gemini) {
     double balance = _totalExpected - _totalPaid;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryHeader(theme, balance),
-          const SizedBox(height: 32),
-          Text('NEW PAYMENT FOR ${widget.student.name.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1.5)),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.cardColor.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              children: [
-                _buildDropdown('Select Term', selectedTerm, ['Term 1', 'Term 2', 'Term 3'], (v) => setState(() => selectedTerm = v!)),
-                const SizedBox(height: 16),
-                _buildDropdown('Payment Method', selectedMethod, ['M-Pesa (Stk Push)', 'Visa Card', 'Bank Transfer'], (v) => setState(() => selectedMethod = v!)),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Amount (Ksh)', 
-                    prefixIcon: Icon(Icons.payments_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isProcessing ? null : _processPayment,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green, 
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: _isProcessing 
-                      ? const CircularProgressIndicator(color: Colors.white) 
-                      : const Text('AUTHORIZE CLOUD PAYMENT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  ),
-                )
-              ],
+          _buildSummaryHeader(theme, gemini, balance),
+          const SizedBox(height: 48),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text('NEURAL PAYMENT PROTOCOL', 
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
             ),
           ),
+          const SizedBox(height: 16),
+          _buildPaymentForm(theme, gemini),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryHeader(ThemeData theme, double balance) {
-    return Container(
+  Widget _buildPaymentForm(ThemeData theme, GeminiThemeExtension? gemini) {
+    final content = Column(
+      children: [
+        _buildNeuralDropdown('Target Academic Term', selectedTerm, ['Term 1', 'Term 2', 'Term 3'], (v) => setState(() => selectedTerm = v!), Icons.layers_rounded, theme),
+        const SizedBox(height: 20),
+        _buildNeuralDropdown('Payment Interface', selectedMethod, ['M-Pesa (Stk Push)', 'Visa Card', 'Bank Transfer'], (v) => setState(() => selectedMethod = v!), Icons.hub_rounded, theme),
+        const SizedBox(height: 20),
+        TextField(
+          controller: _amountController,
+          keyboardType: TextInputType.number,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.green),
+          decoration: InputDecoration(
+            labelText: 'Neural Amount (Ksh)', 
+            labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            prefixIcon: const Icon(Icons.payments_rounded, color: Colors.green, size: 20),
+            filled: true,
+            fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 40),
+        SizedBox(
+          width: double.infinity,
+          height: 60,
+          child: ElevatedButton(
+            onPressed: _isProcessing ? null : _processPayment,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade800, 
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 8,
+              shadowColor: Colors.green.withOpacity(0.4),
+            ),
+            child: _isProcessing 
+              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+              : const Text('AUTHORIZE QUANTUM PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+          ),
+        )
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 1.5,
+      backgroundColor: theme.cardColor.withOpacity(0.9),
+      padding: const EdgeInsets.all(24),
+      child: content,
+    ) ?? Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(28)),
+      child: content,
+    );
+  }
+
+  Widget _buildSummaryHeader(ThemeData theme, GeminiThemeExtension? gemini, double balance) {
+    final content = Column(
+      children: [
+        _summaryRow('Neural Quota (Term)', 'Ksh ${NumberFormat('#,###').format(_totalExpected)}'),
+        const Divider(color: Colors.white10),
+        _summaryRow('Amount Synchronized', 'Ksh ${NumberFormat('#,###').format(_totalPaid)}', color: Colors.green),
+        const Divider(color: Colors.white10),
+        _summaryRow('Neural Balance', 'Ksh ${NumberFormat('#,###').format(balance)}', color: balance > 0 ? Colors.red : Colors.green, bold: true),
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 2,
+      backgroundColor: theme.primaryColor.withOpacity(0.05),
+      padding: const EdgeInsets.all(24),
+      child: content,
+    ) ?? Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.green.withOpacity(0.1), 
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.green.withOpacity(0.2)),
       ),
-      child: Column(
-        children: [
-          _summaryRow('Total Fee (Term)', 'Ksh $_totalExpected'),
-          const Divider(),
-          _summaryRow('Amount Paid', 'Ksh $_totalPaid', color: Colors.green),
-          const Divider(),
-          _summaryRow('Current Balance', 'Ksh $balance', color: balance > 0 ? Colors.red : Colors.green, bold: true),
-        ],
-      ),
+      child: content,
     );
   }
 
   Widget _summaryRow(String l, String v, {Color? color, bool bold = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(l, style: const TextStyle(fontWeight: FontWeight.w500)),
-          Text(v, style: TextStyle(fontWeight: bold ? FontWeight.w900 : FontWeight.bold, color: color, fontSize: bold ? 18 : 14)),
+          Text(l, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.blueGrey)),
+          Text(v, style: TextStyle(fontWeight: bold ? FontWeight.w900 : FontWeight.w800, color: color, fontSize: bold ? 20 : 15, letterSpacing: 0.5)),
         ],
       ),
     );
   }
 
-  Widget _buildHistoryTab() {
-    if (_history.isEmpty) return const Center(child: Text('No cloud payment records found.'));
+  Widget _buildHistoryTab(ThemeData theme, GeminiThemeExtension? gemini) {
+    if (_history.isEmpty) return _buildEmptyState();
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       itemCount: _history.length,
       itemBuilder: (context, index) {
         final item = _history[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Colors.green,
-              child: Icon(Icons.receipt_long, color: Colors.white),
-            ),
-            title: Text('Ksh ${item['amount_paid']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${item['term']} • Ref: ${item['receipt_number']}'),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(item['payment_date'].toString().split('T')[0], style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-              ],
-            ),
-            onTap: () {},
+        final content = ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.receipt_long_rounded, color: Colors.green, size: 24),
           ),
+          title: Text('Ksh ${NumberFormat('#,###').format(item['amount_paid'])}', 
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)
+          ),
+          subtitle: Text('${item['term']} • Ref: ${item['receipt_number']}', 
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(item['payment_date'].toString().split('T')[0], 
+                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey)
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 18, color: Colors.grey),
+            ],
+          ),
+        );
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: gemini?.buildGlowContainer(
+            borderRadius: 28,
+            borderThickness: 1,
+            backgroundColor: theme.cardColor.withOpacity(0.85),
+            padding: EdgeInsets.zero,
+            child: content,
+          ) ?? Card(child: content),
         );
       },
     );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged) {
+  Widget _buildNeuralDropdown(String label, String value, List<String> items, Function(String?) onChanged, IconData icon, ThemeData theme) {
     return DropdownButtonFormField<String>(
       value: value,
+      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
       items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label, 
-        border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.green, size: 20),
+        filled: true,
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_edu_rounded, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text('NO NEURAL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+        ],
       ),
     );
   }

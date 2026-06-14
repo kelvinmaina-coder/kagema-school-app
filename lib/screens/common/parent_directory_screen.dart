@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import '../admin/parent_registration_screen.dart';
 
 class ParentDirectoryScreen extends StatefulWidget {
   const ParentDirectoryScreen({super.key});
@@ -39,20 +40,18 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = "Failed to load guardian directory. Please check your connection.";
+          _errorMessage = "Neural directory sync failed. Please check link stability.";
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
       }
     }
   }
 
-  void _showAddParentDialog() {
+  void _showParentForm({Map<String, dynamic>? parent}) {
     final theme = Theme.of(context);
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
+    final gemini = theme.extension<GeminiThemeExtension>();
+    final nameCtrl = TextEditingController(text: parent?['name']);
+    final phoneCtrl = TextEditingController(text: parent?['phone']);
+    final emailCtrl = TextEditingController(text: parent?['email']);
 
     showModalBottomSheet(
       context: context,
@@ -60,82 +59,107 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
         ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Register New Guardian', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: theme.primaryColor)),
-            const SizedBox(height: 8),
-            const Text('Link a parent/guardian to the school system', style: TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 32),
-            _buildDialogField(nameCtrl, 'Guardian Full Name', Icons.person_outline),
-            const SizedBox(height: 16),
-            _buildDialogField(phoneCtrl, 'Active Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-            const SizedBox(height: 16),
-            _buildDialogField(emailCtrl, 'Email Address (Optional)', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Name and Phone are required')),
-                    );
-                    return;
-                  }
-                  
-                  try {
-                    await SupabaseService.instance.insertParent({
-                      'name': nameCtrl.text.trim(),
-                      'phone': phoneCtrl.text.trim(),
-                      'email': emailCtrl.text.trim(),
-                    });
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _loadParents();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Guardian registered successfully'), backgroundColor: Colors.green),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Registration failed: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 5,
+        child: gemini?.buildCreativeBackground(
+          isDark: theme.brightness == Brightness.dark,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                Text(parent == null ? 'NEW ENTITY REGISTRATION' : 'MODIFY GUARDIAN DATA', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                 ),
-                child: const Text('AUTHORIZE & SYNC', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-              ),
+                const SizedBox(height: 8),
+                Text(parent == null ? 'Guardian Onboarding' : 'Identity Update', 
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
+                ),
+                const SizedBox(height: 32),
+                _buildNeuralField('Guardian Full Identity', Icons.person_outline_rounded, nameCtrl, theme),
+                const SizedBox(height: 16),
+                _buildNeuralField('Active Neural Contact', Icons.phone_android_rounded, phoneCtrl, theme, keyboardType: TextInputType.phone),
+                const SizedBox(height: 16),
+                _buildNeuralField('Cloud Address (Optional)', Icons.alternate_email_rounded, emailCtrl, theme, keyboardType: TextInputType.emailAddress),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: const Text('Required: Name & Contact Fields'), backgroundColor: Colors.orange.shade800)
+                        );
+                        return;
+                      }
+                      
+                      final data = {
+                        'parentId': parent?['parentId'] ?? parent?['parent_id'] ?? 'PAR-${DateTime.now().millisecondsSinceEpoch}',
+                        'name': nameCtrl.text.trim(),
+                        'phone': phoneCtrl.text.trim(),
+                        'email': emailCtrl.text.trim(),
+                      };
+
+                      try {
+                        await SupabaseService.instance.insertParent(data);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          _loadParents();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Identity ${parent == null ? 'Encoded' : 'Synchronized'} Successfully'), 
+                              backgroundColor: Colors.green.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (e == "OFFLINE_QUEUED") {
+                           Navigator.pop(context);
+                           _loadParents();
+                        } else if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Aborted: $e'), backgroundColor: Colors.red));
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 8,
+                      shadowColor: theme.primaryColor.withOpacity(0.4),
+                    ),
+                    child: Text(parent == null ? 'AUTHORIZE & SYNC' : 'COMMIT UPDATES', 
+                      style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+        ) ?? const SizedBox(),
       ),
     );
   }
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
+      style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
         filled: true,
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
     );
   }
@@ -148,14 +172,33 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Guardian Directory', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Guardian Matrix', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [theme.primaryColor, Colors.indigo.shade900],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.family_restroom_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -164,53 +207,77 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
             : _errorMessage != null
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: Colors.red, size: 60),
+                      Icon(Icons.sync_problem_rounded, color: Colors.red.withOpacity(0.5), size: 60),
                       const SizedBox(height: 16),
-                      Text(_errorMessage!, style: const TextStyle(color: Colors.grey)),
-                      TextButton(onPressed: _loadParents, child: const Text('Retry'))
+                      Text(_errorMessage!, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                      TextButton(onPressed: _loadParents, child: const Text('RE-SYNC MATRIX'))
                     ],
                   ),
                 )
               : _parents.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       itemCount: _parents.length,
                       itemBuilder: (context, index) {
                         final p = _parents[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: theme.primaryColor.withOpacity(0.1),
-                              child: Icon(Icons.family_restroom, color: theme.primaryColor),
-                            ),
-                            title: Text(p['name'] ?? 'Guardian', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text(p['phone'] ?? ''),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                              onPressed: () => _confirmDelete(p['parentId'] ?? p['parent_id']),
-                            ),
+                        final content = ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          leading: CircleAvatar(
+                            radius: 25,
+                            backgroundColor: theme.primaryColor.withOpacity(0.1),
+                            child: Icon(Icons.family_restroom_rounded, color: theme.primaryColor, size: 24),
                           ),
+                          title: Text(p['name'] ?? 'Guardian Entity', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                          subtitle: Text(p['phone'] ?? 'No Contact Signal', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_note_rounded, color: Colors.blue),
+                                onPressed: () => _showParentForm(parent: p),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                                onPressed: () => _confirmDelete(p['parentId'] ?? p['parent_id']),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: gemini?.buildGlowContainer(
+                            borderRadius: 24,
+                            borderThickness: 1,
+                            backgroundColor: theme.cardColor.withOpacity(0.85),
+                            padding: EdgeInsets.zero,
+                            child: content,
+                          ) ?? Card(child: content),
                         );
                       },
                     ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddParentDialog,
+      floatingActionButton: gemini?.buildGlowContainer(
+        borderRadius: 30,
+        borderThickness: 2,
         backgroundColor: theme.primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add_alt_1_rounded),
-        label: const Text('Add Guardian', style: TextStyle(fontWeight: FontWeight.bold)),
+        padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(
+          onPressed: () => _showParentForm(),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.person_add_alt_1_rounded),
+          label: const Text('Add Quantum Guardian', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
       ),
     );
   }
@@ -220,11 +287,12 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Guardian?'),
-        content: const Text('This will remove the guardian and unlink them from students.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text('Purge Identity?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text('This will erase the guardian node and unlink child relationships from the neural net.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -233,16 +301,12 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       try {
         await SupabaseService.instance.deleteParent(id);
         _loadParents();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Guardian deleted')),
-          );
-        }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Identity expunged from cloud.')));
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Delete failed: $e'), backgroundColor: Colors.red),
-          );
+        if (e == "OFFLINE_QUEUED") {
+          _loadParents();
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Operation failed: $e'), backgroundColor: Colors.red));
         }
       }
     }
@@ -253,9 +317,9 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.5)),
+          Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('No guardian records found.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          const Text('NEURAL DIRECTORY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

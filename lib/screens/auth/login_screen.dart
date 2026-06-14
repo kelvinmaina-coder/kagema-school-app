@@ -76,16 +76,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return Scaffold(
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
+        maxWidth: 500,
+        useAIBorder: true, // IMPORTANT: AI Spectrum Border applied here
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
             child: Column(
               children: [
-                _buildBranding(theme),
+                _buildBranding(theme, gemini),
                 const SizedBox(height: 40),
-                _buildRoleGrid(theme),
+                _buildSectionLabel('SECURE IDENTITY ACCESS'),
+                const SizedBox(height: 16),
+                _buildRoleGrid(theme, gemini),
                 const SizedBox(height: 32),
-                _buildLoginForm(theme),
+                _buildLoginForm(theme, gemini),
                 const SizedBox(height: 24),
                 if (selectedRole == 'Parent')
                   TextButton(
@@ -93,7 +97,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     child: const Text('New Parent? Register Identity', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 const SizedBox(height: 40),
-                const Text('SYSTEM SECURITY: AUTHORIZED ACCESS ONLY', style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                const Text('SYSTEM SECURITY: AUTHORIZED ACCESS ONLY', 
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2)),
               ],
             ),
           ),
@@ -102,27 +108,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildBranding(ThemeData theme) {
+  Widget _buildBranding(ThemeData theme, GeminiThemeExtension? gemini) {
     return Column(
       children: [
-        Container(
+        gemini?.buildGlowContainer(
+          borderRadius: 50,
+          borderThickness: 2,
+          backgroundColor: theme.primaryColor.withOpacity(0.05),
+          padding: const EdgeInsets.all(20),
+          child: Icon(Icons.school_rounded, size: 50, color: theme.primaryColor),
+        ) ?? Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(Icons.school_rounded, size: 60, color: theme.primaryColor),
+          child: Icon(Icons.school_rounded, size: 50, color: theme.primaryColor),
         ),
-        const SizedBox(height: 16),
-        const Text('Kagema School', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+        const SizedBox(height: 20),
+        const Text('Kagema School', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
         Container(
-          margin: const EdgeInsets.only(top: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text('CLOUD-POWERED HUB', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 2)),
+          child: Text('CLOUD-INTELLIGENCE HUB', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 2)),
         ),
       ],
     );
   }
 
-  Widget _buildRoleGrid(ThemeData theme) {
+  Widget _buildRoleGrid(ThemeData theme, GeminiThemeExtension? gemini) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -133,6 +145,26 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       itemBuilder: (context, index) {
         final role = roles[index];
         final isSelected = selectedRole == role['title'];
+        
+        final content = Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(role['icon'], color: isSelected ? Colors.white : role['color'], size: 24),
+            const SizedBox(height: 8),
+            Text(role['title'].toUpperCase(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey[700])),
+          ],
+        );
+
+        if (isSelected && gemini != null) {
+          return gemini.buildGlowContainer(
+            borderRadius: 20,
+            borderThickness: 2,
+            backgroundColor: role['color'],
+            padding: EdgeInsets.zero,
+            child: content,
+          );
+        }
+
         return InkWell(
           onTap: () => setState(() => selectedRole = role['title']),
           borderRadius: BorderRadius.circular(20),
@@ -140,75 +172,88 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             decoration: BoxDecoration(
               color: isSelected ? role['color'] : theme.cardColor.withOpacity(0.6),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isSelected ? role['color'] : Colors.grey.withOpacity(0.2), width: 2),
-              boxShadow: isSelected ? [BoxShadow(color: role['color'].withOpacity(0.3), blurRadius: 10, spreadRadius: 1)] : null,
+              border: Border.all(color: isSelected ? role['color'] : Colors.grey.withOpacity(0.2), width: 1.5),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(role['icon'], color: isSelected ? Colors.white : role['color'], size: 28),
-                const SizedBox(height: 6),
-                Text(role['title'].toUpperCase(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey[700])),
-              ],
-            ),
+            child: content,
           ),
         );
       },
     );
   }
 
-  Widget _buildLoginForm(ThemeData theme) {
+  Widget _buildLoginForm(ThemeData theme, GeminiThemeExtension? gemini) {
     String dynamicHint = selectedRole != null ? roles.firstWhere((r) => r['title'] == selectedRole)['hint'] : "Select Role Above";
-    return Container(
+    
+    final content = Column(
+      children: [
+        TextField(
+          controller: identifierController,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            labelText: dynamicHint,
+            labelStyle: const TextStyle(fontSize: 13),
+            prefixIcon: Icon(Icons.person_outline, color: theme.primaryColor),
+            filled: true,
+            fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 20),
+        TextField(
+          controller: passwordController,
+          obscureText: !isPasswordVisible,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+          decoration: InputDecoration(
+            labelText: 'Access Password',
+            labelStyle: const TextStyle(fontSize: 13),
+            prefixIcon: Icon(Icons.lock_outline, color: theme.primaryColor),
+            suffixIcon: IconButton(
+              icon: Icon(isPasswordVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+              onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible),
+            ),
+            filled: true,
+            fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+          ),
+        ),
+        const SizedBox(height: 32),
+        SizedBox(
+          width: double.infinity,
+          height: 60,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 8,
+              shadowColor: theme.primaryColor.withOpacity(0.4),
+            ),
+            child: isLoading 
+              ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+              : const Text('AUTHORIZE NEURAL SESSION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
+          ),
+        ),
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 2,
+      backgroundColor: theme.cardColor.withOpacity(0.9),
+      padding: const EdgeInsets.all(24),
+      child: content,
+    ) ?? Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
+        borderRadius: BorderRadius.circular(30),
       ),
-      child: Column(
-        children: [
-          TextField(
-            controller: identifierController,
-            decoration: InputDecoration(
-              labelText: dynamicHint,
-              prefixIcon: const Icon(Icons.person_outline),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: passwordController,
-            obscureText: !isPasswordVisible,
-            decoration: InputDecoration(
-              labelText: 'Access Password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(isPasswordVisible ? Icons.visibility : Icons.visibility_off),
-                onPressed: () => setState(() => isPasswordVisible = !isPasswordVisible),
-              ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 55,
-            child: ElevatedButton(
-              onPressed: isLoading ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 5,
-              ),
-              child: isLoading 
-                ? const CircularProgressIndicator(color: Colors.white) 
-                : const Text('AUTHORIZE SESSION', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-            ),
-          ),
-        ],
-      ),
+      child: content,
     );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey));
   }
 }

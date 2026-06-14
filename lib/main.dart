@@ -132,7 +132,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  String statusMessage = "Initializing Intelligent Systems...";
+  String statusMessage = "Initializing Neural Core...";
 
   @override
   void initState() {
@@ -142,12 +142,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _initializeApp() async {
     await Future.delayed(const Duration(milliseconds: 1500));
-    if (mounted) setState(() => statusMessage = "Syncing School Protocol...");
+    if (mounted) setState(() => statusMessage = "Establishing Cloud Handshake...");
     
     final auth = Provider.of<AuthenticationService>(context, listen: false);
     bool loggedIn = await auth.isAuthenticated(); 
 
-    if (mounted) setState(() => statusMessage = "System Verified. Welcome.");
+    if (mounted) setState(() => statusMessage = "Neural Identity Verified. Welcome.");
     await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
@@ -165,46 +165,47 @@ class _SplashScreenState extends State<SplashScreen> {
     final gemini = theme.extension<GeminiThemeExtension>();
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: gemini?.primaryGradient ?? const LinearGradient(
-            colors: [Color(0xFFD84315), Color(0xFFBF360C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      body: gemini?.buildCreativeBackground(
+        isDark: true, // Always dark for splash
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              gemini?.buildGlowContainer(
+                borderRadius: 50,
+                borderThickness: 2,
+                backgroundColor: theme.primaryColor.withOpacity(0.05),
+                padding: const EdgeInsets.all(24),
+                child: const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+              ) ?? const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+              const SizedBox(height: 32),
+              const Text(
+                'Kagema System',
+                style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'NEURAL MANAGEMENT HUB',
+                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w900, letterSpacing: 3, fontSize: 10),
+              ),
+              const SizedBox(height: 80),
+              const SizedBox(
+                width: 45,
+                height: 45,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Text(
+                statusMessage.toUpperCase(),
+                style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+              ),
+            ],
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.school_rounded, size: 100, color: Colors.white),
-            const SizedBox(height: 24),
-            const Text(
-              'Kagema school',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'MANAGEMENT SYSTEM',
-              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 10),
-            ),
-            const SizedBox(height: 60),
-            const SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              statusMessage,
-              style: const TextStyle(color: Colors.white54, fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ],
-        ),
-      ),
+      ) ?? const SizedBox(),
     );
   }
 }

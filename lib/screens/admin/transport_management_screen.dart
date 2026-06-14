@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import 'package:uuid/uuid.dart';
 
 class TransportManagementScreen extends StatefulWidget {
   const TransportManagementScreen({super.key});
@@ -11,117 +12,81 @@ class TransportManagementScreen extends StatefulWidget {
 
 class _TransportManagementScreenState extends State<TransportManagementScreen> {
   List<Map<String, dynamic>> _routes = [];
-  bool isLoading = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _loadRoutes();
   }
 
-  Future<void> _loadData() async {
-    if (!mounted) return;
-    setState(() => isLoading = true);
+  Future<void> _loadRoutes() async {
+    setState(() => _isLoading = true);
     try {
-      final routes = await SupabaseService.instance.getBusRoutes();
-      if (mounted) {
-        setState(() {
-          _routes = routes;
-          isLoading = false;
-        });
-      }
+      final data = await SupabaseService.instance.getBusRoutes();
+      setState(() {
+        _routes = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) setState(() => isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
-  void _showRouteDialog({Map<String, dynamic>? routeToEdit}) {
+  void _showAddRouteDialog({Map<String, dynamic>? route}) {
     final theme = Theme.of(context);
-    final isEditing = routeToEdit != null;
-    final nameCtrl = TextEditingController(text: routeToEdit?['name']);
-    final driverCtrl = TextEditingController(text: routeToEdit?['driver_name']);
-    final vehicleCtrl = TextEditingController(text: routeToEdit?['vehicle_number']);
+    final gemini = theme.extension<GeminiThemeExtension>();
+    final nameCtrl = TextEditingController(text: route?['name']);
+    final driverCtrl = TextEditingController(text: route?['driver']);
+    final phoneCtrl = TextEditingController(text: route?['phone']);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isEditing ? 'Adjust Transport Route' : 'Deploy New Route', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.deepPurple.shade700)),
-              const SizedBox(height: 8),
-              Text(isEditing ? 'Modify fleet details for this route' : 'Add a new transport path to the cloud logistics', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 32),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Route Name (e.g. Route A)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.map_rounded))),
-              const SizedBox(height: 16),
-              TextField(controller: driverCtrl, decoration: const InputDecoration(labelText: 'Driver Name', border: OutlineInputBorder(), prefixIcon: Icon(Icons.person))),
-              const SizedBox(height: 16),
-              TextField(controller: vehicleCtrl, decoration: const InputDecoration(labelText: 'Vehicle Plate Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.directions_bus_filled_rounded))),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (nameCtrl.text.isNotEmpty) {
-                      final data = {
-                        'name': nameCtrl.text.trim(),
-                        'driver_name': driverCtrl.text.trim(),
-                        'vehicle_number': vehicleCtrl.text.trim(),
-                        'status': routeToEdit?['status'] ?? 'ACTIVE',
-                      };
-                      if (isEditing) {
-                        data['route_id'] = routeToEdit['route_id'];
-                      }
-                      await SupabaseService.instance.saveBusRoute(data);
-                      if (mounted) {
-                        Navigator.pop(context);
-                        _loadData();
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple.shade700,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(isEditing ? 'UPDATE LOGISTICS' : 'INITIALIZE ROUTE', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
+        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(35))),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('NEURAL ROUTE ASSIGNMENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+            const SizedBox(height: 24),
+            _buildField(nameCtrl, 'Route Designation (e.g. Westlands)', Icons.map_rounded, theme),
+            const SizedBox(height: 16),
+            _buildField(driverCtrl, 'Assigned Driver', Icons.person_outline, theme),
+            const SizedBox(height: 16),
+            _buildField(phoneCtrl, 'Driver Contact', Icons.phone_android_rounded, theme, keyboardType: TextInputType.phone),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (nameCtrl.text.isNotEmpty) {
+                    final data = {
+                      'route_id': route?['route_id'] ?? const Uuid().v4(),
+                      'name': nameCtrl.text.trim(),
+                      'driver': driverCtrl.text.trim(),
+                      'phone': phoneCtrl.text.trim(),
+                    };
+                    await SupabaseService.instance.saveBusRoute(data);
+                    if (mounted) { Navigator.pop(context); _loadRoutes(); }
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                child: const Text('AUTHORIZE LOGISTICS SYNC', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _deleteRoute(Map<String, dynamic> route) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Decommission Route?'),
-        content: Text('Are you sure you want to delete "${route['name']}"? All student links to this route will be broken.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      await SupabaseService.instance.deleteBusRoute(route['route_id'].toString());
-      _loadData();
-    }
-  }
+  Widget _buildField(TextEditingController c, String l, IconData i, ThemeData t, {TextInputType? keyboardType}) => TextField(controller: c, keyboardType: keyboardType, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, color: t.primaryColor), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))));
 
   @override
   Widget build(BuildContext context) {
@@ -131,87 +96,48 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Transport Fleet', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Fleet Intelligence', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.deepPurple.shade900]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(colors: [theme.primaryColor, Colors.deepPurple.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20)],
           ),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.bus_alert_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
         ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _routes.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _routes.length,
-                      itemBuilder: (context, index) {
-                        final route = _routes[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.deepPurple.withOpacity(0.1),
-                              child: const Icon(Icons.directions_bus_filled_rounded, color: Colors.deepPurple),
-                            ),
-                            title: Text(route['name'] ?? 'Route', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Driver: ${route['driver_name'] ?? "Pending"} • ${route['vehicle_number'] ?? "No Van"}'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                                  child: Text(route['status'] ?? 'ACTIVE', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 10)),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (val) {
-                                    if (val == 'edit') _showRouteDialog(routeToEdit: route);
-                                    if (val == 'delete') _deleteRoute(route);
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit'), dense: true)),
-                                    const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-        ),
+        child: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _routes.isEmpty 
+            ? _buildEmptyState()
+            : ListView.builder(
+                padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 100),
+                itemCount: _routes.length,
+                itemBuilder: (context, index) {
+                  final route = _routes[index];
+                  final content = ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.directions_bus_rounded, color: Colors.deepPurple, size: 24)),
+                    title: Text(route['name'] ?? 'Neural Route', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                    subtitle: Text('Driver: ${route['driver']}\nContact: ${route['phone']}', style: const TextStyle(fontSize: 11, height: 1.4)),
+                    trailing: IconButton(icon: const Icon(Icons.edit_location_alt_rounded), onPressed: () => _showAddRouteDialog(route: route)),
+                  );
+                  return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
+                },
+              ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showRouteDialog(),
-        backgroundColor: Colors.deepPurple.shade700,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_location_alt_rounded),
-        label: const Text('Add Route', style: TextStyle(fontWeight: FontWeight.bold)),
+      floatingActionButton: gemini?.buildGlowContainer(
+        borderRadius: 30, borderThickness: 2, backgroundColor: theme.primaryColor, padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(onPressed: () => _showAddRouteDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_location_alt_rounded), label: const Text('Add Quantum Route', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.bus_alert_rounded, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No transport data in cloud.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.bus_alert_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('FLEET OFFLINE', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
 }

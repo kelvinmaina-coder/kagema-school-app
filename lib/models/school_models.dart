@@ -135,6 +135,97 @@ class Student {
   );
 }
 
+class FeeStructure {
+  final String grade;
+  final double totalFee;
+  final Map<String, double> breakdown;
+
+  FeeStructure({
+    required this.grade,
+    required this.totalFee,
+    this.breakdown = const {},
+  });
+
+  Map<String, dynamic> toMap() => {
+    'grade': grade,
+    'total_fee': totalFee,
+    'breakdown': jsonEncode(breakdown),
+  };
+
+  factory FeeStructure.fromMap(Map<String, dynamic> map) {
+    Map<String, double> b = {};
+    if (map['breakdown'] != null) {
+      try {
+        final decoded = jsonDecode(map['breakdown']);
+        if (decoded is Map) {
+          decoded.forEach((k, v) => b[k.toString()] = (v as num).toDouble());
+        }
+      } catch (_) {}
+    }
+    return FeeStructure(
+      grade: map['grade'] ?? '',
+      totalFee: (map['total_fee'] as num? ?? 0.0).toDouble(),
+      breakdown: b,
+    );
+  }
+}
+
+class FeePayment {
+  final String? feeId;
+  final String studentId;
+  final String studentName;
+  final double amountPaid;
+  final String term;
+  final int year;
+  final String paymentMethod;
+  final String category;
+  final String? reference;
+  final String receiptNumber;
+  final String paymentDate;
+
+  FeePayment({
+    this.feeId,
+    required this.studentId,
+    required this.studentName,
+    required this.amountPaid,
+    required this.term,
+    required this.year,
+    required this.paymentMethod,
+    required this.category,
+    this.reference,
+    required this.receiptNumber,
+    required this.paymentDate,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'fee_id': feeId,
+    'student_id': studentId,
+    'student_name': studentName,
+    'amount_paid': amountPaid,
+    'term': term,
+    'year': year,
+    'payment_method': paymentMethod,
+    'category': category,
+    'reference': reference,
+    'receipt_number': receiptNumber,
+    'payment_date': paymentDate,
+  };
+
+  factory FeePayment.fromMap(Map<String, dynamic> map) => FeePayment(
+    feeId: map['fee_id']?.toString(),
+    studentId: map['student_id'] ?? '',
+    studentName: map['student_name'] ?? '',
+    amountPaid: (map['amount_paid'] as num? ?? 0.0).toDouble(),
+    term: map['term'] ?? '',
+    year: (map['year'] as num? ?? DateTime.now().year).toInt(),
+    paymentMethod: map['payment_method'] ?? 'Cash',
+    category: map['category'] ?? 'Tuition',
+    reference: map['reference'],
+    receiptNumber: map['receipt_number'] ?? '',
+    paymentDate: map['payment_date'] ?? '',
+  );
+}
+
 class ParentModel {
   final String parentId;
   final String name;

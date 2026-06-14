@@ -22,6 +22,7 @@ class _ChildListScreenState extends State<ChildListScreen> {
   }
 
   Future<void> _loadChildren() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final list = await SupabaseService.instance.getStudentsByParentPhone(widget.parentPhone);
@@ -45,61 +46,52 @@ class _ChildListScreenState extends State<ChildListScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('My Children', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Family Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.indigo, Colors.indigo.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade500], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.people_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
         ),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
               : _children.isEmpty 
-                  ? const Center(child: Text('No children linked to this account.', style: TextStyle(fontWeight: FontWeight.bold)))
+                  ? _buildEmptyState()
                   : ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       itemCount: _children.length,
                       itemBuilder: (context, index) {
-                        final student = _children[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 35,
-                                  backgroundColor: Colors.indigo.withOpacity(0.1),
-                                  child: Text(student.name.isNotEmpty ? student.name[0] : '?', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.indigo)),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(student.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 4),
-                                      Text('ADM: ${student.admissionNumber}', style: const TextStyle(color: Colors.grey)),
-                                      Text('${student.grade} ${student.stream}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                      const SizedBox(height: 8),
-                                      _infoRow(Icons.cake, student.dateOfBirth),
-                                      _infoRow(Icons.wc, student.gender),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        final s = _children[index];
+                        final content = Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              CircleAvatar(radius: 40, backgroundColor: Colors.indigo.withOpacity(0.1), child: Text(s.name[0], style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.indigo))),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(s.name.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                                  const SizedBox(height: 6),
+                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Text('ADM: ${s.admissionNumber}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 1))),
+                                  const SizedBox(height: 8),
+                                  Text('${s.grade} • ${s.stream}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.blueGrey)),
+                                  const SizedBox(height: 12),
+                                  _infoRow(Icons.cake_outlined, s.dateOfBirth),
+                                  _infoRow(Icons.wc_rounded, s.gender),
+                                ]),
+                              ),
+                            ],
                           ),
                         );
+                        return Padding(padding: const EdgeInsets.only(bottom: 20), child: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, useAIBorder: true, child: content) ?? Card(child: content));
                       },
                     ),
         ),
@@ -107,14 +99,17 @@ class _ChildListScreenState extends State<ChildListScreen> {
     );
   }
 
-  Widget _infoRow(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
+  Widget _infoRow(IconData icon, String text) => Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [Icon(icon, size: 14, color: Colors.grey.shade500), const SizedBox(width: 8), Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600))]));
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 14, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+          Icon(Icons.hub_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
+          const SizedBox(height: 16),
+          const Text('NO NEURAL NODES LINKED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          const Text('Please visit the school registry to link your child.', style: TextStyle(color: Colors.grey, fontSize: 11)),
         ],
       ),
     );

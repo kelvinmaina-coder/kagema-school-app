@@ -22,6 +22,7 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
   }
 
   Future<void> _loadDiscipline() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getStudentDiscipline(widget.student.studentId);
@@ -44,15 +45,19 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Discipline Records', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('${widget.student.name}\'s Conduct', 
+          style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.red.shade900, Colors.red.shade600]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(colors: [Colors.red.shade900, Colors.red.shade500], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.gavel_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
         ),
       ),
       body: gemini?.buildCreativeBackground(
@@ -60,26 +65,26 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.red))
             : _incidents.isEmpty 
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   itemCount: _incidents.length,
                   itemBuilder: (context, index) {
-                    final incident = _incidents[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.red.withOpacity(0.1),
-                          child: const Icon(Icons.gavel_rounded, color: Colors.red),
+                    final item = _incidents[index];
+                    final isPositive = item['category'] == 'Positive';
+                    final color = isPositive ? Colors.green : Colors.red;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: gemini?.buildGlowContainer(
+                        borderRadius: 28, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: Icon(isPositive ? Icons.auto_awesome_rounded : Icons.warning_rounded, color: color),
+                          title: Text(item['title'] ?? 'Incident', style: const TextStyle(fontWeight: FontWeight.w900)),
+                          subtitle: Text(item['date'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          trailing: Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
                         ),
-                        title: Text(incident['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${incident['date']} • ${incident['description'] ?? "Action pending"}'),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                       ),
                     );
                   },
@@ -90,13 +95,14 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
-          SizedBox(height: 16),
-          Text('All clear! No incident records.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Icon(Icons.verified_user_rounded, size: 80, color: Colors.green.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          const Text('CONDUCT MATRIX CLEAR', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+          const Text('No recent incidents logged.', style: TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );

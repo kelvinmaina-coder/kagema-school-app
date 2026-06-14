@@ -44,7 +44,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       setState(() {
         _allStudents = data.map((m) => Student.fromMap(m)).toList();
         if (widget.parentToEdit != null) {
-          final parentId = widget.parentToEdit!['parentId'];
+          final parentId = widget.parentToEdit!['parent_id'] ?? widget.parentToEdit!['parentId'];
           _selectedChildren = _allStudents.where((s) => s.parentId == parentId).toList();
         }
         _isLoadingStudents = false;
@@ -58,7 +58,11 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedChildren.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please link at least one child'), backgroundColor: Colors.orange),
+        SnackBar(
+          content: const Text('Neural Conflict: Link at least one child node', style: TextStyle(fontWeight: FontWeight.bold)), 
+          backgroundColor: Colors.orange.shade800,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
@@ -66,11 +70,11 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     setState(() => _isSaving = true);
     try {
       final parentId = widget.parentToEdit != null 
-          ? widget.parentToEdit!['parentId'] 
+          ? (widget.parentToEdit!['parent_id'] ?? widget.parentToEdit!['parentId'])
           : 'PAR-${const Uuid().v4().substring(0, 8).toUpperCase()}';
       
       final parentData = {
-        'parentId': parentId,
+        'parent_id': parentId, // Standardized snake_case
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'email': _emailController.text.trim(),
@@ -80,30 +84,36 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
 
       await SupabaseService.instance.insertParent(parentData);
 
-      // Link children by updating their parentId
-      // First, un-link children that were removed (if editing)
+      // Unlink removed children
       if (widget.parentToEdit != null) {
         final originalChildren = _allStudents.where((s) => s.parentId == parentId).toList();
         for (var child in originalChildren) {
           if (!_selectedChildren.any((s) => s.studentId == child.studentId)) {
             final updatedData = child.toMap();
-            updatedData['parentId'] = null;
+            updatedData['parent_id'] = null;
             await SupabaseService.instance.saveStudent(updatedData);
           }
         }
       }
 
+      // Link selected children
       for (var child in _selectedChildren) {
         final updatedData = child.toMap();
-        updatedData['parentId'] = parentId;
-        updatedData['parentName'] = parentData['name'];
-        updatedData['parentPhone'] = parentData['phone'];
+        updatedData['parent_id'] = parentId;
+        updatedData['parent_name'] = parentData['name'];
+        updatedData['parent_phone'] = parentData['phone'];
         await SupabaseService.instance.saveStudent(updatedData);
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Parent ${widget.parentToEdit != null ? 'updated' : 'registered'} and linked successfully!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text('Neural Profile ${widget.parentToEdit != null ? 'Synchronized' : 'Generated'} and Linked Successfully!', 
+              style: const TextStyle(fontWeight: FontWeight.bold)
+            ), 
+            backgroundColor: Colors.green.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         Navigator.pop(context, true);
       }
@@ -122,14 +132,33 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.parentToEdit != null ? 'Update Parent Info' : 'Parent Registration', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(widget.parentToEdit != null ? 'MODIFY GUARDIAN' : 'PARENT ONBOARDING', 
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.orange.shade800, Colors.deepOrange]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [Colors.orange.shade900, Colors.deepOrange.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.family_restroom_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -137,32 +166,38 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
         isDark: theme.brightness == Brightness.dark,
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFormContainer(theme),
-                  const SizedBox(height: 30),
-                  const Text('LINK CHILDREN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1.2)),
-                  const SizedBox(height: 12),
-                  _buildChildrenSelector(theme),
+                  _buildFormContainer(theme, gemini),
                   const SizedBox(height: 40),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 12),
+                    child: Text('NEURAL LINK: ASSIGN CHILDREN', 
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
+                    ),
+                  ),
+                  _buildChildrenSelector(theme, gemini),
+                  const SizedBox(height: 48),
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 60,
                     child: ElevatedButton.icon(
                       onPressed: _isSaving ? null : _saveParent,
-                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.how_to_reg_rounded),
+                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.cloud_sync_rounded),
                       label: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white) 
-                        : Text(widget.parentToEdit != null ? 'UPDATE GUARDIAN INFO' : 'FINALIZE REGISTRATION', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                        : Text(widget.parentToEdit != null ? 'COMMIT UPDATES' : 'AUTHORIZE REGISTRATION', 
+                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.shade800,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
+                        shadowColor: Colors.orange.withOpacity(0.5),
                       ),
                     ),
                   ),
@@ -175,77 +210,96 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     );
   }
 
-  Widget _buildFormContainer(ThemeData theme) {
-    return Container(
+  Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
+    final content = Column(
+      children: [
+        _buildField(theme, _nameController, 'Full Parent Name', Icons.person_outline),
+        const SizedBox(height: 20),
+        _buildField(theme, _phoneController, 'Neural Contact', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+        const SizedBox(height: 20),
+        _buildField(theme, _emailController, 'Cloud Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+        const SizedBox(height: 20),
+        _buildField(theme, _occupationController, 'Identity Occupation', Icons.work_outline_rounded),
+        const SizedBox(height: 20),
+        _buildField(theme, _addressController, 'Residential Coordinates', Icons.home_rounded),
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 1.5,
+      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
-      ),
-      child: Column(
-        children: [
-          _buildField(_nameController, 'Full Parent Name', Icons.person_outline),
-          const SizedBox(height: 20),
-          _buildField(_phoneController, 'Phone Number', Icons.phone_android, keyboardType: TextInputType.phone),
-          const SizedBox(height: 20),
-          _buildField(_emailController, 'Email Address', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-          const SizedBox(height: 20),
-          _buildField(_occupationController, 'Occupation', Icons.work_outline),
-          const SizedBox(height: 20),
-          _buildField(_addressController, 'Residential Address', Icons.home_outlined),
-        ],
-      ),
+      child: content,
+    ) ?? Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
+      child: content,
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildField(ThemeData theme, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.orange.shade800),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.orange.shade800, size: 20),
         filled: true,
-        fillColor: Colors.grey.withOpacity(0.05),
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'This field is required' : null,
+      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
     );
   }
 
-  Widget _buildChildrenSelector(ThemeData theme) {
-    if (_isLoadingStudents) return const Center(child: CircularProgressIndicator());
+  Widget _buildChildrenSelector(ThemeData theme, GeminiThemeExtension? gemini) {
+    if (_isLoadingStudents) return const Center(child: CircularProgressIndicator(color: Colors.orange));
     
-    return Container(
+    final content = SizedBox(
       height: 250,
+      child: _allStudents.isEmpty 
+        ? const Center(child: Text('NO PUPILS DISCOVERED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
+        : ListView.builder(
+            itemCount: _allStudents.length,
+            itemBuilder: (context, index) {
+              final student = _allStudents[index];
+              final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
+              return CheckboxListTile(
+                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                value: isSelected,
+                activeColor: Colors.orange.shade800,
+                checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                onChanged: (val) {
+                  setState(() {
+                    if (val!) {
+                      _selectedChildren.add(student);
+                    } else {
+                      _selectedChildren.removeWhere((s) => s.studentId == student.studentId);
+                    }
+                  });
+                },
+              );
+            },
+          ),
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 24,
+      borderThickness: 1,
+      backgroundColor: theme.cardColor.withOpacity(0.85),
+      padding: EdgeInsets.zero,
+      child: content,
+    ) ?? Container(
       decoration: BoxDecoration(
         color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.orange.shade100),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.orange.shade100.withOpacity(0.2)),
       ),
-      child: ListView.builder(
-        itemCount: _allStudents.length,
-        itemBuilder: (context, index) {
-          final student = _allStudents[index];
-          final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
-          return CheckboxListTile(
-            title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}'),
-            value: isSelected,
-            activeColor: Colors.orange.shade800,
-            onChanged: (val) {
-              setState(() {
-                if (val!) {
-                  _selectedChildren.add(student);
-                } else {
-                  _selectedChildren.removeWhere((s) => s.studentId == student.studentId);
-                }
-              });
-            },
-          );
-        },
-      ),
+      child: content,
     );
   }
 }

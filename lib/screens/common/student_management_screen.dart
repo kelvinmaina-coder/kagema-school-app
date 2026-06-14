@@ -76,14 +76,31 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Pupil Intelligence', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Pupil Intelligence', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [primaryColor, primaryColor.withAlpha((0.7 * 255).toInt())],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.group_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -92,30 +109,40 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         child: Column(
           children: [
             SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-            _buildSearchBox(theme, primaryColor),
-            const SizedBox(height: 10),
+            _buildSearchBox(theme, primaryColor, gemini),
+            const SizedBox(height: 20),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredStudents.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           itemCount: _filteredStudents.length,
                           itemBuilder: (context, index) {
                             final student = _filteredStudents[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: primaryColor.withOpacity(0.1),
-                                  child: Text(student.name[0], style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
-                                ),
-                                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}'),
-                                trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role))),
+                            final content = ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                              leading: CircleAvatar(
+                                radius: 25,
+                                backgroundColor: primaryColor.withOpacity(0.1),
+                                child: Text(student.name[0], style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 18)),
                               ),
+                              title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                              subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role))),
+                            );
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: gemini?.buildGlowContainer(
+                                borderRadius: 24,
+                                borderThickness: 1,
+                                backgroundColor: theme.cardColor.withOpacity(0.85),
+                                padding: EdgeInsets.zero,
+                                child: content,
+                              ) ?? Card(child: content),
                             );
                           },
                         ),
@@ -126,31 +153,44 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     );
   }
 
-  Widget _buildSearchBox(ThemeData theme, Color color) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(20),
+  Widget _buildSearchBox(ThemeData theme, Color color, GeminiThemeExtension? gemini) {
+    final content = TextField(
+      onChanged: (v) => setState(() => _searchQuery = v),
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        hintText: 'Neural search by name or ADM...',
+        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+        prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(vertical: 15),
       ),
-      child: TextField(
-        onChanged: (v) => setState(() => _searchQuery = v),
-        decoration: InputDecoration(
-          hintText: 'Search by name or ADM...',
-          prefixIcon: Icon(Icons.search, color: color),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: gemini?.buildGlowContainer(
+        borderRadius: 20,
+        borderThickness: 1.5,
+        backgroundColor: theme.cardColor.withOpacity(0.9),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: content,
+      ) ?? Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
+        child: content,
       ),
     );
   }
 
   Color _getRoleColor() {
     switch (widget.role.toLowerCase()) {
-      case 'admin': return const Color(0xFF5C6BC0);
-      case 'teacher': return Colors.teal;
-      case 'secretary': return Colors.blueGrey;
-      default: return Colors.indigo;
+      case 'admin': return const Color(0xFF1A237E);
+      case 'teacher': return const Color(0xFF00695C);
+      case 'secretary': return const Color(0xFF4A148C);
+      default: return const Color(0xFFD84315);
     }
   }
 
@@ -159,9 +199,9 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.group_off_rounded, size: 80, color: Colors.grey),
+          Icon(Icons.cloud_off_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('No pupils found in cloud database.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text('No pupil data found in neural cloud.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1)),
         ],
       ),
     );

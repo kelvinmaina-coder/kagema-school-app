@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import 'package:intl/intl.dart';
 
 class ExtracurricularManagementScreen extends StatefulWidget {
   const ExtracurricularManagementScreen({super.key});
@@ -11,7 +12,7 @@ class ExtracurricularManagementScreen extends StatefulWidget {
 
 class _ExtracurricularManagementScreenState extends State<ExtracurricularManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<Map<String, dynamic>> _clubs = [];
+  List<Map<String, dynamic>> _activities = [];
   bool isLoading = true;
 
   @override
@@ -25,10 +26,10 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
     if (!mounted) return;
     setState(() => isLoading = true);
     try {
-      final clubs = await SupabaseService.instance.getInventory(); // Using inventory as placeholder for clubs
+      final data = await SupabaseService.instance.getActivities();
       if (mounted) {
         setState(() {
-          _clubs = clubs;
+          _activities = data;
           isLoading = false;
         });
       }
@@ -37,145 +38,124 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
     }
   }
 
+  void _showAddDialog() {
+    final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
+    final titleCtrl = TextEditingController();
+    final statsCtrl = TextEditingController();
+    String category = 'Sports';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(35))),
+        child: gemini?.buildCreativeBackground(
+          isDark: theme.brightness == Brightness.dark,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                const Text('AUTHORIZE SCHOOL ACTIVITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const SizedBox(height: 32),
+                _buildNeuralField('Activity Name', Icons.hub_rounded, titleCtrl, theme),
+                const SizedBox(height: 16),
+                _buildNeuralField('Participants (e.g. 24 Pupils)', Icons.groups_rounded, statsCtrl, theme),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: category,
+                  items: ['Sports', 'Clubs', 'Music', 'Arts'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => category = v!,
+                  decoration: InputDecoration(labelText: 'Classification', border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))),
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (titleCtrl.text.isNotEmpty) {
+                        final data = {
+                          'title': titleCtrl.text.trim(),
+                          'stats': statsCtrl.text.trim(),
+                          'category': category,
+                          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                        };
+                        await SupabaseService.instance.upsertActivity(data);
+                        if (mounted) { Navigator.pop(context); _loadData(); }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.pink.shade700, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                    child: const Text('COMMIT TO CLOUD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+    return TextField(
+      controller: ctrl,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon, color: Colors.pink), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('School Life & Activities', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Activity Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.pink.shade700]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-          ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'CLUBS', icon: Icon(Icons.groups_rounded, size: 20)),
-            Tab(text: 'SPORTS', icon: Icon(Icons.sports_soccer_rounded, size: 20)),
-          ],
-        ),
+        flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.pink.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
+        bottom: TabBar(controller: _tabController, tabs: const [Tab(text: 'CLUBS', icon: Icon(Icons.groups)), Tab(text: 'SPORTS', icon: Icon(Icons.sports_basketball))]),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
           child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildClubsList(theme),
-                    _buildSportsList(theme),
-                  ],
-                ),
+            ? const Center(child: CircularProgressIndicator(color: Colors.pink))
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildList(theme, gemini, 'Clubs'),
+                  _buildList(theme, gemini, 'Sports'),
+                ],
+              ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddActivityDialog,
-        label: const Text('Add Activity', style: TextStyle(fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add_circle_outline_rounded),
-        backgroundColor: Colors.pink.shade700,
-        foregroundColor: Colors.white,
-      ),
+      floatingActionButton: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: Colors.pink.shade700, padding: EdgeInsets.zero, child: FloatingActionButton.extended(onPressed: _showAddDialog, icon: const Icon(Icons.add), label: const Text('Add Neural Record', style: TextStyle(fontWeight: FontWeight.w900)))),
     );
   }
 
-  Widget _buildClubsList(ThemeData theme) {
-    if (_clubs.isEmpty) return _buildEmptyState('No active clubs registered.');
+  Widget _buildList(ThemeData theme, GeminiThemeExtension? gemini, String cat) {
+    final filtered = _activities.where((a) => a['category'] == cat || (cat == 'Clubs' && a['category'] == 'Arts')).toList();
+    if (filtered.isEmpty) return _buildEmptyState();
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _clubs.length,
+      padding: const EdgeInsets.all(20),
+      itemCount: filtered.length,
       itemBuilder: (context, index) {
-        final club = _clubs[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            leading: CircleAvatar(
-              backgroundColor: Colors.pink.withOpacity(0.1),
-              child: const Icon(Icons.group_work_rounded, color: Colors.pink),
-            ),
-            title: Text(club['name'] ?? 'Club Society', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Category: ${club['category'] ?? "Academic"}'),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-          ),
-        );
+        final a = filtered[index];
+        final content = ListTile(leading: const CircleAvatar(backgroundColor: Colors.pink, child: Icon(Icons.hub, color: Colors.white)), title: Text(a['title'] ?? 'Activity', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text(a['stats'] ?? '0 Nodes'));
+        return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
       },
     );
   }
 
-  Widget _buildSportsList(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.sports_rounded, size: 80, color: theme.primaryColor.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          const Text('Sports Management Module', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const Text('Track teams and cloud-synced fixtures.', style: TextStyle(color: Colors.grey)),
-        ],
-      ),
-    );
-  }
-
-  void _showAddActivityDialog() {
-    final theme = Theme.of(context);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-        ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Register New Activity', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.pink.shade700)),
-            const SizedBox(height: 24),
-            const TextField(decoration: InputDecoration(labelText: 'Activity Name', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            const TextField(decoration: InputDecoration(labelText: 'Patron/Coach Name', border: OutlineInputBorder())),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.pink.shade700, foregroundColor: Colors.white),
-                child: const Text('POST TO CLOUD'),
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String msg) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey.withOpacity(0.5)),
-          const SizedBox(height: 16),
-          Text(msg, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.layers_clear, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO ACTIVITIES LOGGED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))]));
 }

@@ -1,9 +1,39 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
+import '../../services/pdf_generator_service.dart';
 import '../../app_theme.dart';
 
-class SecretaryReportsScreen extends StatelessWidget {
+class SecretaryReportsScreen extends StatefulWidget {
   const SecretaryReportsScreen({super.key});
+
+  @override
+  State<SecretaryReportsScreen> createState() => _SecretaryReportsScreenState();
+}
+
+class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
+  bool _isGenerating = false;
+
+  Future<void> _handleReportAction(String reportName) async {
+    setState(() => _isGenerating = true);
+    
+    try {
+      if (reportName == 'Current Student List') {
+        final students = await SupabaseService.instance.getAllStudents();
+        await PdfGeneratorService.generateStudentList(students);
+      } else if (reportName == 'Daily Visitor Summary') {
+        final visitors = await SupabaseService.instance.getVisitors();
+        await PdfGeneratorService.generateVisitorLog(visitors);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Neural Synthesis: Exporting "$reportName"...'), backgroundColor: Colors.indigo)
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sync Error'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,74 +43,43 @@ class SecretaryReportsScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Administrative Reports', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Administrative Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-          ),
-        ),
+        flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: ListView(
-          padding: EdgeInsets.only(
-            top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20,
-            left: 20, right: 20, bottom: 40
-          ),
-          children: [
-            _reportCategory(theme, 'ENROLLMENT ANALYTICS', Icons.person_add_rounded, Colors.blue, [
-              'Current Student List',
-              'Class Stream Summary',
-              'Admission Log (This Term)',
-            ]),
-            const SizedBox(height: 24),
-            _reportCategory(theme, 'OFFICE LOGS', Icons.business_center_rounded, Colors.teal, [
-              'Daily Visitor Summary',
-              'Appointment History',
-              'Staff Attendance Export',
-            ]),
-            const SizedBox(height: 24),
-            _reportCategory(theme, 'COMMUNICATION', Icons.campaign_rounded, Colors.orange, [
-              'Broadcast Archive',
-              'Parent Notification Log',
-            ]),
-          ],
-        ),
+        child: _isGenerating 
+          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+          : ListView(
+              padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 40),
+              children: [
+                _reportCategory(context, theme, gemini, 'ENROLLMENT ANALYTICS', Icons.person_add_rounded, Colors.blue, ['Current Student List', 'Class Stream Summary']),
+                const SizedBox(height: 32),
+                _reportCategory(context, theme, gemini, 'OFFICE LOGS', Icons.business_center_rounded, Colors.teal, ['Daily Visitor Summary', 'Appointment Matrix History']),
+                const SizedBox(height: 32),
+                _reportCategory(context, theme, gemini, 'COMMUNICATION', Icons.campaign_rounded, Colors.orange, ['Broadcast Archive', 'Parent Notification Log']),
+              ],
+            ),
       ),
     );
   }
 
-  Widget _reportCategory(ThemeData theme, String title, IconData icon, Color color, List<String> items) {
+  Widget _reportCategory(BuildContext context, ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, List<String> items) {
+    final content = Column(
+      children: items.map((item) => ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        title: Text(item, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+        trailing: Icon(Icons.download_for_offline_rounded, size: 20, color: color),
+        onTap: () => _handleReportAction(item),
+      )).toList(),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Row(
-            children: [
-              Icon(icon, color: color, size: 18),
-              const SizedBox(width: 10),
-              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color.withOpacity(0.7), letterSpacing: 1.5)),
-            ],
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            children: items.map((item) => ListTile(
-              title: Text(item, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              trailing: const Icon(Icons.download_for_offline_rounded, size: 20, color: Colors.blueGrey),
-              onTap: () {}, // Future PDF export logic
-            )).toList(),
-          ),
-        ),
+        Padding(padding: const EdgeInsets.only(left: 8, bottom: 12), child: Row(children: [Icon(icon, color: color, size: 18), const SizedBox(width: 10), Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2))])),
+        gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content),
       ],
     );
   }

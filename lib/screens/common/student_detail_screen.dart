@@ -3,6 +3,7 @@ import '../../models/school_models.dart';
 import '../../app_theme.dart';
 import '../../services/supabase_service.dart';
 import '../secretary/student_registration.dart';
+import 'package:intl/intl.dart';
 
 class StudentDetailScreen extends StatefulWidget {
   final Student student;
@@ -16,51 +17,41 @@ class StudentDetailScreen extends StatefulWidget {
 
 class _StudentDetailScreenState extends State<StudentDetailScreen> {
   late Student currentStudent;
+  bool _isSyncingVitals = true;
+  double _attendance = 0.0;
+  double _balance = 0.0;
+  double _avgGrade = 0.0;
 
   @override
   void initState() {
     super.initState();
     currentStudent = widget.student;
+    _syncNeuralVitals();
   }
 
-  Future<void> _handleDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Deletion'),
-        content: Text('Are you sure you want to remove ${currentStudent.name} from the system? This action is irreversible.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true), 
-            child: const Text('DELETE', style: TextStyle(color: Colors.red))
-          ),
-        ],
-      ),
-    );
+  Future<void> _syncNeuralVitals() async {
+    setState(() => _isSyncingVitals = true);
+    try {
+      final results = await Future.wait([
+        SupabaseService.instance.getChildAttendance(currentStudent.studentId),
+        SupabaseService.instance.getStudentBalance(currentStudent.studentId, currentStudent.grade),
+        SupabaseService.instance.getStudentMarks(currentStudent.studentId),
+      ]);
+      
+      final att = results[0] as List<Map<String, dynamic>>;
+      final balData = results[1] as Map<String, dynamic>;
+      final marks = results[2] as List<Map<String, dynamic>>;
 
-    if (confirmed == true) {
-      try {
-        await SupabaseService.instance.deleteStudent(currentStudent.studentId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Student record deleted permanently.')));
-          Navigator.pop(context, true); // Return true to indicate refresh needed
-        }
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      if (mounted) {
+        setState(() {
+          _attendance = att.isEmpty ? 0 : (att.where((a) => a['status'] == 'Present').length / att.length) * 100;
+          _balance = (balData['balance'] ?? 0.0).toDouble();
+          _avgGrade = marks.isEmpty ? 0 : marks.fold(0.0, (sum, m) => sum + (m['score'] ?? 0)) / marks.length;
+          _isSyncingVitals = false;
+        });
       }
-    }
-  }
-
-  Future<void> _handleEdit() async {
-    final result = await Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => StudentRegistrationScreen(studentToEdit: currentStudent))
-    );
-    
-    if (result == true) {
-      // Reload student data - for simplicity we just pop back to list to refresh everything
-      Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) setState(() => _isSyncingVitals = false);
     }
   }
 
@@ -73,41 +64,33 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(currentStudent.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(currentStudent.name, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: Colors.white,
         actions: canEdit ? [
-          IconButton(icon: const Icon(Icons.edit_note_rounded), onPressed: _handleEdit),
-          IconButton(icon: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent), onPressed: _handleDelete),
+          IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentRegistrationScreen(studentToEdit: currentStudent))))
         ] : null,
       ),
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20,
-            left: 20, right: 20, bottom: 40
-          ),
+          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 40),
           child: Column(
             children: [
-              _buildProfileHeader(theme),
-              const SizedBox(height: 24),
-              _buildInfoSection(theme, 'ACADEMIC IDENTITY', [
+              _buildProfileHeader(theme, gemini),
+              const SizedBox(height: 32),
+              _buildVitalsRow(theme, gemini),
+              const SizedBox(height: 32),
+              _buildInfoSection(theme, gemini, 'ACADEMIC IDENTITY', [
                 _infoRow(Icons.badge_outlined, 'Admission No', currentStudent.admissionNumber),
                 _infoRow(Icons.school_outlined, 'Current Grade', currentStudent.grade),
                 _infoRow(Icons.grid_view_rounded, 'Class Stream', currentStudent.stream),
               ]),
-              const SizedBox(height: 20),
-              _buildInfoSection(theme, 'BIOMETRIC DATA', [
+              const SizedBox(height: 24),
+              _buildInfoSection(theme, gemini, 'BIOMETRIC DATA', [
                 _infoRow(Icons.person_outline, 'Gender', currentStudent.gender),
                 _infoRow(Icons.cake_outlined, 'Date of Birth', currentStudent.dateOfBirth),
                 _infoRow(Icons.history_rounded, 'Calculated Age', '${currentStudent.age} Years'),
-              ]),
-              const SizedBox(height: 20),
-              _buildInfoSection(theme, 'EMERGENCY CONTACTS', [
-                _infoRow(Icons.family_restroom_outlined, 'Guardian', currentStudent.parentName),
-                _infoRow(Icons.phone_outlined, 'Contact', currentStudent.parentPhone),
               ]),
             ],
           ),
@@ -116,64 +99,49 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
     );
   }
 
-  Widget _buildProfileHeader(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(30),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.7)]),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20)],
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.white24,
-            child: Text(currentStudent.name[0], style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 16),
-          Text(currentStudent.name.toUpperCase(), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1), textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)),
-            child: Text('STATUS: ${currentStudent.status.toUpperCase()}', style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+  Widget _buildVitalsRow(ThemeData theme, GeminiThemeExtension? gemini) {
+    return Row(
+      children: [
+        _vitalItem('Presence', '${_attendance.toInt()}%', Colors.teal, gemini),
+        const SizedBox(width: 12),
+        _vitalItem('Arrears', 'Ksh ${_balance.toInt()}', _balance > 0 ? Colors.red : Colors.green, gemini),
+        const SizedBox(width: 12),
+        _vitalItem('Proficiency', '${_avgGrade.toInt()}%', Colors.orange, gemini),
+      ],
     );
   }
 
-  Widget _buildInfoSection(ThemeData theme, String title, List<Widget> rows) {
+  Widget _vitalItem(String l, String v, Color c, GeminiThemeExtension? gemini) {
+    final content = Column(children: [
+      Text(v, style: TextStyle(fontWeight: FontWeight.w900, color: c, fontSize: 16)),
+      Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1))
+    ]);
+    return Expanded(child: gemini?.buildGlowContainer(borderRadius: 20, borderThickness: 1, backgroundColor: Theme.of(context).cardColor.withOpacity(0.9), padding: const EdgeInsets.symmetric(vertical: 16), child: content) ?? Card(child: content));
+  }
+
+  Widget _buildProfileHeader(ThemeData theme, GeminiThemeExtension? gemini) {
+    final content = Column(
+      children: [
+        CircleAvatar(radius: 50, backgroundColor: Colors.white24, child: Text(currentStudent.name[0], style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w900))),
+        const SizedBox(height: 16),
+        Text(currentStudent.name.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1), textAlign: TextAlign.center),
+        Text('NEURAL NODE: ${currentStudent.studentId.substring(0, 8)}', style: const TextStyle(fontSize: 9, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 2)),
+      ],
+    );
+    return gemini?.buildGlowContainer(borderRadius: 35, borderThickness: 2, backgroundColor: theme.primaryColor.withOpacity(0.8), padding: const EdgeInsets.all(32), useAIBorder: true, child: content) ?? Container();
+  }
+
+  Widget _buildInfoSection(ThemeData theme, GeminiThemeExtension? gemini, String title, List<Widget> rows) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor.withOpacity(0.5), letterSpacing: 2)),
-        ),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24)),
-          child: Column(children: rows),
-        ),
+        Padding(padding: const EdgeInsets.only(left: 8, bottom: 12), child: Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5))),
+        gemini?.buildGlowContainer(borderRadius: 28, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: const EdgeInsets.all(24), child: Column(children: rows)) ?? Card(child: Column(children: rows)),
       ],
     );
   }
 
   Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: Colors.blueGrey),
-          const SizedBox(width: 16),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Row(children: [Icon(icon, size: 18, color: Colors.blueGrey), const SizedBox(width: 16), Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600)), const Spacer(), Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))]));
   }
 }

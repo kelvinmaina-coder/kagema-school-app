@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import 'package:intl/intl.dart';
 
 class LessonPlanningScreen extends StatefulWidget {
   const LessonPlanningScreen({super.key});
@@ -23,6 +24,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait<dynamic>([
@@ -43,6 +45,104 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     }
   }
 
+  void _showAddPlanDialog() {
+    final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
+    final topicCtrl = TextEditingController();
+    String selectedSubject = 'Mathematics';
+    String selectedGrade = 'Grade 1';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+        ),
+        child: gemini?.buildCreativeBackground(
+          isDark: theme.brightness == Brightness.dark,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                const Text('NEURAL PLAN AUTHORIZATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const SizedBox(height: 8),
+                const Text('New Academic Node', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 32),
+                _buildNeuralField('Topic Description', Icons.topic_rounded, topicCtrl, theme),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedSubject,
+                  items: ['Mathematics', 'English', 'Science', 'Social Studies', 'CRE'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (v) => selectedSubject = v!,
+                  decoration: _neuralInputDecoration('Subject Matrix', Icons.subject_rounded, theme),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedGrade,
+                  items: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                  onChanged: (v) => selectedGrade = v!,
+                  decoration: _neuralInputDecoration('Target Grade', Icons.school_rounded, theme),
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (topicCtrl.text.isNotEmpty) {
+                        final data = {
+                          'topic': topicCtrl.text.trim(),
+                          'subject': selectedSubject,
+                          'grade': selectedGrade,
+                          'date': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                          'is_completed': false,
+                        };
+                        await SupabaseService.instance.saveLessonPlan(data);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          _loadData();
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                    child: const Text('AUTHORIZE PERSISTENCE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ) ?? const SizedBox(),
+      ),
+    );
+  }
+
+  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+      prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
+      filled: true,
+      fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+    );
+  }
+
+  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+    return TextField(
+      controller: ctrl,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: _neuralInputDecoration(label, icon, theme),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -51,22 +151,50 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
+        title: const Text('Planning Matrix', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
-        title: const Text('Planning & Syllabus', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, theme.primaryColor.withOpacity(0.8)]),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [theme.primaryColor, Colors.indigo.shade800],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.architecture_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(50),
+            color: Colors.white.withOpacity(0.2),
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+          ),
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.2),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10),
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white60,
           tabs: const [
-            Tab(text: 'Lesson Plans', icon: Icon(Icons.description_rounded)),
-            Tab(text: 'Syllabus Coverage', icon: Icon(Icons.checklist_rtl_rounded)),
+            Tab(text: 'LESSON PLANS', icon: Icon(Icons.description_rounded, size: 20)),
+            Tab(text: 'SYLLABUS CORE', icon: Icon(Icons.checklist_rtl_rounded, size: 20)),
           ],
         ),
       ),
@@ -75,96 +203,153 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
             : TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildPlansList(theme),
-                  _buildSyllabusCoverage(theme),
+                  _buildPlansList(theme, gemini),
+                  _buildSyllabusCoverage(theme, gemini),
                 ],
               ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
-        label: const Text('New Plan'),
-        icon: const Icon(Icons.add),
+      floatingActionButton: gemini?.buildGlowContainer(
+        borderRadius: 30,
+        borderThickness: 2,
         backgroundColor: theme.primaryColor,
-        foregroundColor: Colors.white,
+        padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(
+          onPressed: _showAddPlanDialog,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_task_rounded),
+          label: const Text('Authorize New Plan', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
       ),
     );
   }
 
-  Widget _buildPlansList(ThemeData theme) {
-    if (_lessonPlans.isEmpty) return const Center(child: Text('No lesson plans in cloud.'));
+  Widget _buildPlansList(ThemeData theme, GeminiThemeExtension? gemini) {
+    if (_lessonPlans.isEmpty) return _buildEmptyState('NO NEURAL PLANS DISCOVERED');
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       itemCount: _lessonPlans.length,
       itemBuilder: (context, index) {
         final plan = _lessonPlans[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: ListTile(
-            title: Text('Topic: ${plan['topic'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Subject: ${plan['subject']} | Grade: ${plan['grade']}'),
-            trailing: _statusChip(plan['is_completed'] == true ? 'Completed' : 'Pending'),
-            onTap: () {},
+        final content = ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          leading: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.assignment_rounded, color: Colors.indigo, size: 24),
           ),
+          title: Text('Topic: ${plan['topic'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text('Subject: ${plan['subject']} | Grade: ${plan['grade']}', 
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
+            ),
+          ),
+          trailing: _statusChip(plan['is_completed'] == true ? 'Completed' : 'Pending'),
+          onTap: () {},
+        );
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: gemini?.buildGlowContainer(
+            borderRadius: 28,
+            borderThickness: 1,
+            backgroundColor: theme.cardColor.withOpacity(0.85),
+            padding: EdgeInsets.zero,
+            child: content,
+          ) ?? Card(child: content),
         );
       },
     );
   }
 
-  Widget _buildSyllabusCoverage(ThemeData theme) {
-    if (_syllabusStatus.isEmpty) return const Center(child: Text('No syllabus data found in cloud.'));
+  Widget _buildSyllabusCoverage(ThemeData theme, GeminiThemeExtension? gemini) {
+    if (_syllabusStatus.isEmpty) return _buildEmptyState('NO SYLLABUS DATA IN CLOUD');
     
     double progress = (_syllabusStatus['completion_percentage'] as num?)?.toDouble() ?? 0.0;
-    if (progress > 1.0) progress /= 100; // Normalize
+    if (progress > 1.0) progress /= 100;
     
     List<String> remaining = List<String>.from(_syllabusStatus['remaining_topics'] ?? []);
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    final headerContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_syllabusStatus['subject_name'] ?? 'General', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 10,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(progress >= 1.0 ? Colors.green : Colors.blue),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text('${(progress * 100).toInt()}% Cloud Sync Coverage', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
+        Text(_syllabusStatus['subject_name']?.toString().toUpperCase() ?? 'GENERAL MATRIX', 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)
         ),
-        const SizedBox(height: 24),
-        const Padding(
-          padding: EdgeInsets.only(left: 8.0),
-          child: Text('REMAINING TOPICS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+        const SizedBox(height: 20),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 12,
+            backgroundColor: theme.primaryColor.withOpacity(0.05),
+            valueColor: AlwaysStoppedAnimation(progress >= 1.0 ? Colors.green : theme.primaryColor),
+          ),
         ),
         const SizedBox(height: 12),
-        ...remaining.map((topic) => Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            leading: const Icon(Icons.pending_actions_rounded, color: Colors.orange),
-            title: Text(topic),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${(progress * 100).toInt()}% NEURAL SYNC', 
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 1)
+            ),
+            const Text('VERIFIED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.green, letterSpacing: 1.5)),
+          ],
+        ),
+      ],
+    );
+
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      children: [
+        gemini?.buildGlowContainer(
+          borderRadius: 30,
+          borderThickness: 2,
+          backgroundColor: theme.cardColor.withOpacity(0.9),
+          padding: const EdgeInsets.all(24),
+          child: headerContent,
+        ) ?? Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(28)),
+          child: headerContent,
+        ),
+        const SizedBox(height: 48),
+        Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Text('REMAINING NODES', 
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5)
           ),
-        )),
+        ),
+        const SizedBox(height: 16),
+        ...remaining.map((topic) {
+          final content = ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.pending_actions_rounded, color: Colors.orange, size: 18),
+            ),
+            title: Text(topic, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          );
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: gemini?.buildGlowContainer(
+              borderRadius: 24,
+              borderThickness: 1,
+              backgroundColor: theme.cardColor.withOpacity(0.85),
+              padding: EdgeInsets.zero,
+              child: content,
+            ) ?? Card(child: content),
+          );
+        }),
+        const SizedBox(height: 40),
       ],
     );
   }
@@ -172,9 +357,28 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
   Widget _statusChip(String status) {
     Color color = status == 'Approved' || status == 'Completed' ? Colors.green : Colors.orange;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Text(status.toUpperCase(), 
+        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1)
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String msg) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
+          const SizedBox(height: 16),
+          Text(msg, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+        ],
+      ),
     );
   }
 }

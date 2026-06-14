@@ -68,22 +68,20 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       'parent_name': _parentNameController.text.trim(),
       'parent_phone': _parentPhoneController.text.trim(),
       'status': widget.studentToEdit?.status ?? 'Active',
+      'admission_date': isEditing ? widget.studentToEdit?.admissionDate : DateFormat('yyyy-MM-dd').format(DateTime.now()),
       if (isEditing) 'parent_id': widget.studentToEdit?.parentId,
-      if (isEditing) 'admission_date': widget.studentToEdit?.admissionDate,
     };
 
     try {
-      // 1. Save Locally Immediately
       await OfflineDbService.instance.saveStudentLocal(studentData);
-      
-      // 2. Attempt Cloud Sync
       await SupabaseService.instance.saveStudent(studentData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Pupil record updated successfully!' : 'Student registered and cached locally!'), 
-            backgroundColor: Colors.green
+            content: Text(isEditing ? 'Neural identity updated successfully!' : 'Entity registered and synced to cloud!'), 
+            backgroundColor: Colors.green.shade800,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
@@ -92,7 +90,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (e == "OFFLINE_QUEUED") {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Working Offline: Record saved locally and will sync when online.'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('Working Offline: Record saved in local vault.'), backgroundColor: Colors.orange, behavior: SnackBarBehavior.floating),
           );
           Navigator.pop(context, true);
         }
@@ -123,14 +121,33 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEditing ? 'Update Profile' : 'New Admission', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isEditing ? 'MODIFY IDENTITY' : 'NEURAL ENROLLMENT', 
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [theme.primaryColor, Colors.indigo.shade900],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.person_add_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -138,27 +155,29 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         isDark: theme.brightness == Brightness.dark,
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
-                  _buildFormContainer(theme),
+                  _buildFormContainer(theme, gemini),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 60,
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _enrollStudent,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
+                        shadowColor: theme.primaryColor.withOpacity(0.5),
                       ),
                       child: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white) 
-                        : Text(isEditing ? 'UPDATE PUPIL DATA' : 'CONFIRM ENROLLMENT', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                        : Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE ENROLLMENT', 
+                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                     ),
                   ),
                 ],
@@ -170,73 +189,87 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     );
   }
 
-  Widget _buildFormContainer(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('BASIC INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
-          const SizedBox(height: 16),
-          _buildField(_nameController, 'Full Pupil Name', Icons.person),
-          const SizedBox(height: 20),
-          _buildField(_admController, 'Admission Number', Icons.badge),
-          const SizedBox(height: 20),
-          
-          InkWell(
-            onTap: _pickDob,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: theme.inputDecorationTheme.fillColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.cake_rounded, color: Colors.grey),
-                  const SizedBox(width: 12),
-                  Text(_selectedDob == null ? 'Select Date of Birth' : DateFormat('MMM dd, yyyy').format(_selectedDob!)),
-                  const Spacer(),
-                  if (_selectedDob != null)
-                    Text('Age: ${DateTime.now().year - _selectedDob!.year}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-                ],
-              ),
+  Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('BIOMETRIC INTEL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+        const SizedBox(height: 24),
+        _buildField(theme, _nameController, 'Full Pupil Name', Icons.person_outline),
+        const SizedBox(height: 20),
+        _buildField(theme, _admController, 'Admission Identifier', Icons.badge_outlined),
+        const SizedBox(height: 20),
+        
+        InkWell(
+          onTap: _pickDob,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              color: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.cake_outlined, color: theme.primaryColor, size: 20),
+                const SizedBox(width: 12),
+                Text(_selectedDob == null ? 'Select Birth Date' : DateFormat('MMM dd, yyyy').format(_selectedDob!),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                if (_selectedDob != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Text('${DateTime.now().year - _selectedDob!.year} YRS', 
+                      style: TextStyle(fontWeight: FontWeight.w900, color: theme.primaryColor, fontSize: 10)),
+                  ),
+              ],
             ),
           ),
-          
-          const SizedBox(height: 24),
-          const Text('PARENT/GUARDIAN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
-          const SizedBox(height: 16),
-          _buildField(_parentNameController, 'Guardian Name', Icons.person_pin),
-          const SizedBox(height: 16),
-          _buildField(_parentPhoneController, 'Active Phone', Icons.phone, keyboardType: TextInputType.phone),
+        ),
+        
+        const SizedBox(height: 32),
+        Text('GUARDIAN NEXUS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+        const SizedBox(height: 24),
+        _buildField(theme, _parentNameController, 'Legal Guardian', Icons.family_restroom_outlined),
+        const SizedBox(height: 20),
+        _buildField(theme, _parentPhoneController, 'Encrypted Contact', Icons.phone_outlined, keyboardType: TextInputType.phone),
 
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 24),
-          _buildDropdowns(theme),
-        ],
-      ),
+        const SizedBox(height: 32),
+        const Divider(color: Colors.white10),
+        const SizedBox(height: 24),
+        _buildDropdowns(theme),
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30,
+      borderThickness: 1.5,
+      backgroundColor: theme.cardColor.withOpacity(0.9),
+      padding: const EdgeInsets.all(24),
+      child: content,
+    ) ?? Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
+      child: content,
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildField(ThemeData theme, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
         filled: true,
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'Required field' : null,
+      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
     );
   }
 
@@ -245,27 +278,32 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       children: [
         DropdownButtonFormField<String>(
           value: _selectedGrade,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
           items: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'JSS 1', 'JSS 2', 'JSS 3']
               .map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
           onChanged: (v) => setState(() => _selectedGrade = v!),
-          decoration: InputDecoration(
-            labelText: 'Academic Grade',
-            prefixIcon: const Icon(Icons.school),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-          ),
+          decoration: _neuralInputDecoration('Quantum Grade', Icons.school_outlined, theme),
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
           value: _selectedStream,
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
           items: ['North', 'South', 'East', 'West'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (v) => setState(() => _selectedStream = v!),
-          decoration: InputDecoration(
-            labelText: 'Class Stream',
-            prefixIcon: const Icon(Icons.grid_view_rounded),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-          ),
+          decoration: _neuralInputDecoration('Neural Stream', Icons.grid_view_rounded, theme),
         ),
       ],
+    );
+  }
+
+  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+      prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
+      filled: true,
+      fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
     );
   }
 }

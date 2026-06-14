@@ -22,6 +22,7 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
   }
 
   Future<void> _loadLibraryData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getStudentBorrowedBooks(widget.student.studentId);
@@ -44,14 +45,33 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Library Activity', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('${widget.student.name}\'s Library', 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.blueGrey.shade800, Colors.blueGrey.shade400]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: Colors.blueGrey.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.local_library_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -60,28 +80,41 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.blueGrey))
             : _borrowedBooks.isEmpty 
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   itemCount: _borrowedBooks.length,
                   itemBuilder: (context, index) {
                     final record = _borrowedBooks[index];
                     final book = record['library_books'];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.blueGrey.withOpacity(0.1),
-                          child: const Icon(Icons.book_rounded, color: Colors.blueGrey),
-                        ),
-                        title: Text(book?['title'] ?? 'Borrowed Book', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Due: ${record['due_date'] ?? "N/A"}'),
-                        trailing: _statusChip(record['status'] ?? 'Borrowed'),
+                    final content = ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.blueGrey.withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.book_rounded, color: Colors.blueGrey, size: 24),
                       ),
+                      title: Text(book?['title'] ?? 'Neural Volume', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('Return Threshold: ${record['due_date'] ?? "N/A"}', 
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
+                        ),
+                      ),
+                      trailing: _statusChip(record['status'] ?? 'Borrowed'),
+                    );
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: gemini?.buildGlowContainer(
+                        borderRadius: 28,
+                        borderThickness: 1,
+                        backgroundColor: theme.cardColor.withOpacity(0.85),
+                        padding: EdgeInsets.zero,
+                        child: content,
+                      ) ?? Card(child: content),
                     );
                   },
                 ),
@@ -92,15 +125,17 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
 
   Widget _statusChip(String status) {
     bool isOverdue = status.toLowerCase() == 'overdue';
+    Color color = isOverdue ? Colors.red : Colors.green;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: (isOverdue ? Colors.red : Colors.green).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Text(
         status.toUpperCase(),
-        style: TextStyle(color: isOverdue ? Colors.red : Colors.green, fontWeight: FontWeight.bold, fontSize: 10),
+        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1),
       ),
     );
   }
@@ -110,9 +145,9 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.local_library_rounded, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No books currently borrowed.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Icon(Icons.library_books_rounded, size: 80, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text('NO ACTIVE LOANS IN MATRIX', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

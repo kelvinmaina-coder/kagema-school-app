@@ -43,7 +43,13 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
       await SupabaseService.instance.updateStock(itemId, newQty);
       _fetchInventory();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cloud sync failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cloud sync failed: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -51,11 +57,12 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove from Stores?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        title: const Text('Remove from Stores?', style: TextStyle(fontWeight: FontWeight.w900)),
         content: Text('Are you sure you want to delete "${item['name']}"? This cannot be undone.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -78,14 +85,31 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Inventory & Stores', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Neural Inventory', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.brown.shade800, Colors.brown.shade400]),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            gradient: LinearGradient(
+              colors: [Colors.brown.shade900, Colors.brown.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+            boxShadow: [BoxShadow(color: Colors.brown.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.inventory_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
           ),
         ),
       ),
@@ -94,80 +118,103 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(color: Colors.brown))
             : _inventory.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                   itemCount: _inventory.length,
                   itemBuilder: (context, index) {
                     final item = _inventory[index];
                     final qty = item['quantity'] ?? 0;
                     final isLow = qty <= 5;
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: (isLow ? Colors.red : Colors.brown).withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isLow ? Icons.warning_amber_rounded : Icons.inventory_2, 
-                            color: isLow ? Colors.red : Colors.brown,
-                            size: 24,
-                          ),
+                    final content = ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: (isLow ? Colors.red : Colors.brown).withOpacity(0.1),
+                          shape: BoxShape.circle,
                         ),
-                        title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Category: ${item['category'] ?? 'General'}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: theme.primaryColor.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.grey), 
-                                    onPressed: () => _updateStock(item['item_id'], qty, -1)
-                                  ),
-                                  Text('$qty', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isLow ? Colors.red : null)),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.brown), 
-                                    onPressed: () => _updateStock(item['item_id'], qty, 1)
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert, color: Colors.grey),
-                              onSelected: (val) {
-                                if (val == 'edit') _showAddItemDialog(itemToEdit: item);
-                                if (val == 'delete') _deleteItem(item);
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Info'), dense: true)),
-                                const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever, color: Colors.red, size: 20), title: Text('Delete'), dense: true)),
-                              ],
-                            ),
-                          ],
+                        child: Icon(
+                          isLow ? Icons.warning_amber_rounded : Icons.inventory_2, 
+                          color: isLow ? Colors.red : Colors.brown,
+                          size: 24,
                         ),
                       ),
+                      title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      subtitle: Text('Category: ${item['category'] ?? 'General'}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.grey), 
+                                  onPressed: () => _updateStock(item['item_id'], qty, -1)
+                                ),
+                                Text('$qty', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isLow ? Colors.red : null)),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.brown), 
+                                  onPressed: () => _updateStock(item['item_id'], qty, 1)
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, color: Colors.grey),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            onSelected: (val) {
+                              if (val == 'edit') _showAddItemDialog(itemToEdit: item);
+                              if (val == 'delete') _deleteItem(item);
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Info', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
+                              const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever, color: Colors.red, size: 20), title: Text('Delete', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: gemini?.buildGlowContainer(
+                        borderRadius: 24,
+                        borderThickness: 1,
+                        backgroundColor: theme.cardColor.withOpacity(0.85),
+                        padding: EdgeInsets.zero,
+                        child: content,
+                      ) ?? Card(child: content),
                     );
                   },
                 ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: gemini?.buildGlowContainer(
+        borderRadius: 30,
+        borderThickness: 2,
+        backgroundColor: Colors.brown,
+        padding: EdgeInsets.zero,
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddItemDialog(),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add_box_rounded),
+          label: const Text('Add Quantum Stock', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+        ),
+      ) ?? FloatingActionButton.extended(
         onPressed: () => _showAddItemDialog(),
         backgroundColor: Colors.brown,
         foregroundColor: Colors.white,
@@ -179,6 +226,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
 
   void _showAddItemDialog({Map<String, dynamic>? itemToEdit}) {
     final theme = Theme.of(context);
+    final gemini = theme.extension<GeminiThemeExtension>();
     final isEditing = itemToEdit != null;
     final nameCtrl = TextEditingController(text: itemToEdit?['name']);
     final catCtrl = TextEditingController(text: itemToEdit?['category']);
@@ -190,50 +238,85 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
         ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(isEditing ? 'Update Stock Item' : 'Add New Stock', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.brown)),
-            const SizedBox(height: 24),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Item Name', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            TextField(controller: catCtrl, decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder())),
-            const SizedBox(height: 16),
-            TextField(controller: qtyCtrl, decoration: const InputDecoration(labelText: 'Current Quantity', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.isNotEmpty) {
-                    final data = {
-                      'name': nameCtrl.text.trim(),
-                      'category': catCtrl.text.trim(),
-                      'quantity': int.tryParse(qtyCtrl.text) ?? 0,
-                    };
-                    if (isEditing) {
-                      data['item_id'] = itemToEdit['item_id'];
-                    }
-                    await SupabaseService.instance.insertInventory(data); // insertInventory uses upsert
-                    if (mounted) {
-                      Navigator.pop(context);
-                      _fetchInventory();
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.brown, foregroundColor: Colors.white),
-                child: Text(isEditing ? 'UPDATE CLOUD STORE' : 'SYNC TO WAREHOUSE', style: const TextStyle(fontWeight: FontWeight.bold)),
-              ),
+        child: gemini?.buildCreativeBackground(
+          isDark: theme.brightness == Brightness.dark,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                Text(isEditing ? 'MODIFY STOCK' : 'SYNC NEW STOCK', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
+                ),
+                const SizedBox(height: 8),
+                Text(isEditing ? 'Update Item Intel' : 'Warehouse Registration', 
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
+                ),
+                const SizedBox(height: 32),
+                _buildNeuralField(nameCtrl, 'Item Designation', Icons.inventory_2_outlined),
+                const SizedBox(height: 16),
+                _buildNeuralField(catCtrl, 'Storage Category', Icons.category_outlined),
+                const SizedBox(height: 16),
+                _buildNeuralField(qtyCtrl, 'Stock Quantity', Icons.numbers_rounded, keyboardType: TextInputType.number),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.isNotEmpty) {
+                        final data = {
+                          'name': nameCtrl.text.trim(),
+                          'category': catCtrl.text.trim(),
+                          'quantity': int.tryParse(qtyCtrl.text) ?? 0,
+                        };
+                        if (isEditing) {
+                          data['item_id'] = itemToEdit['item_id'];
+                        }
+                        await SupabaseService.instance.insertInventory(data);
+                        if (mounted) {
+                          Navigator.pop(context);
+                          _fetchInventory();
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.brown.shade700, 
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      elevation: 8,
+                    ),
+                    child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE STORAGE SYNC', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+        ) ?? const SizedBox(),
+      ),
+    );
+  }
+
+  Widget _buildNeuralField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+    final theme = Theme.of(context);
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+        prefixIcon: Icon(icon, color: Colors.brown, size: 20),
+        filled: true,
+        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
     );
   }
@@ -245,7 +328,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
         children: [
           Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('Inventory is empty.', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text('QUANTUM WAREHOUSE EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
         ],
       ),
     );

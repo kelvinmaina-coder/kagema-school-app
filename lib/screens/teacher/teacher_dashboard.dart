@@ -89,9 +89,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       extendBodyBehindAppBar: true,
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
-        child: _currentIndex == 0 ? _buildHomeTab(theme, gemini) : _buildOperationsTab(theme),
-      ),
-      bottomNavigationBar: _buildModernNavBar(theme),
+        child: _currentIndex == 0 ? _buildHomeTab(theme, gemini) : _buildOperationsTab(theme, gemini),
+      ) ?? (_currentIndex == 0 ? _buildHomeTab(theme, null) : _buildOperationsTab(theme, null)),
+      bottomNavigationBar: _buildModernNavBar(theme, gemini),
     );
   }
 
@@ -100,7 +100,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       onRefresh: _loadDashboardData,
       child: CustomScrollView(
         slivers: [
-          _buildHeroAppBar(theme, gemini, 'TEACHER CONSOLE'),
+          _buildHeroAppBar(theme, gemini, 'TEACHER HUB'),
           if (_errorMessage != null)
             SliverToBoxAdapter(
               child: Container(
@@ -123,14 +123,14 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  _buildSummaryStats(theme),
-                  const SizedBox(height: 30),
-                  _buildSectionLabel('LIVE LESSON FEED'),
-                  _buildLessonsList(theme),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
+                  _buildSummaryStats(theme, gemini),
+                  const SizedBox(height: 32),
+                  _buildSectionLabel('TODAY\'S LESSONS'),
+                  _buildLessonsList(theme, gemini),
+                  const SizedBox(height: 32),
                   _buildSectionLabel('QUICK CLASS ACTIONS'),
-                  _buildQuickActions(theme),
+                  _buildQuickActions(theme, gemini),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -141,9 +141,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  Widget _buildOperationsTab(ThemeData theme) {
+  Widget _buildOperationsTab(ThemeData theme, GeminiThemeExtension? gemini) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      padding: const EdgeInsets.fromLTRB(24, 100, 24, 120),
       children: [
         _buildSectionLabel('ACADEMIC MANAGEMENT'),
         _operationTile(theme, 'Attendance Register', 'Daily student tracking', Icons.how_to_reg_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceModule(grade: selectedGrade, stream: selectedStream)))),
@@ -165,21 +165,40 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         _operationTile(theme, 'Parent Contacts', 'Call or message guardians', Icons.contact_phone_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ParentContactList(grade: selectedGrade, stream: selectedStream)))),
         _operationTile(theme, 'Co-Curricular', 'Clubs & sports activities', Icons.sports_soccer_rounded, Colors.amber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CoCurricularScreen()))),
         _operationTile(theme, 'Reports Gen', 'PDF Result slips & lists', Icons.picture_as_pdf_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ReportsGeneratorScreen(grade: selectedGrade, stream: selectedStream)))),
-        const SizedBox(height: 80),
       ],
     );
   }
 
   Widget _operationTile(ThemeData theme, String title, String sub, IconData icon, Color color, VoidCallback onTap) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: ListTile(
+      child: InkWell(
         onTap: onTap,
-        leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 11)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 12),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.cardColor.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -188,86 +207,147 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return SliverAppBar(
       expandedHeight: 120.0,
       pinned: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1, color: Colors.white)),
-        background: Container(decoration: BoxDecoration(gradient: gemini?.primaryGradient, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)))),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
+        centerTitle: true,
+        background: Container(
+          decoration: BoxDecoration(
+            gradient: gemini?.primaryGradient, 
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -30, top: -10,
+                child: Icon(Icons.school_rounded, size: 180, color: Colors.white.withOpacity(0.1)),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildSummaryStats(ThemeData theme) {
-    return Container(
+  Widget _buildSummaryStats(ThemeData theme, GeminiThemeExtension? gemini) {
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _statItem('PUPILS', '${_stats['totalStudents'] ?? 0}', Colors.blue),
+        _statItem('ATTENDANCE', '${(_stats['attendanceRate'] as num?)?.toStringAsFixed(1) ?? "0.0"}%', Colors.green),
+        _statItem('TASKS', '${_stats['pendingAssignments'] ?? 0}', Colors.orange),
+      ],
+    );
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 28,
+      borderThickness: 2,
+      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _statItem('Pupils', '${_stats['totalStudents'] ?? 0}', Colors.blue),
-          _statItem('Attendance', '${(_stats['attendanceRate'] as num?)?.toStringAsFixed(1) ?? "0.0"}%', Colors.green),
-          _statItem('Tasks', '${_stats['pendingAssignments'] ?? 0}', Colors.orange),
-        ],
-      ),
+      useAIBorder: true, // Apply AI Spectrum to main stats
+      child: content,
+    ) ?? Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(28)),
+      child: content,
     );
   }
 
   Widget _statItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: color)),
-        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: color)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
       ],
     );
   }
 
-  Widget _buildLessonsList(ThemeData theme) {
+  Widget _buildLessonsList(ThemeData theme, GeminiThemeExtension? gemini) {
     if (isLoading && _todayLessons.isEmpty) return const Center(child: CircularProgressIndicator());
     if (_todayLessons.isEmpty) return Container(padding: const EdgeInsets.all(20), child: const Center(child: Text('No lessons for today.', style: TextStyle(color: Colors.grey, fontSize: 12))));
+    
     return Column(
-      children: _todayLessons.map((l) => Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: ListTile(
-          leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.timer_outlined, color: theme.primaryColor, size: 18)),
-          title: Text(l['subject'] ?? 'Subject', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          subtitle: Text('${l['start_time']} - ${l['end_time']} | ${l['grade']}', style: const TextStyle(fontSize: 11)),
-        ),
-      )).toList(),
+      children: _todayLessons.map((l) {
+        final content = ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(10), 
+            decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), 
+            child: Icon(Icons.timer_outlined, color: theme.primaryColor, size: 20)
+          ),
+          title: Text(l['subject'] ?? 'Subject', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          subtitle: Text('${l['start_time']} - ${l['end_time']} | ${l['grade']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+        );
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: BorderSide(color: theme.dividerColor.withOpacity(0.05)),
+          ),
+          child: content,
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildQuickActions(ThemeData theme) {
+  Widget _buildQuickActions(ThemeData theme, GeminiThemeExtension? gemini) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.6,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.5,
       children: [
-        _quickCard(theme, 'ATTENDANCE', Icons.how_to_reg, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceModule(grade: selectedGrade, stream: selectedStream)))),
-        _quickCard(theme, 'MARKS', Icons.grade, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarksEntryScreen(grade: selectedGrade, stream: selectedStream, subject: 'Mathematics')))),
+        _quickCard(theme, gemini, 'ATTENDANCE', Icons.how_to_reg, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceModule(grade: selectedGrade, stream: selectedStream)))),
+        _quickCard(theme, gemini, 'MARKS', Icons.grade, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarksEntryScreen(grade: selectedGrade, stream: selectedStream, subject: 'Mathematics')))),
       ],
     );
   }
 
-  Widget _quickCard(ThemeData theme, String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _quickCard(ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, VoidCallback onTap) {
+    final content = Column(
+      mainAxisAlignment: MainAxisAlignment.center, 
+      children: [
+        Icon(icon, color: color, size: 30), 
+        const SizedBox(height: 10), 
+        Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1.5))
+      ]
+    );
+
     return InkWell(
       onTap: onTap,
-      child: Container(
+      borderRadius: BorderRadius.circular(24),
+      child: gemini?.buildGlowContainer(
+        borderRadius: 24,
+        borderThickness: 1.5,
+        backgroundColor: color.withOpacity(0.08),
+        padding: const EdgeInsets.all(12),
+        useAIBorder: false, // Keep it simple here
+        child: content,
+      ) ?? Container(
         decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(24), border: Border.all(color: color.withOpacity(0.1))),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: color, size: 28), const SizedBox(height: 8), Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1))]),
+        child: content,
       ),
     );
   }
 
-  Widget _buildModernNavBar(ThemeData theme) {
+  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini) {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       height: 70,
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20)]),
+      decoration: BoxDecoration(
+        color: theme.cardColor.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, spreadRadius: -10)],
+        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -289,21 +369,25 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         }
         setState(() => _currentIndex = index);
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 24),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isSelected ? Theme.of(context).primaryColor : Colors.grey)),
-        ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: isSelected ? BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)) : null,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 24),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? Theme.of(context).primaryColor : Colors.grey)),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSectionLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Text(text, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.grey)),
+      padding: const EdgeInsets.only(left: 4, bottom: 12.0),
+      child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey)),
     );
   }
 }
