@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
-import '../../services/mpesa_service.dart';
+import '../../services/pesapal_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../app_theme.dart';
 
 class FeesPaymentScreen extends StatefulWidget {
@@ -62,25 +63,62 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     setState(() => _isProcessing = true);
     final amount = double.tryParse(_amountController.text) ?? 0.0;
 
-    // INTEGRATION: Real M-Pesa STK Push
-    if (selectedMethod == 'M-Pesa (Stk Push)') {
-      final result = await MpesaService.instance.initiateStkPush(
+    // INTEGRATION: Pesapal V3 High-Speed Redirect
+    if (selectedMethod == 'M-Pesa (Stk Push)' || selectedMethod == 'Visa Card') {
+      final response = await PesapalService.instance.initiatePayment(
         phoneNumber: widget.student.parentPhone,
         amount: amount,
-        reference: "FEES-${widget.student.admissionNumber}",
+        email: widget.student.parentEmail ?? 'parent@kagema.edu',
+        reference: "FEES-${widget.student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
+        studentName: widget.student.name,
       );
 
-      if (!result['success']) {
-        if (mounted) {
-          setState(() => _isProcessing = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('M-Pesa Error: ${result['message']}'), backgroundColor: Colors.red)
-          );
+      if (response['success']) {
+        final url = Uri.parse(response['redirect_url']);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+          
+          // Log the attempt in Supabase as "Pending"
+          final receiptNo = 'PEN-${DateTime.now().millisecondsSinceEpoch}';
+          final payment = {
+            'student_id': widget.student.studentId,
+            'student_name': widget.student.name,
+            'amount_paid': amount,
+            'term': selectedTerm,
+            'year': DateTime.now().year,
+            'payment_date': DateTime.now().toIso8601String(),
+            'receipt_number': receiptNo,
+            'payment_method': 'Pesapal (${response['order_tracking_id']})',
+          };
+          await SupabaseService.instance.insertFeePayment(payment);
+          
+          if (mounted) {
+            setState(() => _isProcessing = false);
+            _amountController.clear();
+            _tabController.animateTo(1);
+          }
+        } else {
+          _showError("Neural Interface: Could not launch payment gateway.");
         }
-        return;
+      } else {
+        _showError(response['message'] ?? "Pesapal Core Offline");
       }
+      return;
     }
 
+    // Manual / Other Methods (Fallback)
+    _finalizeManualPayment(amount);
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating)
+    );
+  }
+
+  Future<void> _finalizeManualPayment(double amount) async {
     final receiptNo = 'RCP-${DateTime.now().millisecondsSinceEpoch}';
     final payment = {
       'student_id': widget.student.studentId,
@@ -100,20 +138,9 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
         await _loadFeeData();
         setState(() => _isProcessing = false);
         _tabController.animateTo(1);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Neural Transaction Initiated: Check your phone!', style: TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.green.shade800,
-            behavior: SnackBarBehavior.floating,
-          )
-        );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
-      }
+      _showError("Sync Error: $e");
     }
   }
 
