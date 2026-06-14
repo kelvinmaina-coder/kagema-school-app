@@ -63,7 +63,6 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     setState(() => _isProcessing = true);
     final amount = double.tryParse(_amountController.text) ?? 0.0;
 
-    // INTEGRATION: Pesapal V3 High-Speed Redirect
     if (selectedMethod == 'M-Pesa (Stk Push)' || selectedMethod == 'Visa Card') {
       final response = await PesapalService.instance.initiatePayment(
         phoneNumber: widget.student.parentPhone,
@@ -78,7 +77,6 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
         if (await canLaunchUrl(url)) {
           await launchUrl(url, mode: LaunchMode.externalApplication);
           
-          // Log the attempt in Supabase as "Pending"
           final receiptNo = 'PEN-${DateTime.now().millisecondsSinceEpoch}';
           final payment = {
             'student_id': widget.student.studentId,
@@ -98,15 +96,14 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
             _tabController.animateTo(1);
           }
         } else {
-          _showError("Neural Interface: Could not launch payment gateway.");
+          _showError("System Error: Could not launch payment gateway.");
         }
       } else {
-        _showError(response['message'] ?? "Pesapal Core Offline");
+        _showError(response['message'] ?? "Payment Gateway Offline");
       }
       return;
     }
 
-    // Manual / Other Methods (Fallback)
     _finalizeManualPayment(amount);
   }
 
@@ -152,7 +149,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Quantum Fee Portal', 
+        title: const Text('School Fees Portal', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -228,7 +225,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
           const SizedBox(height: 48),
           Padding(
             padding: const EdgeInsets.only(left: 4),
-            child: Text('NEURAL PAYMENT PROTOCOL', 
+            child: Text('PAYMENT DETAILS', 
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
             ),
           ),
@@ -242,16 +239,16 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
   Widget _buildPaymentForm(ThemeData theme, GeminiThemeExtension? gemini) {
     final content = Column(
       children: [
-        _buildNeuralDropdown('Target Academic Term', selectedTerm, ['Term 1', 'Term 2', 'Term 3'], (v) => setState(() => selectedTerm = v!), Icons.layers_rounded, theme),
+        _buildDropdown('Select Term', selectedTerm, ['Term 1', 'Term 2', 'Term 3'], (v) => setState(() => selectedTerm = v!), Icons.layers_rounded, theme),
         const SizedBox(height: 20),
-        _buildNeuralDropdown('Payment Interface', selectedMethod, ['M-Pesa (Stk Push)', 'Visa Card', 'Bank Transfer'], (v) => setState(() => selectedMethod = v!), Icons.hub_rounded, theme),
+        _buildDropdown('Payment Method', selectedMethod, ['M-Pesa (Stk Push)', 'Visa Card', 'Bank Transfer'], (v) => setState(() => selectedMethod = v!), Icons.hub_rounded, theme),
         const SizedBox(height: 20),
         TextField(
           controller: _amountController,
           keyboardType: TextInputType.number,
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.green),
           decoration: InputDecoration(
-            labelText: 'Neural Amount (Ksh)', 
+            labelText: 'Amount to Pay (Ksh)', 
             labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
             prefixIcon: const Icon(Icons.payments_rounded, color: Colors.green, size: 20),
             filled: true,
@@ -274,7 +271,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
             ),
             child: _isProcessing 
               ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-              : const Text('AUTHORIZE QUANTUM PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+              : const Text('CONFIRM PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
           ),
         )
       ],
@@ -296,11 +293,11 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
   Widget _buildSummaryHeader(ThemeData theme, GeminiThemeExtension? gemini, double balance) {
     final content = Column(
       children: [
-        _summaryRow('Neural Quota (Term)', 'Ksh ${NumberFormat('#,###').format(_totalExpected)}'),
+        _summaryRow('Total Term Fees', 'Ksh ${NumberFormat('#,###').format(_totalExpected)}'),
         const Divider(color: Colors.white10),
-        _summaryRow('Amount Synchronized', 'Ksh ${NumberFormat('#,###').format(_totalPaid)}', color: Colors.green),
+        _summaryRow('Amount Paid', 'Ksh ${NumberFormat('#,###').format(_totalPaid)}', color: Colors.green),
         const Divider(color: Colors.white10),
-        _summaryRow('Neural Balance', 'Ksh ${NumberFormat('#,###').format(balance)}', color: balance > 0 ? Colors.red : Colors.green, bold: true),
+        _summaryRow('Outstanding Balance', 'Ksh ${NumberFormat('#,###').format(balance)}', color: balance > 0 ? Colors.red : Colors.green, bold: true),
       ],
     );
 
@@ -380,7 +377,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
     );
   }
 
-  Widget _buildNeuralDropdown(String label, String value, List<String> items, Function(String?) onChanged, IconData icon, ThemeData theme) {
+  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged, IconData icon, ThemeData theme) {
     return DropdownButtonFormField<String>(
       value: value,
       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
@@ -404,7 +401,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> with SingleTicker
         children: [
           Icon(Icons.history_edu_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO PAYMENT RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

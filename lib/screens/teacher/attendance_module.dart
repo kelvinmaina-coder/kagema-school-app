@@ -75,7 +75,7 @@ class _AttendanceModuleState extends State<AttendanceModule> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Neural Sync: Records Authorized', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: const Text('Attendance Records Saved Successfully', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.teal.shade800,
             behavior: SnackBarBehavior.floating,
           )
@@ -97,7 +97,7 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Intelligence Roll Call', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
+        title: const Text('Student Attendance', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -173,14 +173,14 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     int present = attendanceStatus.values.where((v) => v == 'Present').length;
     final content = Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(DateFormat('EEEE, MMM d').format(selectedDate).toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1)), const SizedBox(height: 2), Text('${widget.grade} • ${widget.stream}', style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade400, fontWeight: FontWeight.w900, letterSpacing: 0.5))]),
-      Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text('$present / ${students.length} VERIFIED', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1))),
+      Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text('$present / ${students.length} MARKED', style: const TextStyle(color: Colors.teal, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1))),
     ]);
     return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.all(20), child: content) ?? Card(child: content));
   }
 
   Widget _buildSyncButton(ThemeData theme, GeminiThemeExtension? gemini) {
-    return Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 40), child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: isSaving ? null : _saveAttendance, style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8), child: Text(isSaving ? 'AUTHORIZING NEURAL SYNC...' : 'PUSH TO CLOUD REGISTRY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)))));
+    return Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 40), child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: isSaving ? null : _saveAttendance, style: ElevatedButton.styleFrom(backgroundColor: Colors.teal.shade700, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8), child: Text(isSaving ? 'SAVING RECORDS...' : 'SAVE ATTENDANCE', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)))));
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.person_off_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('REGISTRY NODE EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.person_off_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO STUDENTS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
 }

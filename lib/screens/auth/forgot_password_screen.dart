@@ -16,7 +16,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     if (_identifierController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Neural Identification Required', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Email or Phone Number Required', style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
         )
@@ -32,7 +32,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _isSending = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Neural Restoration Link Transmitted to Cloud Address!', style: TextStyle(fontWeight: FontWeight.bold)), 
+          content: const Text('Password reset link sent to your registered email!', style: TextStyle(fontWeight: FontWeight.bold)), 
           backgroundColor: Colors.green.shade800,
           behavior: SnackBarBehavior.floating,
         ),
@@ -49,7 +49,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('NEURAL RECOVERY', 
+        title: const Text('PASSWORD RECOVERY', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -73,7 +73,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 _buildResetForm(theme, gemini),
                 const SizedBox(height: 48),
                 const Text(
-                  'SYSTEM SECURITY: MFA QUANTUM READY',
+                  'SYSTEM SECURITY: MFA SECURE',
                   style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2),
                 ),
               ],
@@ -103,13 +103,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 24),
         const Text(
-          'Neural Restoration',
+          'Password Reset',
           style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
           child: Text(
-            'Enter your registered neural identifier to receive a secure restoration key.',
+            'Enter your registered email or phone number to receive a secure reset link.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
           ),
@@ -125,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _identifierController,
           style: const TextStyle(fontWeight: FontWeight.bold),
           decoration: InputDecoration(
-            labelText: 'Email or Neural Phone',
+            labelText: 'Email or Phone Number',
             labelStyle: const TextStyle(fontSize: 13),
             prefixIcon: Icon(Icons.alternate_email_rounded, color: theme.primaryColor),
             filled: true,
@@ -150,7 +150,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             child: _isSending 
               ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-              : const Text('TRANSMIT RECOVERY SIGNAL', 
+              : const Text('SEND RESET LINK',
                   style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
           ),
         ),

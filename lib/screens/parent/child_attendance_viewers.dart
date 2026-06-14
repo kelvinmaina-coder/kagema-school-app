@@ -52,7 +52,7 @@ class _ChildAttendanceScreenState extends State<ChildAttendanceScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('${widget.student.name}\'s Roll Call', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: Text('${widget.student.name}\'s Attendance', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -109,5 +109,5 @@ class _ChildAttendanceScreenState extends State<ChildAttendanceScreen> {
 
   Widget _stat(String l, String v, Color c) => Column(children: [Text(v, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: c)), Text(l, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey))]);
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.event_busy_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO NEURAL RECORDS DISCOVERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.event_busy_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO ATTENDANCE RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1))]));
 }

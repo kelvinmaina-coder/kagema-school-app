@@ -36,35 +36,51 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
   }
 
   /// THE NEURAL HUB BACKGROUND: Main Screen Wrapper
+  /// HYPER-VIBRANT, SUPER FAST, AND ABSOLUTE EDGE-TO-EDGE GROWING BORDERS
   Widget buildCreativeBackground({
     required Widget child, 
     bool isDark = false, 
-    double maxWidth = 600,
-    bool useAIBorder = false, // Selective: only for specific "portal" screens
+    double? maxWidth, 
+    bool useAIBorder = false, 
   }) {
-    Widget content = Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: child,
-      ),
+    // 1. Quantum Mesh Layer (Always full screen)
+    Widget background = _NeuralMeshBackground(
+      isDark: isDark, 
+      child: const SizedBox.expand()
     );
 
+    // 2. Intelligence Content Layer
+    Widget content = maxWidth != null 
+      ? Center(child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child))
+      : child;
+
     if (useAIBorder) {
-      content = Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: AISpectrumBorder(
-            borderRadius: 32,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              child: child,
+      // THE EDGE-TO-EDGE QUANTUM OVERLAY
+      // Border and Background are decoupled from content to ensure the frame hugs the screen limits
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          background,
+          content,
+          const IgnorePointer(
+            child: AISpectrumBorder(
+              borderRadius: 0, // Frame-less edge synchronization
+              strokeWidth: 5.0, 
+              isEdgeToEdge: true,
+              child: SizedBox.expand(),
             ),
           ),
-        ),
+        ],
       );
     }
 
-    return _NeuralMeshBackground(isDark: isDark, child: content);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        background,
+        content,
+      ],
+    );
   }
 
   /// THE FUTURE GLASS CONTAINER: Enhanced with optional AI Glowing Border
@@ -74,7 +90,7 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     double borderThickness = 1.0,
     Color? backgroundColor,
     EdgeInsets? padding,
-    bool useAIBorder = false, // NEW: Apply to important cards/stats
+    bool useAIBorder = false, 
   }) {
     Widget card = _NeuralGlassCard(
       borderRadius: borderRadius,
@@ -87,6 +103,7 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     if (useAIBorder) {
       return AISpectrumBorder(
         borderRadius: borderRadius,
+        strokeWidth: 3.0,
         child: card,
       );
     }
@@ -95,14 +112,18 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
 }
 
 /// Standalone AI Spectrum Border Utility
+/// SUPER CREATIVE: ULTRA-FAST SYNC, KINETIC GROWTH, AND VIVID NEON GLOW
 class AISpectrumBorder extends StatefulWidget {
   final Widget child;
   final double borderRadius;
   final double strokeWidth;
+  final bool isEdgeToEdge;
+
   const AISpectrumBorder({
     required this.child, 
     required this.borderRadius,
     this.strokeWidth = 2.5,
+    this.isEdgeToEdge = false,
     super.key,
   });
 
@@ -110,36 +131,44 @@ class AISpectrumBorder extends StatefulWidget {
   State<AISpectrumBorder> createState() => _AISpectrumBorderState();
 }
 
-class _AISpectrumBorderState extends State<AISpectrumBorder> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+class _AISpectrumBorderState extends State<AISpectrumBorder> with TickerProviderStateMixin {
+  late AnimationController _rotationController;
+  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    // ROTATION: 0.4 seconds (Hyper-Drive Neural Sync)
+    _rotationController = AnimationController(vsync: this, duration: const Duration(milliseconds: 400))..repeat();
+    // PULSE: 0.6 seconds for aggressive "Growing" edge effect
+    _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _rotationController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge([_rotationController, _pulseController]),
       builder: (context, child) {
         return CustomPaint(
           painter: _SpectrumPainter(
-            animation: _controller,
+            rotation: _rotationController.value,
+            pulse: _pulseController.value,
             borderRadius: widget.borderRadius,
             strokeWidth: widget.strokeWidth,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            child: widget.child,
-          ),
+          child: widget.isEdgeToEdge 
+            ? widget.child 
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+                child: widget.child,
+              ),
         );
       },
     );
@@ -147,50 +176,75 @@ class _AISpectrumBorderState extends State<AISpectrumBorder> with SingleTickerPr
 }
 
 class _SpectrumPainter extends CustomPainter {
-  final Animation<double> animation;
+  final double rotation;
+  final double pulse;
   final double borderRadius;
   final double strokeWidth;
 
   _SpectrumPainter({
-    required this.animation, 
+    required this.rotation, 
+    required this.pulse,
     required this.borderRadius,
     required this.strokeWidth,
-  }) : super(repaint: animation);
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
+    // KINETIC GROWTH: Border inflates dynamically off-canvas
+    final expansion = pulse * 20.0; 
+    final dynamicStroke = strokeWidth + (pulse * 15.0);
+    final intensity = 0.5 + (pulse * 0.5);
+    
+    // Drawing area inflated beyond screen bounds for "frame-less" bleed
+    final rect = Offset(-expansion / 2, -expansion / 2) & 
+                 Size(size.width + expansion, size.height + expansion);
+    
     final paint = Paint()
-      ..strokeWidth = strokeWidth
+      ..strokeWidth = dynamicStroke
       ..style = PaintingStyle.stroke;
 
+    // HYPER-VIBRANT QUANTUM PALETTE
     final colors = [
-      const Color(0xFFFF3D00), // Red
-      const Color(0xFFFFB300), // Orange
-      const Color(0xFF00E676), // Green
-      const Color(0xFF00B0FF), // Blue
-      const Color(0xFFD500F9), // Purple
-      const Color(0xFFFF3D00), // Back to Red
+      const Color(0xFFFF0000).withOpacity(intensity), 
+      const Color(0xFFFF7B00).withOpacity(intensity), 
+      const Color(0xFFFFFF00).withOpacity(intensity), 
+      const Color(0xFF00FF00).withOpacity(intensity), 
+      const Color(0xFF00FFFF).withOpacity(intensity), 
+      const Color(0xFF0044FF).withOpacity(intensity), 
+      const Color(0xFF9100FF).withOpacity(intensity), 
+      const Color(0xFFFF00FF).withOpacity(intensity), 
+      const Color(0xFFFF0000).withOpacity(intensity), 
     ];
 
     final gradient = SweepGradient(
       colors: colors,
-      transform: GradientRotation(animation.value * 2 * math.pi),
+      transform: GradientRotation(rotation * 2 * math.pi),
     );
 
     paint.shader = gradient.createShader(rect);
     
-    // Outer Glow Effect
-    final glowPaint = Paint()
-      ..strokeWidth = strokeWidth * 2.5
-      ..style = PaintingStyle.stroke
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    glowPaint.shader = gradient.createShader(rect);
+    // LAYERED AURORA GLOW (5 Layers of Light Emission)
+    for (int i = 1; i <= 5; i++) {
+      final glowPaint = Paint()
+        ..strokeWidth = dynamicStroke * (1.8 * i)
+        ..style = PaintingStyle.stroke
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, (15.0 * i) * pulse + 8);
+      glowPaint.shader = gradient.createShader(rect);
+      
+      final path = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius > 0 ? borderRadius + expansion : 0));
+      canvas.drawRRect(path, glowPaint..color = glowPaint.color.withOpacity(0.2 / i));
+    }
 
-    final path = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
-    
-    canvas.drawRRect(path, glowPaint..color = glowPaint.color.withOpacity(0.3));
+    // PRIMARY DYNAMIC BORDER
+    final path = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius > 0 ? borderRadius + expansion : 0));
     canvas.drawRRect(path, paint);
+    
+    // QUANTUM SPARKLE EDGE (Thin high-frequency line)
+    final sparkPaint = Paint()
+      ..strokeWidth = 3.0
+      ..color = Colors.white.withOpacity(0.7 * pulse)
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(path, sparkPaint);
   }
 
   @override
@@ -228,7 +282,7 @@ class _NeuralMeshBackgroundState extends State<_NeuralMeshBackground> with Singl
       builder: (context, child) {
         return Stack(
           children: [
-            Container(color: widget.isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F7FA)),
+            Container(color: widget.isDark ? const Color(0xFF010102) : const Color(0xFFF9FBFF)),
             
             CustomPaint(
               size: Size.infinite,
@@ -236,18 +290,18 @@ class _NeuralMeshBackgroundState extends State<_NeuralMeshBackground> with Singl
             ),
 
             Positioned(
-              top: -150 + (math.sin(_controller.value * 2 * math.pi) * 120),
-              right: -100 + (math.cos(_controller.value * 2 * math.pi) * 100),
-              child: _OrganicBlob(color: const Color(0xFFD84315).withOpacity(widget.isDark ? 0.18 : 0.1), size: 700),
+              top: -350 + (math.sin(_controller.value * 2 * math.pi) * 200),
+              right: -250 + (math.cos(_controller.value * 2 * math.pi) * 150),
+              child: _OrganicBlob(color: const Color(0xFFFF3D00).withOpacity(widget.isDark ? 0.35 : 0.18), size: 1000),
             ),
             Positioned(
-              bottom: -200 + (math.cos(_controller.value * 2 * math.pi) * 180),
-              left: -150 + (math.sin(_controller.value * 2 * math.pi) * 110),
-              child: _OrganicBlob(color: const Color(0xFF3F51B5).withOpacity(widget.isDark ? 0.15 : 0.07), size: 800),
+              bottom: -400 + (math.cos(_controller.value * 2 * math.pi) * 250),
+              left: -300 + (math.sin(_controller.value * 2 * math.pi) * 180),
+              child: _OrganicBlob(color: const Color(0xFF2979FF).withOpacity(widget.isDark ? 0.32 : 0.15), size: 1100),
             ),
 
-            ...List.generate(10, (index) {
-              final rand = math.Random(index * 99);
+            ...List.generate(35, (index) {
+              final rand = math.Random(index * 200);
               return Positioned(
                 top: rand.nextDouble() * MediaQuery.of(context).size.height,
                 left: rand.nextDouble() * MediaQuery.of(context).size.width,
@@ -255,7 +309,7 @@ class _NeuralMeshBackgroundState extends State<_NeuralMeshBackground> with Singl
               );
             }),
 
-            BackdropFilter(filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90), child: widget.child),
+            BackdropFilter(filter: ImageFilter.blur(sigmaX: 130, sigmaY: 120), child: widget.child),
           ],
         );
       },
@@ -271,10 +325,10 @@ class _NeuralGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.02)
-      ..strokeWidth = 0.8;
+      ..color = (isDark ? Colors.white : Colors.black).withOpacity(0.08)
+      ..strokeWidth = 2.0;
 
-    const spacing = 50.0;
+    const spacing = 100.0;
     final offset = progress * spacing;
 
     for (double i = -spacing; i < size.width + spacing; i += spacing) {
@@ -295,15 +349,15 @@ class _TwinklingNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final val = (math.sin((progress + offset) * 10 * math.pi) + 1) / 2;
+    final val = (math.sin((progress + offset) * 30 * math.pi) + 1) / 2;
     return Opacity(
-      opacity: val * 0.3,
+      opacity: val * 0.8,
       child: Container(
-        width: 3, height: 3,
+        width: 5, height: 5,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.8), blurRadius: 4)],
+          boxShadow: [BoxShadow(color: Colors.white.withOpacity(1.0), blurRadius: 15)],
         ),
       ),
     );
@@ -335,7 +389,7 @@ class _NeuralGlassCardState extends State<_NeuralGlassCard> with SingleTickerPro
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
   }
 
   @override
@@ -360,21 +414,21 @@ class _NeuralGlassCardState extends State<_NeuralGlassCard> with SingleTickerPro
             gradient: SweepGradient(
               center: Alignment.center,
               colors: [
-                const Color(0xFFD84315).withOpacity(0.1 + (pulse * 0.4)),
-                const Color(0xFF3F51B5).withOpacity(0.1),
-                const Color(0xFF009688).withOpacity(0.1 + (pulse * 0.4)),
-                const Color(0xFFD84315).withOpacity(0.1 + (pulse * 0.4)),
+                const Color(0xFFFF3D00).withOpacity(0.3 + (pulse * 0.3)),
+                const Color(0xFF2979FF).withOpacity(0.3),
+                const Color(0xFF00E676).withOpacity(0.3 + (pulse * 0.3)),
+                const Color(0xFFFF3D00).withOpacity(0.3 + (pulse * 0.3)),
               ],
               transform: GradientRotation(t * 2 * math.pi),
             ),
           ),
           child: Container(
             margin: EdgeInsets.all(widget.borderThickness),
-            padding: widget.padding ?? const EdgeInsets.all(20),
+            padding: widget.padding ?? const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: widget.backgroundColor ?? (isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.7)),
+              color: widget.backgroundColor ?? (isDark ? Colors.black.withOpacity(0.4) : Colors.white.withOpacity(0.75)),
               borderRadius: BorderRadius.circular(widget.borderRadius - widget.borderThickness),
-              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.2)),
+              border: Border.all(color: Colors.white.withOpacity(isDark ? 0.25 : 0.45)),
             ),
             child: widget.child,
           ),
@@ -395,7 +449,7 @@ class _OrganicBlob extends StatelessWidget {
 }
 
 class AppTheme {
-  static const Color primaryWarm = Color(0xFFD84315);
+  static const Color primaryWarm = Color(0xFFFF3D00);
 
   static ThemeData get lightTheme => _buildTheme(Brightness.light);
   static ThemeData get darkTheme => _buildTheme(Brightness.dark);
@@ -406,23 +460,23 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       primaryColor: primaryWarm,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF0A0A0A) : const Color(0xFFF5F7FA),
+      scaffoldBackgroundColor: isDark ? const Color(0xFF010102) : const Color(0xFFF9FBFF),
       colorScheme: ColorScheme.fromSeed(seedColor: primaryWarm, brightness: brightness),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: isDark ? const Color(0x1AFFFFFF) : const Color(0xB3FFFFFF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        color: isDark ? const Color(0x59FFFFFF) : const Color(0xFAFFFFFF),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(35)),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 1.5, color: Colors.white),
+        titleTextStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 30, letterSpacing: 1.5, color: Colors.white),
       ),
       extensions: [
         GeminiThemeExtension(
           primaryGradient: LinearGradient(
-            colors: isDark ? [primaryWarm, const Color(0xFFBF360C)] : [primaryWarm, const Color(0xFFFFAB91)],
+            colors: isDark ? [primaryWarm, const Color(0xFFD50000)] : [primaryWarm, const Color(0xFFFFAB91)],
             begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
         ),

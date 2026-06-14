@@ -68,7 +68,7 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -96,13 +96,13 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
                 const SizedBox(height: 10),
                 Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 24),
-                Text('Intelligence Preview', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                const Text('Report Preview', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 8),
                 Text(student.name.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 32),
                 Expanded(
                   child: marks.isEmpty 
-                    ? const Center(child: Text('No neural records found for this term.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)))
+                    ? const Center(child: Text('No student records found for this term.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)))
                     : ListView.builder(
                         itemCount: marks.length,
                         itemBuilder: (context, i) {
@@ -132,7 +132,7 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
                   child: ElevatedButton.icon(
                     onPressed: marks.isEmpty ? null : () => _generatePdfReport(student, marks), 
                     icon: const Icon(Icons.picture_as_pdf_rounded), 
-                    label: const Text('GENERATE QUANTUM REPORT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                    label: const Text('GENERATE OFFICIAL REPORT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade900, 
                       foregroundColor: Colors.white, 
@@ -158,7 +158,7 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Report Center', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+        title: const Text('Reports Center', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -259,7 +259,7 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
             style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey),
             items: [2023, 2024, 2025].map((y) => DropdownMenuItem(value: y, child: Text('$y'))).toList(),
             onChanged: (v) => setState(() => _selectedYear = v!),
-            decoration: const InputDecoration(labelText: 'System Year', border: InputBorder.none, labelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+            decoration: const InputDecoration(labelText: 'Academic Year', border: InputBorder.none, labelStyle: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
           ),
         ),
       ],
@@ -288,7 +288,7 @@ class _ReportsGeneratorScreenState extends State<ReportsGeneratorScreen> {
         children: [
           Icon(Icons.person_off_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL STUDENTS REGISTERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO STUDENTS REGISTERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

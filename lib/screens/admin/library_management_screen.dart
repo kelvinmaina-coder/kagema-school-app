@@ -51,13 +51,13 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('NEURAL BOOK ENTRY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+            const Text('LIBRARY BOOK ENTRY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
             const SizedBox(height: 24),
-            _buildField(titleCtrl, 'Volume Title', Icons.book_rounded, theme),
+            _buildField(titleCtrl, 'Book Title', Icons.book_rounded, theme),
             const SizedBox(height: 16),
-            _buildField(authorCtrl, 'Author/Scribe', Icons.person_outline, theme),
+            _buildField(authorCtrl, 'Author', Icons.person_outline, theme),
             const SizedBox(height: 16),
-            _buildField(copiesCtrl, 'Neural Units (Copies)', Icons.copy_rounded, theme, keyboardType: TextInputType.number),
+            _buildField(copiesCtrl, 'Number of Copies', Icons.copy_rounded, theme, keyboardType: TextInputType.number),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
@@ -77,7 +77,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                child: const Text('AUTHORIZE REPOSITORY SYNC', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                child: const Text('SAVE TO LIBRARY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
               ),
             ),
             const SizedBox(height: 40),
@@ -97,7 +97,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Repository', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Library Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -125,7 +125,7 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
                   final content = ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.menu_book_rounded, color: Colors.blueGrey, size: 24)),
-                    title: Text(book['title'] ?? 'Neural Volume', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                    title: Text(book['title'] ?? 'Book Title', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                     subtitle: Text('Author: ${book['author']}\nAvailable: ${book['available_copies']}/${book['total_copies']}', style: const TextStyle(fontSize: 11, height: 1.4)),
                     trailing: IconButton(icon: const Icon(Icons.edit_note_rounded), onPressed: () => _showAddBookDialog(book: book)),
                   );
@@ -135,10 +135,10 @@ class _LibraryManagementScreenState extends State<LibraryManagementScreen> {
       ),
       floatingActionButton: gemini?.buildGlowContainer(
         borderRadius: 30, borderThickness: 2, backgroundColor: theme.primaryColor, padding: EdgeInsets.zero,
-        child: FloatingActionButton.extended(onPressed: () => _showAddBookDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_rounded), label: const Text('Add Neural Volume', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
+        child: FloatingActionButton.extended(onPressed: () => _showAddBookDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_rounded), label: const Text('Add New Book', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
       ),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.local_library_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO VOLUMES IN CLOUD', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.local_library_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO BOOKS RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
 }

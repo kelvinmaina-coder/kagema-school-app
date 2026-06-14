@@ -62,11 +62,11 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                const Text('INITIATE ACADEMIC EXAM', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const Text('ADD NEW EXAM', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                const Text('New Exam Authorization', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text('Exam Registration', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Exam Title (e.g. End of Term)', Icons.title_rounded, titleCtrl, theme),
+                _buildInputField('Exam Name (e.g. End of Term)', Icons.title_rounded, titleCtrl, theme),
                 const SizedBox(height: 24),
                 StatefulBuilder(
                   builder: (context, setModalState) => InkWell(
@@ -114,7 +114,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                    child: const Text('AUTHORIZE EXAM REGISTRY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: const Text('SAVE EXAM', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -126,7 +126,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -149,7 +149,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Exam Registry', 
+        title: const Text('Exam Schedule', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -204,7 +204,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
                                 decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
                                 child: const Icon(Icons.quiz_rounded, color: Colors.orange, size: 24),
                               ),
-                              title: Text(exam['title'] ?? 'Neural Exam', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                              title: Text(exam['title'] ?? 'Exam', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text('Scheduled: ${exam['start_date'] ?? 'N/A'}', 
@@ -242,7 +242,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('New Neural Exam', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Schedule New Exam', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -254,7 +254,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
       children: [
         _statItem('Exams Scheduled', '${_exams.length}', Colors.blue),
         const VerticalDivider(color: Colors.white10),
-        _statItem('Sync Status', 'Neural Link Active', Colors.green),
+        _statItem('Sync Status', 'System Connected', Colors.green),
       ],
     );
 
@@ -291,7 +291,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL EXAMS DETECTED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO EXAMS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

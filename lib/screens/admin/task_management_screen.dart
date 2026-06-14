@@ -60,25 +60,25 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('NEURAL TASK ASSIGNMENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+              const Text('NEW TASK ASSIGNMENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
               const SizedBox(height: 24),
-              _buildField(titleCtrl, 'Task Designation', Icons.assignment_rounded, theme),
+              _buildField(titleCtrl, 'Task Title', Icons.assignment_rounded, theme),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: selectedStaffId,
                 items: _staffList.map((s) => DropdownMenuItem(value: s['staff_id'].toString(), child: Text(s['name']))).toList(),
                 onChanged: (v) => selectedStaffId = v,
-                decoration: _inputDeco('Assign to Entity', Icons.person_search_rounded, theme),
+                decoration: _inputDeco('Assign to Staff Member', Icons.person_search_rounded, theme),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: priority,
                 items: ['Critical', 'High', 'Medium', 'Low'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
                 onChanged: (v) => priority = v!,
-                decoration: _inputDeco('Priority Matrix', Icons.speed_rounded, theme),
+                decoration: _inputDeco('Priority Level', Icons.speed_rounded, theme),
               ),
               const SizedBox(height: 16),
-              _buildField(descCtrl, 'Intelligence Instructions', Icons.notes_rounded, theme, maxLines: 2),
+              _buildField(descCtrl, 'Task Instructions', Icons.notes_rounded, theme, maxLines: 2),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
@@ -100,7 +100,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                  child: const Text('AUTHORIZE ASSIGNMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                  child: const Text('CONFIRM ASSIGNMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                 ),
               ),
               const SizedBox(height: 40),
@@ -123,7 +123,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Task Orchestrator', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Task Manager', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -166,7 +166,7 @@ class _TaskManagementScreenState extends State<TaskManagementScreen> {
       ),
       floatingActionButton: gemini?.buildGlowContainer(
         borderRadius: 30, borderThickness: 2, backgroundColor: theme.primaryColor, padding: EdgeInsets.zero,
-        child: FloatingActionButton.extended(onPressed: _showAddTaskDialog, backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_task_rounded), label: const Text('Assign Neural Task', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
+        child: FloatingActionButton.extended(onPressed: _showAddTaskDialog, backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_task_rounded), label: const Text('Create New Task', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
       ),
     );
   }

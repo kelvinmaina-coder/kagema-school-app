@@ -69,7 +69,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural HR Hub', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Staff Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -107,7 +107,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
   }
 
   Widget _buildDirectoryTab(ThemeData theme, GeminiThemeExtension? gemini) {
-    if (_staffList.isEmpty) return _buildEmptyState(Icons.group_off_rounded, 'NEURAL DIRECTORY EMPTY');
+    if (_staffList.isEmpty) return _buildEmptyState(Icons.group_off_rounded, 'STAFF DIRECTORY EMPTY');
     return ListView.builder(
       padding: const EdgeInsets.all(20),
       itemCount: _staffList.length,
@@ -130,7 +130,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
         final content = ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           leading: const Icon(Icons.person_pin_rounded, color: Colors.teal),
-          title: Text(req['staff']?['name'] ?? 'Staff Node', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          title: Text(req['staff']?['name'] ?? 'Staff Member', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
           subtitle: Text('Type: ${req['type']}\nReason: ${req['reason']}', style: const TextStyle(fontSize: 11, height: 1.4)),
           trailing: isPending ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -148,7 +148,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
   Widget _buildPayrollTab(ThemeData theme, GeminiThemeExtension? gemini) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
-      child: Column(children: [_statCard(theme, gemini, 'QUANTUM PAYROLL ESTIMATE', 'Ksh ${NumberFormat('#,###').format(_payrollSummary['total'])}', Icons.account_balance_wallet, Colors.green), const SizedBox(height: 20), _statCard(theme, gemini, 'ACTIVE SYSTEM NODES', '${_payrollSummary['staffCount']}', Icons.hub_rounded, Colors.blue), const SizedBox(height: 48), SizedBox(width: double.infinity, height: 60, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.print_rounded), label: const Text('GENERATE NEURAL PAYSLIPS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)), style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8, shadowColor: theme.primaryColor.withOpacity(0.4))))]),
+      child: Column(children: [_statCard(theme, gemini, 'MONTHLY PAYROLL ESTIMATE', 'Ksh ${NumberFormat('#,###').format(_payrollSummary['total'])}', Icons.account_balance_wallet, Colors.green), const SizedBox(height: 20), _statCard(theme, gemini, 'ACTIVE STAFF MEMBERS', '${_payrollSummary['staffCount']}', Icons.hub_rounded, Colors.blue), const SizedBox(height: 48), SizedBox(width: double.infinity, height: 60, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.print_rounded), label: const Text('GENERATE STAFF PAYSLIPS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)), style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8, shadowColor: theme.primaryColor.withOpacity(0.4))))]),
     );
   }
 
@@ -157,7 +157,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
     return gemini?.buildGlowContainer(borderRadius: 28, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.all(24), child: content) ?? Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(28)), child: content);
   }
 
-  Future<void> _confirmDelete(String id) async { final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)), title: const Text('Purge Entity?', style: TextStyle(fontWeight: FontWeight.w900)), content: const Text('This action will erase the identity from the neural net permanently.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')), TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))])); if (confirmed == true) { try { await SupabaseService.instance.deleteStaff(id); _loadHRData(); } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'))); } } }
+  Future<void> _confirmDelete(String id) async { final confirmed = await showDialog<bool>(context: context, builder: (context) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)), title: const Text('Remove Staff?', style: TextStyle(fontWeight: FontWeight.w900)), content: const Text('This action will permanently remove this staff member from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')), TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('REMOVE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))])); if (confirmed == true) { try { await SupabaseService.instance.deleteStaff(id); _loadHRData(); } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'))); } } }
 
   Widget _buildEmptyState(IconData icon, String msg) { return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 16), Text(msg, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1.5))])); }
 }

@@ -59,9 +59,9 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                const Text('AUTHORIZE ACADEMIC EXAM', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const Text('ADD ACADEMIC EXAM', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Exam Title', Icons.title_rounded, titleCtrl, theme),
+                _buildInputField('Exam Title', Icons.title_rounded, titleCtrl, theme),
                 const SizedBox(height: 24),
                 StatefulBuilder(builder: (context, setModalState) => InkWell(
                   onTap: () async {
@@ -85,7 +85,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                  child: const Text('AUTHORIZE EXAM REGISTRY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                  child: const Text('SAVE TO EXAM SCHEDULE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                 )),
                 const SizedBox(height: 40),
               ],
@@ -96,7 +96,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -111,7 +111,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Exam Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('Exam Schedule', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.orange.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
@@ -132,9 +132,9 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
               ),
         ),
       ),
-      floatingActionButton: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: Colors.orange.shade800, padding: EdgeInsets.zero, child: FloatingActionButton.extended(onPressed: () => _showAddExamDialog(), icon: const Icon(Icons.add_task), label: const Text('Schedule Neural Exam', style: TextStyle(fontWeight: FontWeight.w900)))),
+      floatingActionButton: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: Colors.orange.shade800, padding: EdgeInsets.zero, child: FloatingActionButton.extended(onPressed: () => _showAddExamDialog(), icon: const Icon(Icons.add_task), label: const Text('Schedule New Exam', style: TextStyle(fontWeight: FontWeight.w900)))),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.event_busy, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO EXAMS IN CLOUD', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.event_busy, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO EXAMS RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))]));
 }

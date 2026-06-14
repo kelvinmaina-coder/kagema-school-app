@@ -49,7 +49,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     if (selectedGrade == null || selectedStream == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Neural Conflict: Select Grade and Stream', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Selection Required: Select Grade and Stream', style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
         )
@@ -77,7 +77,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.student == null ? 'Neural Identity Registered' : 'Quantum Matrix Updated'),
+            content: Text(widget.student == null ? 'Student Registered Successfully' : 'Student Records Updated'),
             backgroundColor: Colors.green.shade800,
             behavior: SnackBarBehavior.floating,
           )
@@ -87,7 +87,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cloud Sync Aborted: $e'), backgroundColor: Colors.red)
+          SnackBar(content: Text('Sync Failed: $e'), backgroundColor: Colors.red)
         );
       }
     } finally {
@@ -104,7 +104,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.student == null ? 'NEURAL ONBOARDING' : 'MODIFY IDENTITY', 
+        title: Text(widget.student == null ? 'STUDENT REGISTRATION' : 'EDIT STUDENT RECORDS', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -144,27 +144,27 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
               child: Column(
                 children: [
                   _buildFormCard(theme, gemini, [
-                    Text('PUPIL INTEL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                    Text('STUDENT DETAILS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
                     const SizedBox(height: 24),
-                    _buildNeuralField(_nameController, 'Full Legal Identity', Icons.person_outline_rounded, theme),
+                    _buildInputField(_nameController, 'Full Student Name', Icons.person_outline_rounded, theme),
                     const SizedBox(height: 20),
-                    _buildNeuralField(_admController, 'Admission Identifier', Icons.badge_outlined, theme),
+                    _buildInputField(_admController, 'Admission Number', Icons.badge_outlined, theme),
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Expanded(child: _buildNeuralDropdown('Grade', grades, selectedGrade, (v) => setState(() => selectedGrade = v), theme)),
+                        Expanded(child: _buildDropdown('Grade', grades, selectedGrade, (v) => setState(() => selectedGrade = v), theme)),
                         const SizedBox(width: 12),
-                        Expanded(child: _buildNeuralDropdown('Stream', streams, selectedStream, (v) => setState(() => selectedStream = v), theme)),
+                        Expanded(child: _buildDropdown('Stream', streams, selectedStream, (v) => setState(() => selectedStream = v), theme)),
                       ],
                     ),
                     const SizedBox(height: 32),
                     const Divider(color: Colors.white10),
                     const SizedBox(height: 24),
-                    Text('GUARDIAN NEXUS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                    Text('GUARDIAN INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
                     const SizedBox(height: 24),
-                    _buildNeuralField(_parentNameController, 'Guardian Identity', Icons.family_restroom_rounded, theme),
+                    _buildInputField(_parentNameController, 'Guardian Name', Icons.family_restroom_rounded, theme),
                     const SizedBox(height: 20),
-                    _buildNeuralField(_parentPhoneController, 'Neural Contact', Icons.phone_android_rounded, theme, keyboardType: TextInputType.phone),
+                    _buildInputField(_parentPhoneController, 'Phone Number', Icons.phone_android_rounded, theme, keyboardType: TextInputType.phone),
                   ]),
                   const SizedBox(height: 40),
                   SizedBox(
@@ -181,7 +181,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
                       ),
                       child: _isLoading 
                         ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(widget.student == null ? 'AUTHORIZE ENROLLMENT' : 'COMMIT MATRIX UPDATES', 
+                        : Text(widget.student == null ? 'CONFIRM REGISTRATION' : 'UPDATE RECORDS', 
                             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                     ),
                   ),
@@ -217,7 +217,7 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
     );
   }
 
-  Widget _buildNeuralField(TextEditingController ctrl, String label, IconData icon, ThemeData theme, {TextInputType? keyboardType}) {
+  Widget _buildInputField(TextEditingController ctrl, String label, IconData icon, ThemeData theme, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: ctrl,
       keyboardType: keyboardType,
@@ -230,11 +230,11 @@ class _AddEditStudentScreenState extends State<AddEditStudentScreen> {
         fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
+      validator: (v) => v!.isEmpty ? 'This field is required' : null,
     );
   }
 
-  Widget _buildNeuralDropdown(String label, List<String> items, String? val, Function(String?) onChanged, ThemeData theme) {
+  Widget _buildDropdown(String label, List<String> items, String? val, Function(String?) onChanged, ThemeData theme) {
     return DropdownButtonFormField<String>(
       value: val,
       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),

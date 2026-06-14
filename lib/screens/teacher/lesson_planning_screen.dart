@@ -71,24 +71,24 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                const Text('NEURAL PLAN AUTHORIZATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const Text('LESSON PLAN REGISTRATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                const Text('New Academic Node', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text('New Lesson Plan', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Topic Description', Icons.topic_rounded, topicCtrl, theme),
+                _buildInputField('Topic Description', Icons.topic_rounded, topicCtrl, theme),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedSubject,
                   items: ['Mathematics', 'English', 'Science', 'Social Studies', 'CRE'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                   onChanged: (v) => selectedSubject = v!,
-                  decoration: _neuralInputDecoration('Subject Matrix', Icons.subject_rounded, theme),
+                  decoration: _inputDecoration('Subject', Icons.subject_rounded, theme),
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: selectedGrade,
                   items: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                   onChanged: (v) => selectedGrade = v!,
-                  decoration: _neuralInputDecoration('Target Grade', Icons.school_rounded, theme),
+                  decoration: _inputDecoration('Target Grade', Icons.school_rounded, theme),
                 ),
                 const SizedBox(height: 40),
                 SizedBox(
@@ -112,7 +112,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
                       }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                    child: const Text('AUTHORIZE PERSISTENCE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: const Text('SAVE LESSON PLAN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -124,7 +124,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -135,11 +135,11 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -151,7 +151,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Planning Matrix', 
+        title: const Text('Planning Center', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -194,7 +194,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
           unselectedLabelColor: Colors.white60,
           tabs: const [
             Tab(text: 'LESSON PLANS', icon: Icon(Icons.description_rounded, size: 20)),
-            Tab(text: 'SYLLABUS CORE', icon: Icon(Icons.checklist_rtl_rounded, size: 20)),
+            Tab(text: 'SYLLABUS COVERAGE', icon: Icon(Icons.checklist_rtl_rounded, size: 20)),
           ],
         ),
       ),
@@ -224,14 +224,14 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Authorize New Plan', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('New Lesson Plan', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
   }
 
   Widget _buildPlansList(ThemeData theme, GeminiThemeExtension? gemini) {
-    if (_lessonPlans.isEmpty) return _buildEmptyState('NO NEURAL PLANS DISCOVERED');
+    if (_lessonPlans.isEmpty) return _buildEmptyState('NO LESSON PLANS FOUND');
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       itemCount: _lessonPlans.length,
@@ -270,7 +270,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
   }
 
   Widget _buildSyllabusCoverage(ThemeData theme, GeminiThemeExtension? gemini) {
-    if (_syllabusStatus.isEmpty) return _buildEmptyState('NO SYLLABUS DATA IN CLOUD');
+    if (_syllabusStatus.isEmpty) return _buildEmptyState('NO SYLLABUS DATA FOUND');
     
     double progress = (_syllabusStatus['completion_percentage'] as num?)?.toDouble() ?? 0.0;
     if (progress > 1.0) progress /= 100;
@@ -280,7 +280,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
     final headerContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_syllabusStatus['subject_name']?.toString().toUpperCase() ?? 'GENERAL MATRIX', 
+        Text(_syllabusStatus['subject_name']?.toString().toUpperCase() ?? 'GENERAL SYLLABUS', 
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1)
         ),
         const SizedBox(height: 20),
@@ -297,7 +297,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('${(progress * 100).toInt()}% NEURAL SYNC', 
+            Text('${(progress * 100).toInt()}% COMPLETED', 
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 1)
             ),
             const Text('VERIFIED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.green, letterSpacing: 1.5)),
@@ -323,7 +323,7 @@ class _LessonPlanningScreenState extends State<LessonPlanningScreen> with Single
         const SizedBox(height: 48),
         Padding(
           padding: const EdgeInsets.only(left: 8.0),
-          child: Text('REMAINING NODES', 
+          child: Text('REMAINING TOPICS',
             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5)
           ),
         ),

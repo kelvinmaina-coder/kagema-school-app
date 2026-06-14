@@ -59,7 +59,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Pupil Registry', 
+        title: const Text('Student Registry', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -161,7 +161,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Enroll Pupil', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Enroll Student', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ) : null,
     );
@@ -172,7 +172,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       onChanged: (v) => setState(() => _searchQuery = v),
       style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
-        hintText: 'Neural search by name or ADM...',
+        hintText: 'Search by name or ADM...',
         hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
         border: InputBorder.none,
@@ -215,7 +215,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         children: [
           Icon(Icons.group_off_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO STUDENT RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

@@ -114,13 +114,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: children.isEmpty 
-                ? _buildEmptyNexusState()
+                ? _buildEmptyState()
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildChildSelector(theme, gemini),
                       const SizedBox(height: 32),
-                      _buildSectionLabel(theme, 'REAL-TIME VITALS'),
+                      _buildSectionLabel(theme, 'SCHOOL PERFORMANCE'),
                       const SizedBox(height: 16),
                       _buildVitalsRow(theme, gemini),
                       const SizedBox(height: 32),
@@ -164,7 +164,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         borderThickness: 1,
         backgroundColor: theme.cardColor.withOpacity(0.9),
         padding: const EdgeInsets.symmetric(vertical: 20),
-        useAIBorder: true, // IMPORTANT: AI Spectrum Applied
+        useAIBorder: true, 
         child: content,
       ) ?? Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
@@ -186,7 +186,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         _serviceCard(theme, gemini, 'Roll Call', Icons.event_available_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildAttendanceScreen(student: selectedChild!)))),
         _serviceCard(theme, gemini, 'Performance', Icons.auto_graph_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
         _serviceCard(theme, gemini, 'Fee Portal', Icons.payments_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Task Feed', Icons.assignment_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
+        _serviceCard(theme, gemini, 'Homework', Icons.assignment_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
         _serviceCard(theme, gemini, 'Timetable', Icons.calendar_view_week_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
         _serviceCard(theme, gemini, 'Library', Icons.local_library_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
         _serviceCard(theme, gemini, 'Conduct', Icons.gavel_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
@@ -287,7 +287,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     return SliverAppBar(
       expandedHeight: 120.0, pinned: true, backgroundColor: Colors.transparent, elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text('PARENT HUB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
+        title: const Text('PARENT PORTAL', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
         centerTitle: true,
         background: Container(
           decoration: BoxDecoration(gradient: gemini?.primaryGradient, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)), boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)]),
@@ -301,7 +301,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     return Padding(padding: const EdgeInsets.only(left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)));
   }
 
-  Widget _buildEmptyNexusState() {
-    return Center(child: Column(children: [const SizedBox(height: 60), Icon(Icons.hub_rounded, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 24), const Text('NEURAL FAMILY NODE EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2, fontSize: 12)), const SizedBox(height: 8), const Text('Please link your child at the school registry.', style: TextStyle(color: Colors.grey, fontSize: 11))]));
+  Widget _buildEmptyState() {
+    return Center(child: Column(children: [const SizedBox(height: 60), Icon(Icons.hub_rounded, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 24), const Text('NO LINKED CHILDREN FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2, fontSize: 12)), const SizedBox(height: 8), const Text('Please link your child at the school office.', style: TextStyle(color: Colors.grey, fontSize: 11))]));
   }
 }

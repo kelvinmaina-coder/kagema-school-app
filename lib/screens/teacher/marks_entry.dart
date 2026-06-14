@@ -44,7 +44,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       markControllers.clear();
       for (var s in students) {
         markControllers[s.studentId] = TextEditingController();
-        // Neural fetch for existing marks
+        // Fetch existing marks
         final existing = await SupabaseService.instance.getMarksFiltered(
           studentId: s.studentId,
           term: selectedTerm,
@@ -87,7 +87,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Neural Sync Successful: Marks Uploaded', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: const Text('Marks Uploaded Successfully', style: TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.green.shade800,
             behavior: SnackBarBehavior.floating,
           )
@@ -109,7 +109,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Intelligence Entry: ${widget.subject}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
+        title: Text('Marks Entry: ${widget.subject}', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -251,7 +251,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
             shadowColor: Colors.orange.withOpacity(0.5),
           ),
           child: Text(
-            isSaving ? 'SYNCHRONIZING NEURAL DATA...' : 'AUTHORIZE CLOUD UPLOAD', 
+            isSaving ? 'UPLOADING MARKS...' : 'CONFIRM UPLOAD', 
             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)
           ),
         ),
@@ -266,7 +266,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         children: [
           Icon(Icons.person_off_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL STUDENTS ASSIGNED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO STUDENTS ASSIGNED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

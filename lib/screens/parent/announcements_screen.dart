@@ -23,7 +23,6 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      // Logic: Passing 'parent' fetches both 'parent' and 'all' notifications
       final data = await SupabaseService.instance.getNotifications('parent');
       if (mounted) {
         setState(() {
@@ -44,7 +43,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Intelligence Broadcasts', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('School Announcements', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -97,16 +96,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('NEURAL BROADCAST', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.pink, letterSpacing: 2)),
+            const Text('SCHOOL NOTICE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.pink, letterSpacing: 2)),
             const SizedBox(height: 12),
-            Text(n['title'] ?? 'Notice Node', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            Text(n['title'] ?? 'Notice Details', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
             const SizedBox(height: 16),
             Text(n['message'] ?? '', style: const TextStyle(fontSize: 15, height: 1.6, fontWeight: FontWeight.w500)),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 50,
-              child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text('DISMISS NODE', style: TextStyle(fontWeight: FontWeight.bold))),
+              child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))), child: const Text('DISMISS', style: TextStyle(fontWeight: FontWeight.bold))),
             ),
             const SizedBox(height: 20),
           ],
@@ -115,5 +114,5 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     );
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.campaign_outlined, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 16), const Text('NO LIVE BROADCASTS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.campaign_outlined, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 16), const Text('NO ANNOUNCEMENTS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
 }

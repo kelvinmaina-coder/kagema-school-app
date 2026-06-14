@@ -62,19 +62,19 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                const Text('LOG NEURAL ACTIVITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const Text('LOG ACTIVITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                const Text('New Record Entry', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text('New Activity Record', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Activity Designation (e.g. Drama)', Icons.hub_rounded, titleCtrl, theme),
+                _buildInputField('Activity Name (e.g. Drama)', Icons.hub_rounded, titleCtrl, theme),
                 const SizedBox(height: 16),
-                _buildNeuralField('Active Node Stats (e.g. 35 Students)', Icons.groups_rounded, statsCtrl, theme),
+                _buildInputField('Participant Stats (e.g. 35 Students)', Icons.groups_rounded, statsCtrl, theme),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: category,
                   items: ['Sports', 'Clubs', 'Music', 'Drama'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => category = v!,
-                  decoration: _neuralInputDecoration('Intelligence Category', Icons.category_rounded, theme),
+                  decoration: _inputDecoration('Category', Icons.category_rounded, theme),
                 ),
                 const SizedBox(height: 40),
                 SizedBox(
@@ -102,7 +102,7 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 8,
                     ),
-                    child: const Text('AUTHORIZE LOG SYNC', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: const Text('SAVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -114,7 +114,7 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -125,11 +125,11 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -141,7 +141,7 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Activities', 
+        title: const Text('Activities', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -200,7 +200,7 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Add Neural Record', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add Activity', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -212,12 +212,12 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
       leading: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-        child: Icon(Icons.hub_rounded, color: color, size: 24),
+        child: Icon(Icons.groups_rounded, color: color, size: 24),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
-        child: Text('$stats\nTimestamp: $detail', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4)),
+        child: Text('$stats\nDate: $detail', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4)),
       ),
       trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
     );
@@ -241,7 +241,7 @@ class _CoCurricularScreenState extends State<CoCurricularScreen> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL ACTIVITIES RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO ACTIVITIES RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

@@ -63,22 +63,22 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY RESOURCE' : 'NEURAL LIBRARY SYNC', 
+                  Text(isEditing ? 'EDIT RESOURCE' : 'ADD LEARNING MATERIAL', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Volume Intel' : 'Upload Learning Material', 
+                  Text(isEditing ? 'Update Material Details' : 'Upload Study Material', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Document Title', Icons.title_rounded, titleController, theme),
+                  _buildInputField('Document Title', Icons.title_rounded, titleController, theme),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedSubject,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
                     items: ['Mathematics', 'English', 'Science', 'Social Studies', 'CRE'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                     onChanged: (v) => selectedSubject = v!,
-                    decoration: _neuralInputDecoration('Subject Matrix', Icons.subject_rounded, theme),
+                    decoration: _inputDecoration('Subject', Icons.subject_rounded, theme),
                   ),
                   const SizedBox(height: 40),
                   SizedBox(
@@ -106,8 +106,8 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                           }
                         }
                       },
-                      icon: Icon(isEditing ? Icons.save_as_rounded : Icons.cloud_sync_rounded),
-                      label: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE CLOUD SYNC', 
+                      icon: Icon(isEditing ? Icons.save_rounded : Icons.cloud_upload_rounded),
+                      label: Text(isEditing ? 'UPDATE RECORDS' : 'UPLOAD TO SYSTEM', 
                         style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
                       ),
                       style: ElevatedButton.styleFrom(
@@ -128,7 +128,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -139,11 +139,11 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -152,11 +152,11 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Material?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Text('Are you sure you want to erase "${r['title']}" from the neural repository?'),
+        title: const Text('Delete Material?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('Are you sure you want to remove "${r['title']}" from the resources list?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -175,7 +175,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Library', 
+        title: const Text('Learning Resources', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -246,7 +246,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                     const SizedBox(height: 20),
                                     ListTile(
                                       leading: const Icon(Icons.edit_note_rounded, color: Colors.blue),
-                                      title: const Text('Modify Identity', style: TextStyle(fontWeight: FontWeight.bold)),
+                                      title: const Text('Edit Details', style: TextStyle(fontWeight: FontWeight.bold)),
                                       onTap: () {
                                         Navigator.pop(context);
                                         _showUploadDialog(resourceToEdit: r);
@@ -254,7 +254,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
                                     ),
                                     ListTile(
                                       leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                                      title: const Text('Purge Permanently', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                                      title: const Text('Remove Permanently', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                                       onTap: () {
                                         Navigator.pop(context);
                                         _deleteResource(r);
@@ -324,7 +324,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.cloud_upload_rounded),
-          label: const Text('Add Quantum Volume', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add New Material', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -337,7 +337,7 @@ class _ResourcesScreenState extends State<ResourcesScreen> {
         children: [
           Icon(Icons.auto_stories_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('QUANTUM REPOSITORY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO RESOURCES FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

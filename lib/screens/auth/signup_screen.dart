@@ -19,7 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_phoneController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Neural Identification Required', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text('Phone Number and Password Required', style: TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
         )
@@ -62,7 +62,7 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('NEURAL ONBOARDING', 
+        title: const Text('ACCOUNT REGISTRATION', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -88,7 +88,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 _buildRegistrationForm(theme, gemini),
                 const SizedBox(height: 48),
                 const Text(
-                  'SYSTEM SECURITY: SHA-256 NEURAL ENCRYPTION ACTIVE',
+                  'SYSTEM SECURITY: SHA-256 ENCRYPTION ACTIVE',
                   style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2),
                 ),
               ],
@@ -114,11 +114,11 @@ class _SignupScreenState extends State<SignupScreen> {
           child: Icon(Icons.family_restroom_rounded, size: 50, color: theme.primaryColor),
         ),
         const SizedBox(height: 24),
-        const Text('Join the Network', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
+        const Text('Join the Portal', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
           child: Text(
-            'Link your neural identifier to synchronize your children\'s academic logs in real-time.',
+            'Register your phone number to access your children\'s academic records in real-time.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
           ),
@@ -135,7 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
           keyboardType: TextInputType.phone,
           style: const TextStyle(fontWeight: FontWeight.bold),
           decoration: InputDecoration(
-            labelText: 'Neural Phone Identifier',
+            labelText: 'Phone Number',
             labelStyle: const TextStyle(fontSize: 13),
             prefixIcon: Icon(Icons.phone_android_rounded, color: theme.primaryColor),
             filled: true,
@@ -150,7 +150,7 @@ class _SignupScreenState extends State<SignupScreen> {
           obscureText: true,
           style: const TextStyle(fontWeight: FontWeight.bold),
           decoration: InputDecoration(
-            labelText: 'Set Neural Access Key',
+            labelText: 'Set Password',
             labelStyle: const TextStyle(fontSize: 13),
             prefixIcon: Icon(Icons.lock_person_rounded, color: theme.primaryColor),
             filled: true,
@@ -173,7 +173,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             child: _isLoading 
               ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-              : const Text('INITIALIZE NEURAL HANDSHAKE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
+              : const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
           ),
         ),
       ],

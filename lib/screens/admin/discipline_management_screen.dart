@@ -45,7 +45,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Discipline Matrix', 
+        title: const Text('Discipline Records', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -95,7 +95,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
                         decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
                         child: const Icon(Icons.gavel_rounded, color: Colors.red, size: 24),
                       ),
-                      title: Text(incident['title'] ?? 'Incident Node', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      title: Text(incident['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text('${incident['date']} • ADM: ${incident['admission_number']}', 
@@ -142,7 +142,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_alert_rounded),
-          label: const Text('Log Neural Incident', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Log Discipline Incident', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -176,19 +176,19 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY RECORD' : 'POST NEURAL ALERT', 
+                  Text(isEditing ? 'MODIFY RECORD' : 'LOG DISCIPLINE ALERT', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Incident Intel' : 'New Conduct Report', 
+                  Text(isEditing ? 'Update Incident Details' : 'New Conduct Report', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Pupil Admission Identifier', Icons.badge_outlined, admCtrl, theme),
+                  _buildInputField('Student Admission Number', Icons.badge_outlined, admCtrl, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Incident Classification', Icons.title_rounded, titleCtrl, theme),
+                  _buildInputField('Incident Classification', Icons.title_rounded, titleCtrl, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Detailed Intelligence', Icons.notes_rounded, descCtrl, theme, maxLines: 3),
+                  _buildInputField('Incident Description', Icons.notes_rounded, descCtrl, theme, maxLines: 3),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
@@ -221,7 +221,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE CLOUD LOG', 
+                      child: Text(isEditing ? 'COMMIT UPDATES' : 'SAVE TO RECORDS', 
                         style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
                       ),
                     ),
@@ -236,7 +236,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
@@ -257,11 +257,11 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Record?', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text('Delete Record?', style: TextStyle(fontWeight: FontWeight.w900)),
         content: Text('Are you sure you want to erase this discipline entry for ADM: ${item['admission_number']}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -279,7 +279,7 @@ class _DisciplineManagementScreenState extends State<DisciplineManagementScreen>
         children: [
           Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
           SizedBox(height: 16),
-          Text('ALL CLEAR: NO INCIDENTS DETECTED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('ALL CLEAR: NO INCIDENTS RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

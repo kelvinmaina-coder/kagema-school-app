@@ -40,7 +40,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = "Neural directory sync failed. Please check link stability.";
+          _errorMessage = "Parent directory sync failed. Please check your connection.";
         });
       }
     }
@@ -72,19 +72,19 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                Text(parent == null ? 'NEW ENTITY REGISTRATION' : 'MODIFY GUARDIAN DATA', 
+                Text(parent == null ? 'NEW PARENT REGISTRATION' : 'EDIT PARENT DATA', 
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                 ),
                 const SizedBox(height: 8),
-                Text(parent == null ? 'Guardian Onboarding' : 'Identity Update', 
+                Text(parent == null ? 'Parent Onboarding' : 'Update Profile', 
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                 ),
                 const SizedBox(height: 32),
-                _buildNeuralField('Guardian Full Identity', Icons.person_outline_rounded, nameCtrl, theme),
+                _buildInputField('Full Name', Icons.person_outline_rounded, nameCtrl, theme),
                 const SizedBox(height: 16),
-                _buildNeuralField('Active Neural Contact', Icons.phone_android_rounded, phoneCtrl, theme, keyboardType: TextInputType.phone),
+                _buildInputField('Phone Number', Icons.phone_android_rounded, phoneCtrl, theme, keyboardType: TextInputType.phone),
                 const SizedBox(height: 16),
-                _buildNeuralField('Cloud Address (Optional)', Icons.alternate_email_rounded, emailCtrl, theme, keyboardType: TextInputType.emailAddress),
+                _buildInputField('Email Address (Optional)', Icons.alternate_email_rounded, emailCtrl, theme, keyboardType: TextInputType.emailAddress),
                 const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
@@ -93,7 +93,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                     onPressed: () async {
                       if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: const Text('Required: Name & Contact Fields'), backgroundColor: Colors.orange.shade800)
+                          SnackBar(content: const Text('Required: Name & Phone Number'), backgroundColor: Colors.orange.shade800)
                         );
                         return;
                       }
@@ -112,7 +112,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                           _loadParents();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Identity ${parent == null ? 'Encoded' : 'Synchronized'} Successfully'), 
+                              content: Text('Parent ${parent == null ? 'Registered' : 'Updated'} Successfully'), 
                               backgroundColor: Colors.green.shade800,
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -123,7 +123,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                            Navigator.pop(context);
                            _loadParents();
                         } else if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Aborted: $e'), backgroundColor: Colors.red));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
                         }
                       }
                     },
@@ -134,7 +134,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                       elevation: 8,
                       shadowColor: theme.primaryColor.withOpacity(0.4),
                     ),
-                    child: Text(parent == null ? 'AUTHORIZE & SYNC' : 'COMMIT UPDATES', 
+                    child: Text(parent == null ? 'REGISTER & SAVE' : 'UPDATE RECORDS', 
                       style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
                     ),
                   ),
@@ -148,7 +148,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
@@ -172,7 +172,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Guardian Matrix', 
+        title: const Text('Parent Directory', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -216,7 +216,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                       Icon(Icons.sync_problem_rounded, color: Colors.red.withOpacity(0.5), size: 60),
                       const SizedBox(height: 16),
                       Text(_errorMessage!, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                      TextButton(onPressed: _loadParents, child: const Text('RE-SYNC MATRIX'))
+                      TextButton(onPressed: _loadParents, child: const Text('RE-SYNC DIRECTORY'))
                     ],
                   ),
                 )
@@ -234,8 +234,8 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
                             backgroundColor: theme.primaryColor.withOpacity(0.1),
                             child: Icon(Icons.family_restroom_rounded, color: theme.primaryColor, size: 24),
                           ),
-                          title: Text(p['name'] ?? 'Guardian Entity', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                          subtitle: Text(p['phone'] ?? 'No Contact Signal', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          title: Text(p['name'] ?? 'Parent Name', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                          subtitle: Text(p['phone'] ?? 'No Phone Number', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -276,7 +276,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Add Quantum Guardian', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add New Parent', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -288,11 +288,11 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Identity?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: const Text('This will erase the guardian node and unlink child relationships from the neural net.'),
+        title: const Text('Delete Parent?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: const Text('This will remove the parent record and unlink their children.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -301,12 +301,12 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
       try {
         await SupabaseService.instance.deleteParent(id);
         _loadParents();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Identity expunged from cloud.')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Record deleted successfully.')));
       } catch (e) {
         if (e == "OFFLINE_QUEUED") {
           _loadParents();
         } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Operation failed: $e'), backgroundColor: Colors.red));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red));
         }
       }
     }
@@ -319,7 +319,7 @@ class _ParentDirectoryScreenState extends State<ParentDirectoryScreen> {
         children: [
           Icon(Icons.people_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('NEURAL DIRECTORY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          const Text('PARENT DIRECTORY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

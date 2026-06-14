@@ -76,17 +76,17 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY ASSIGNMENT' : 'POST NEURAL TASK', 
+                  Text(isEditing ? 'MODIFY ASSIGNMENT' : 'POST NEW ASSIGNMENT', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Adjust Parameters' : 'Academic Broadcast', 
+                  Text(isEditing ? 'Update Details' : 'New Homework', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Assignment Title', Icons.title_rounded, titleController, theme),
+                  _buildInputField('Assignment Title', Icons.title_rounded, titleController, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Intelligence Instructions', Icons.notes_rounded, descController, theme, maxLines: 3),
+                  _buildInputField('Instructions', Icons.notes_rounded, descController, theme, maxLines: 3),
                   const SizedBox(height: 24),
                   StatefulBuilder(
                     builder: (context, setModalState) => InkWell(
@@ -114,7 +114,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('DUE TIMESTAMP', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey)),
+                                const Text('DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey)),
                                 Text(DateFormat('EEEE, MMM d, yyyy').format(selectedDueDate), 
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                               ],
@@ -160,7 +160,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE BROADCAST', 
+                      child: Text(isEditing ? 'COMMIT UPDATES' : 'POST ASSIGNMENT', 
                         style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
                       ),
                     ),
@@ -175,7 +175,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
@@ -196,11 +196,11 @@ class _HomeworkModuleState extends State<HomeworkModule> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Retract Task?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Text('Are you sure you want to remove "${h['title']}"? It will disappear from all pupil portals.'),
+        title: const Text('Delete Assignment?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('Are you sure you want to remove "${h['title']}"? It will disappear from all student portals.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -218,7 +218,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Neural Task: ${widget.grade}', 
+        title: Text('Homework: ${widget.grade}', 
           style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)
         ),
         centerTitle: true,
@@ -268,7 +268,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
                           decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), shape: BoxShape.circle),
                           child: const Icon(Icons.assignment_rounded, color: Colors.purple, size: 24),
                         ),
-                        title: Text(h['title'] ?? 'Neural Task', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                        title: Text(h['title'] ?? 'Homework Task', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text('Due: ${h['due_date']} \nSubject: ${h['subject']}', 
@@ -315,7 +315,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Broadcast Intelligence', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add Assignment', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -328,7 +328,7 @@ class _HomeworkModuleState extends State<HomeworkModule> {
         children: [
           Icon(Icons.assignment_turned_in_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL TASKS BROADCAST', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO HOMEWORK ASSIGNED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

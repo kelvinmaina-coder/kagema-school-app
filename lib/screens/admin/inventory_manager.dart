@@ -45,7 +45,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cloud sync failed: $e'),
+          content: Text('Update failed: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -85,7 +85,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Inventory', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+        title: const Text('School Inventory', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -212,7 +212,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_box_rounded),
-          label: const Text('Add Quantum Stock', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add New Stock', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ) ?? FloatingActionButton.extended(
         onPressed: () => _showAddItemDialog(),
@@ -251,19 +251,19 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                Text(isEditing ? 'MODIFY STOCK' : 'SYNC NEW STOCK', 
+                Text(isEditing ? 'EDIT STOCK' : 'ADD NEW STOCK', 
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                 ),
                 const SizedBox(height: 8),
-                Text(isEditing ? 'Update Item Intel' : 'Warehouse Registration', 
+                Text(isEditing ? 'Update Item Details' : 'Stock Registration', 
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                 ),
                 const SizedBox(height: 32),
-                _buildNeuralField(nameCtrl, 'Item Designation', Icons.inventory_2_outlined),
+                _buildInputField(nameCtrl, 'Item Name', Icons.inventory_2_outlined),
                 const SizedBox(height: 16),
-                _buildNeuralField(catCtrl, 'Storage Category', Icons.category_outlined),
+                _buildInputField(catCtrl, 'Category', Icons.category_outlined),
                 const SizedBox(height: 16),
-                _buildNeuralField(qtyCtrl, 'Stock Quantity', Icons.numbers_rounded, keyboardType: TextInputType.number),
+                _buildInputField(qtyCtrl, 'Quantity', Icons.numbers_rounded, keyboardType: TextInputType.number),
                 const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
@@ -292,7 +292,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 8,
                     ),
-                    child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE STORAGE SYNC', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: Text(isEditing ? 'UPDATE RECORDS' : 'SAVE TO INVENTORY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -304,7 +304,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     );
   }
 
-  Widget _buildNeuralField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildInputField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     final theme = Theme.of(context);
     return TextField(
       controller: controller,
@@ -328,7 +328,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
         children: [
           Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('QUANTUM WAREHOUSE EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+          Text('INVENTORY IS EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
         ],
       ),
     );

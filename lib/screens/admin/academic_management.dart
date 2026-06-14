@@ -56,11 +56,11 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('AUTHORIZE NEW ${type.toUpperCase()}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                Text('ADD NEW ${type.toUpperCase()}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 24),
                 TextField(
                   controller: ctrl,
-                  decoration: InputDecoration(labelText: 'Identifier Name', prefixIcon: Icon(type == 'Class' ? Icons.school : Icons.book, color: theme.primaryColor), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))),
+                  decoration: InputDecoration(labelText: 'Name', prefixIcon: Icon(type == 'Class' ? Icons.school : Icons.book, color: theme.primaryColor), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))),
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
@@ -74,7 +74,7 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                    child: const Text('COMMIT TO REGISTRY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: const Text('SAVE TO RECORDS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -94,7 +94,7 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Academic Matrix', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)),
+        title: const Text('Academic Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
@@ -107,7 +107,7 @@ class _AcademicManagementScreenState extends State<AcademicManagementScreen> {
               padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20),
               child: Column(
                 children: [
-                  _buildSection('STREAMS & GRADES', _classes, Icons.hub_rounded, Colors.blue, gemini, () => _showAddDialog('Class')),
+                  _buildSection('STREAMS & GRADES', _classes, Icons.class_rounded, Colors.blue, gemini, () => _showAddDialog('Class')),
                   const SizedBox(height: 32),
                   _buildSection('SUBJECT DIRECTORY', _subjects, Icons.menu_book_rounded, Colors.orange, gemini, () => _showAddDialog('Subject')),
                   const SizedBox(height: 100),

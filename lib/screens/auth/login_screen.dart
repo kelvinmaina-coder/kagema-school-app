@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   void _handleLogin() async {
     if (selectedRole == null) {
-      _showError('Security: Please select your authorization role.');
+      _showError('Please select your login role.');
       return;
     }
     setState(() => isLoading = true);
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         maxWidth: 500,
-        useAIBorder: true, // IMPORTANT: AI Spectrum Border applied here
+        useAIBorder: true, 
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               children: [
                 _buildBranding(theme, gemini),
                 const SizedBox(height: 40),
-                _buildSectionLabel('SECURE IDENTITY ACCESS'),
+                _buildSectionLabel('SECURE LOGIN ACCESS'),
                 const SizedBox(height: 16),
                 _buildRoleGrid(theme, gemini),
                 const SizedBox(height: 32),
@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 if (selectedRole == 'Parent')
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/signup'),
-                    child: const Text('New Parent? Register Identity', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text('New Parent? Register Account', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 const SizedBox(height: 40),
                 const Text('SYSTEM SECURITY: AUTHORIZED ACCESS ONLY', 
@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           margin: const EdgeInsets.only(top: 8),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text('CLOUD-INTELLIGENCE HUB', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 2)),
+          child: Text('SCHOOL PORTAL HUB', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 2)),
         ),
       ],
     );
@@ -231,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
             child: isLoading 
               ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-              : const Text('AUTHORIZE NEURAL SESSION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
+              : const Text('LOGIN TO PORTAL', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, fontSize: 13)),
           ),
         ),
       ],

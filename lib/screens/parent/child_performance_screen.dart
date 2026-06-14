@@ -3,7 +3,6 @@ import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
 import '../../services/pdf_generator_service.dart';
 import '../../app_theme.dart';
-import 'package:intl/intl.dart';
 
 class ChildPerformanceScreen extends StatefulWidget {
   final Student student;
@@ -59,7 +58,7 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('${widget.student.name}\'s Index', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
+        title: Text('${widget.student.name}\'s Performance', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -80,7 +79,7 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
             ? const Center(child: CircularProgressIndicator(color: Colors.orange))
             : Column(
                 children: [
-                  _buildIndexHero(theme, gemini),
+                  _buildPerformanceHero(theme, gemini),
                   const SizedBox(height: 32),
                   Expanded(
                     child: _marksData.isEmpty 
@@ -94,7 +93,7 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                               leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.query_stats_rounded, color: Colors.orange, size: 22)),
                               title: Text(m['subject'] ?? 'Subject', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                              subtitle: Text(m['exam_type'] ?? 'Cycle Assessment', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
+                              subtitle: Text(m['exam_type'] ?? 'Class Assessment', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
                               trailing: Text('${m['score']}%', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: theme.primaryColor)),
                             );
                             return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
@@ -109,14 +108,14 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
     );
   }
 
-  Widget _buildIndexHero(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildPerformanceHero(ThemeData theme, GeminiThemeExtension? gemini) {
     final content = Column(
       children: [
-        const Text('OVERALL ACADEMIC INDEX', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+        const Text('OVERALL PERFORMANCE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
         const SizedBox(height: 12),
         Text('${_average.toInt()}%', style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: -1)),
         const SizedBox(height: 8),
-        Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Text('NEURAL STATUS: EXCEEDING', style: TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1))),
+        Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Text('STATUS: EXCEEDING EXPECTATIONS', style: TextStyle(fontSize: 9, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1))),
       ],
     );
     return Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.all(32), useAIBorder: true, child: content) ?? Container(width: double.infinity, padding: const EdgeInsets.all(32), decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(28)), child: content));
@@ -131,12 +130,12 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
         child: ElevatedButton.icon(
           onPressed: _downloadReport, 
           icon: const Icon(Icons.picture_as_pdf_rounded),
-          label: const Text('DOWNLOAD OFFICIAL REPORT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+          label: const Text('DOWNLOAD REPORT CARD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
           style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade900, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8, shadowColor: Colors.orange.withOpacity(0.4)),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('ACADEMIC NODE INITIALIZING', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO PERFORMANCE DATA FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
 }

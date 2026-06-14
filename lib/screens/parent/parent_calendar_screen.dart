@@ -44,7 +44,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Calendar', 
+        title: const Text('School Calendar', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -98,7 +98,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
                             ),
                             child: Icon(Icons.event_note_rounded, color: color, size: 24),
                           ),
-                          title: Text(e['title'] ?? 'Neural Event', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                          title: Text(e['title'] ?? 'School Event', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text('${e['date'] ?? ''} • ${e['type'] ?? ''}', 
@@ -133,7 +133,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
         children: [
           Icon(Icons.calendar_today_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO FUTURE EVENTS DETECTED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO UPCOMING EVENTS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );
@@ -161,9 +161,10 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 32),
-                Text('EVENT INTELLIGENCE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                Text('EVENT DETAILS', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
                 const SizedBox(height: 12),
-                Text(e['title'] ?? 'Event Node', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text(e['title'] ?? 'Event Information', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -173,7 +174,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                Text(e['description'] ?? 'No additional intelligence available for this event node.', 
+                Text(e['description'] ?? 'No additional information available for this event.', 
                   style: TextStyle(fontSize: 15, height: 1.6, color: theme.colorScheme.onSurface.withOpacity(0.8), fontWeight: FontWeight.w500)
                 ),
                 const SizedBox(height: 48),
@@ -188,7 +189,7 @@ class _ParentCalendarScreenState extends State<ParentCalendarScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 8,
                     ),
-                    child: const Text('DISMISS NODE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    child: const Text('CLOSE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
                   ),
                 ),
                 const SizedBox(height: 20),
