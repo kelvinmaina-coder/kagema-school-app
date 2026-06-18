@@ -51,9 +51,9 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('NEURAL ROUTE ASSIGNMENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+            const Text('ROUTE ASSIGNMENT CENTER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
             const SizedBox(height: 24),
-            _buildField(nameCtrl, 'Route Designation (e.g. Westlands)', Icons.map_rounded, theme),
+            _buildField(nameCtrl, 'Route Name (e.g. Westlands)', Icons.map_rounded, theme),
             const SizedBox(height: 16),
             _buildField(driverCtrl, 'Assigned Driver', Icons.person_outline, theme),
             const SizedBox(height: 16),
@@ -76,7 +76,7 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                child: const Text('AUTHORIZE LOGISTICS SYNC', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                child: const Text('COMMIT LOGISTICS DATA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
               ),
             ),
             const SizedBox(height: 40),
@@ -96,7 +96,7 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Fleet Intelligence', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Fleet Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -124,7 +124,7 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
                   final content = ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.directions_bus_rounded, color: Colors.deepPurple, size: 24)),
-                    title: Text(route['name'] ?? 'Neural Route', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                    title: Text(route['name'] ?? 'School Route', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                     subtitle: Text('Driver: ${route['driver']}\nContact: ${route['phone']}', style: const TextStyle(fontSize: 11, height: 1.4)),
                     trailing: IconButton(icon: const Icon(Icons.edit_location_alt_rounded), onPressed: () => _showAddRouteDialog(route: route)),
                   );
@@ -134,7 +134,7 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
       ),
       floatingActionButton: gemini?.buildGlowContainer(
         borderRadius: 30, borderThickness: 2, backgroundColor: theme.primaryColor, padding: EdgeInsets.zero,
-        child: FloatingActionButton.extended(onPressed: () => _showAddRouteDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_location_alt_rounded), label: const Text('Add Quantum Route', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
+        child: FloatingActionButton.extended(onPressed: () => _showAddRouteDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_location_alt_rounded), label: const Text('Add School Route', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
       ),
     );
   }

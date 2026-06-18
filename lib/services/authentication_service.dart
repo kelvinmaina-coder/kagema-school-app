@@ -13,11 +13,13 @@ class AuthenticationService extends ChangeNotifier {
   String? _currentUserPhone;
   String? _currentUserName;
   bool _isOffline = false;
+  bool _isFirstTimeParent = false;
 
   String? get currentUserRole => _currentUserRole;
   String? get currentUserPhone => _currentUserPhone;
   String get currentUserName => _currentUserName ?? "Authorized User";
   bool get isOffline => _isOffline;
+  bool get isFirstTimeParent => _isFirstTimeParent;
 
   Future<bool> isAuthenticated() async {
     try {
@@ -66,6 +68,10 @@ class AuthenticationService extends ChangeNotifier {
 
   Future<bool> login(String role, String identifier, String password) async {
     try {
+      if (role == 'parent') {
+        return await _handleParentSecureAuth(identifier, password);
+      }
+
       String finalEmail = identifier.trim();
       if (!finalEmail.contains('@')) {
         finalEmail = "${finalEmail.toLowerCase()}@kagema.com";
@@ -84,9 +90,61 @@ class AuthenticationService extends ChangeNotifier {
     }
   }
 
+  /// FEATURE 4: SECURE PARENT AUTHENTICATION WORKFLOW
+  /// - Database Cross-Check for student link
+  /// - Fast Login with mobile token
+  /// - First-time password prompt logic
+  Future<bool> _handleParentSecureAuth(String identifier, String password) async {
+    try {
+      // 1. Database Cross-Check: Verify if parent is explicitly linked to an active student
+      final studentLink = await _supabase
+          .from('students')
+          .select('parent_phone, parent_email, student_status')
+          .or('parent_phone.eq.$identifier,parent_email.eq.$identifier')
+          .eq('student_status', 'active')
+          .maybeSingle();
+
+      if (studentLink == null) {
+        debugPrint("Auth Denied: No active student record linked to this identifier.");
+        return false;
+      }
+
+      // 2. Fast Login: Map identifier to email and attempt authentication.
+      // We allow the registered Mobile Number to act as a fast verification token.
+      String email = studentLink['parent_email'] ?? "${studentLink['parent_phone']}@kagema.com";
+      
+      final response = await _supabase.auth.signInWithPassword(
+        email: email, 
+        password: password.trim()
+      );
+
+      if (response.user != null) {
+        await _loadUserData(response.user!.id);
+        _isOffline = false;
+
+        // 3. First-Time Password Control: Identify if metadata or flag needs a secure setup
+        final userProfile = await _supabase.from('users').select('first_login').eq('user_id', response.user!.id).maybeSingle();
+        if (userProfile != null && userProfile['first_login'] == true) {
+          _isFirstTimeParent = true;
+          notifyListeners();
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Parent Secure Auth Error: $e");
+    }
+    return false;
+  }
+
+  void clearFirstTimeFlag() {
+    _isFirstTimeParent = false;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     try { await _supabase.auth.signOut(); } catch (_) {}
     _currentUserRole = null; _currentUserPhone = null; _currentUserName = null; _isOffline = false;
+    _isFirstTimeParent = false;
     notifyListeners();
   }
 
@@ -100,6 +158,7 @@ class AuthenticationService extends ChangeNotifier {
           'identifier': phone.trim(),
           'name': 'Parent',
           'role': 'parent',
+          'first_login': true,
         });
         return {'success': true, 'message': 'Account created successfully.'};
       }
@@ -123,6 +182,10 @@ class AuthenticationService extends ChangeNotifier {
   Future<bool> changePassword(String oldPass, String newPass) async {
     try {
       await _supabase.auth.updateUser(UserAttributes(password: newPass));
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        await _supabase.from('users').update({'first_login': false}).eq('user_id', user.id);
+      }
       return true;
     } catch (e) {
       return false;

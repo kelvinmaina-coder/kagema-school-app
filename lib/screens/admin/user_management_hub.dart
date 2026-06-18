@@ -31,7 +31,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Registry & Controls', 
+        title: const Text('School Registry', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 1.5, color: Colors.white)
         ),
         backgroundColor: Colors.transparent,
@@ -57,7 +57,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.hub_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.people_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
               ),
             ],
           ),
@@ -88,8 +88,8 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
           children: [
             _buildManagementTab(
               context, gemini,
-              'Student Intelligence',
-              'Enroll new pupils and manage academic profiles',
+              'Student Records',
+              'Enroll new students and manage academic profiles',
               Icons.person_add_alt_1_rounded,
               Colors.blue,
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentRegistrationScreen())),
@@ -106,8 +106,8 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
             ),
             _buildManagementTab(
               context, gemini,
-              'Parent Registry',
-              'Onboard guardians and link them to their children',
+              'Parent Directory',
+              'Register guardians and link them to their children',
               Icons.person_add_rounded,
               Colors.orange,
               () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentRegistrationScreen())),
@@ -144,7 +144,7 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
         _buildActionCard(
           context, gemini,
           'Manage Existing Records',
-          'Search, edit, and update information in real-time',
+          'Search, edit, and update information easily',
           Icons.manage_accounts_rounded,
           Colors.blueGrey,
           onView,
@@ -158,8 +158,8 @@ class _UserManagementHubState extends State<UserManagementHub> with SingleTicker
           ),
         ),
         const SizedBox(height: 16),
-        _buildQuickStat(context, 'System verified profiles', '98%', Colors.green),
-        _buildQuickStat(context, 'Active cloud sessions', 'Syncing...', Colors.blue),
+        _buildQuickStat(context, 'Verified profiles', '98%', Colors.green),
+        _buildQuickStat(context, 'Sync status', 'Connected', Colors.blue),
       ],
     );
   }

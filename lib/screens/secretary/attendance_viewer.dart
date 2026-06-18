@@ -48,7 +48,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Attendance Monitor', 
+        title: const Text('Attendance Monitor', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -122,7 +122,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
                                   backgroundColor: color.withOpacity(0.1),
                                   child: Icon(isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 24),
                                 ),
-                                title: Text(r['target_name'] ?? 'Neural Node', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                                title: Text(r['target_name'] ?? 'Student Name', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                                 subtitle: Text('Grade: ${r['grade'] ?? "N/A"} • ${r['stream'] ?? "General"}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                                 trailing: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -192,7 +192,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
     final content = Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _statBit('VERIFIED', '$present', Colors.green),
+        _statBit('PRESENT', '$present', Colors.green),
         _statBit('ABSENT', '${_attendanceRecords.length - present}', Colors.red),
       ],
     );
@@ -225,7 +225,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO ATTENDANCE RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

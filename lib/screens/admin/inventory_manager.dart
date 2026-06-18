@@ -35,7 +35,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     }
   }
 
-  Future<void> _updateStock(String itemId, int currentQty, int change) async {
+  Future<void> _syncStock(String itemId, int currentQty, int change) async {
     final newQty = currentQty + change;
     if (newQty < 0) return;
 
@@ -45,7 +45,7 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Update failed: $e'),
+          content: Text('Sync failed: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -160,12 +160,12 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove_circle_outline, size: 20, color: Colors.grey), 
-                                  onPressed: () => _updateStock(item['item_id'], qty, -1)
+                                  onPressed: () => _syncStock(item['item_id'], qty, -1)
                                 ),
                                 Text('$qty', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isLow ? Colors.red : null)),
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline, size: 20, color: Colors.brown), 
-                                  onPressed: () => _updateStock(item['item_id'], qty, 1)
+                                  onPressed: () => _syncStock(item['item_id'], qty, 1)
                                 ),
                               ],
                             ),
@@ -245,58 +245,60 @@ class _InventoryManagerScreenState extends State<InventoryManagerScreen> {
           isDark: theme.brightness == Brightness.dark,
           child: Padding(
             padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 24),
-                Text(isEditing ? 'EDIT STOCK' : 'ADD NEW STOCK', 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
-                ),
-                const SizedBox(height: 8),
-                Text(isEditing ? 'Update Item Details' : 'Stock Registration', 
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
-                ),
-                const SizedBox(height: 32),
-                _buildInputField(nameCtrl, 'Item Name', Icons.inventory_2_outlined),
-                const SizedBox(height: 16),
-                _buildInputField(catCtrl, 'Category', Icons.category_outlined),
-                const SizedBox(height: 16),
-                _buildInputField(qtyCtrl, 'Quantity', Icons.numbers_rounded, keyboardType: TextInputType.number),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (nameCtrl.text.isNotEmpty) {
-                        final data = {
-                          'name': nameCtrl.text.trim(),
-                          'category': catCtrl.text.trim(),
-                          'quantity': int.tryParse(qtyCtrl.text) ?? 0,
-                        };
-                        if (isEditing) {
-                          data['item_id'] = itemToEdit['item_id'];
-                        }
-                        await SupabaseService.instance.insertInventory(data);
-                        if (mounted) {
-                          Navigator.pop(context);
-                          _fetchInventory();
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.brown.shade700, 
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 8,
-                    ),
-                    child: Text(isEditing ? 'UPDATE RECORDS' : 'SAVE TO INVENTORY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                  const SizedBox(height: 24),
+                  Text(isEditing ? 'EDIT STOCK' : 'ADD NEW STOCK', 
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
-                ),
-                const SizedBox(height: 40),
-              ],
+                  const SizedBox(height: 8),
+                  Text(isEditing ? 'Sync Item Details' : 'Stock Registration', 
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
+                  ),
+                  const SizedBox(height: 32),
+                  _buildInputField(nameCtrl, 'Item Name', Icons.inventory_2_outlined),
+                  const SizedBox(height: 16),
+                  _buildInputField(catCtrl, 'Category', Icons.category_outlined),
+                  const SizedBox(height: 16),
+                  _buildInputField(qtyCtrl, 'Quantity', Icons.numbers_rounded, keyboardType: TextInputType.number),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (nameCtrl.text.isNotEmpty) {
+                          final data = {
+                            'name': nameCtrl.text.trim(),
+                            'category': catCtrl.text.trim(),
+                            'quantity': int.tryParse(qtyCtrl.text) ?? 0,
+                          };
+                          if (isEditing) {
+                            data['item_id'] = itemToEdit['item_id'];
+                          }
+                          await SupabaseService.instance.insertInventory(data);
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _fetchInventory();
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.brown.shade700, 
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 8,
+                      ),
+                      child: Text(isEditing ? 'COMMIT SYNC' : 'SAVE TO INVENTORY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ) ?? const SizedBox(),

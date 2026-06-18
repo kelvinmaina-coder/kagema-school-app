@@ -59,7 +59,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     if (_selectedChildren.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Neural Conflict: Link at least one child node', style: TextStyle(fontWeight: FontWeight.bold)), 
+          content: const Text('Selection Required: Link at least one student', style: TextStyle(fontWeight: FontWeight.bold)), 
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
         ),
@@ -74,7 +74,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
           : 'PAR-${const Uuid().v4().substring(0, 8).toUpperCase()}';
       
       final parentData = {
-        'parent_id': parentId, // Standardized snake_case
+        'parent_id': parentId, 
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
         'email': _emailController.text.trim(),
@@ -108,9 +108,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Neural Profile ${widget.parentToEdit != null ? 'Synchronized' : 'Generated'} and Linked Successfully!', 
-              style: const TextStyle(fontWeight: FontWeight.bold)
-            ), 
+            content: Text('Parent Profile ${widget.parentToEdit != null ? 'Updated' : 'Created'} and Linked Successfully!'), 
             backgroundColor: Colors.green.shade800,
             behavior: SnackBarBehavior.floating,
           ),
@@ -118,7 +116,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -132,7 +130,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.parentToEdit != null ? 'MODIFY GUARDIAN' : 'PARENT ONBOARDING', 
+        title: Text(widget.parentToEdit != null ? 'EDIT PARENT' : 'PARENT REGISTRATION', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -176,28 +174,30 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
                   const SizedBox(height: 40),
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 12),
-                    child: Text('NEURAL LINK: ASSIGN CHILDREN', 
+                    child: Text('ASSIGN CHILDREN', 
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                     ),
                   ),
                   _buildChildrenSelector(theme, gemini),
                   const SizedBox(height: 48),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _saveParent,
-                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.cloud_sync_rounded),
-                      label: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(widget.parentToEdit != null ? 'COMMIT UPDATES' : 'AUTHORIZE REGISTRATION', 
-                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade800,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                        shadowColor: Colors.orange.withOpacity(0.5),
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _saveParent,
+                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
+                        label: _isSaving 
+                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                          : Text(widget.parentToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
+                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade800,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 8,
+                          shadowColor: Colors.orange.withOpacity(0.5),
+                        ),
                       ),
                     ),
                   ),
@@ -213,15 +213,15 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
   Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
     final content = Column(
       children: [
-        _buildField(theme, _nameController, 'Full Parent Name', Icons.person_outline),
+        _buildField(theme, _nameController, 'Parent Full Name', Icons.person_outline),
         const SizedBox(height: 20),
-        _buildField(theme, _phoneController, 'Neural Contact', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+        _buildField(theme, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
         const SizedBox(height: 20),
-        _buildField(theme, _emailController, 'Cloud Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+        _buildField(theme, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
         const SizedBox(height: 20),
-        _buildField(theme, _occupationController, 'Identity Occupation', Icons.work_outline_rounded),
+        _buildField(theme, _occupationController, 'Occupation', Icons.work_outline_rounded),
         const SizedBox(height: 20),
-        _buildField(theme, _addressController, 'Residential Coordinates', Icons.home_rounded),
+        _buildField(theme, _addressController, 'Home Address', Icons.home_rounded),
       ],
     );
 
@@ -251,7 +251,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
         fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
+      validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
@@ -261,7 +261,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     final content = SizedBox(
       height: 250,
       child: _allStudents.isEmpty 
-        ? const Center(child: Text('NO PUPILS DISCOVERED', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
+        ? const Center(child: Text('NO STUDENTS FOUND', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
         : ListView.builder(
             itemCount: _allStudents.length,
             itemBuilder: (context, index) {

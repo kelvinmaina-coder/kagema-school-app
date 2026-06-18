@@ -47,17 +47,17 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
     }
   }
 
-  Future<void> _updateLeave(String id, String status) async {
+  Future<void> _syncLeaveStatus(String id, String status) async {
     try {
       await SupabaseService.instance.updateLeaveStatus(id, status);
       _loadHRData();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Leave Status Updated: $status'), backgroundColor: Colors.teal.shade800),
+          SnackBar(content: Text('Leave Status Applied: $status'), backgroundColor: Colors.teal.shade800),
         );
       }
     } catch (e) {
-      debugPrint("Update Error: $e");
+      debugPrint("Sync Error: $e");
     }
   }
 
@@ -69,7 +69,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Staff Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Staff Hub', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -135,8 +135,8 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
           trailing: isPending ? Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(icon: const Icon(Icons.check_circle_rounded, color: Colors.green), onPressed: () => _updateLeave(req['leave_id'].toString(), 'Approved')),
-              IconButton(icon: const Icon(Icons.cancel_rounded, color: Colors.red), onPressed: () => _updateLeave(req['leave_id'].toString(), 'Rejected')),
+              IconButton(icon: const Icon(Icons.check_circle_rounded, color: Colors.green), onPressed: () => _syncLeaveStatus(req['leave_id'].toString(), 'Approved')),
+              IconButton(icon: const Icon(Icons.cancel_rounded, color: Colors.red), onPressed: () => _syncLeaveStatus(req['leave_id'].toString(), 'Rejected')),
             ],
           ) : Text(req['status'].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey)),
         );
@@ -148,7 +148,7 @@ class _HRManagementScreenState extends State<HRManagementScreen> with SingleTick
   Widget _buildPayrollTab(ThemeData theme, GeminiThemeExtension? gemini) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
-      child: Column(children: [_statCard(theme, gemini, 'MONTHLY PAYROLL ESTIMATE', 'Ksh ${NumberFormat('#,###').format(_payrollSummary['total'])}', Icons.account_balance_wallet, Colors.green), const SizedBox(height: 20), _statCard(theme, gemini, 'ACTIVE STAFF MEMBERS', '${_payrollSummary['staffCount']}', Icons.hub_rounded, Colors.blue), const SizedBox(height: 48), SizedBox(width: double.infinity, height: 60, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.print_rounded), label: const Text('GENERATE STAFF PAYSLIPS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)), style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8, shadowColor: theme.primaryColor.withOpacity(0.4))))]),
+      child: Column(children: [_statCard(theme, gemini, 'MONTHLY PAYROLL TOTAL', 'Ksh ${NumberFormat('#,###').format(_payrollSummary['total'])}', Icons.account_balance_wallet, Colors.green), const SizedBox(height: 20), _statCard(theme, gemini, 'ACTIVE STAFF MEMBERS', '${_payrollSummary['staffCount']}', Icons.hub_rounded, Colors.blue), const SizedBox(height: 48), SizedBox(width: double.infinity, height: 60, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.print_rounded), label: const Text('GENERATE STAFF PAYSLIPS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)), style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8, shadowColor: theme.primaryColor.withOpacity(0.4))))]),
     );
   }
 

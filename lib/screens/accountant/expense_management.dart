@@ -39,7 +39,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = "Treasury Link Unstable. Swipe down to refresh.";
+          _error = "Connection lost. Please refresh the list.";
         });
       }
     }
@@ -73,19 +73,19 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY EXPENDITURE' : 'NEURAL EXPENSE LOG', 
+                  Text(isEditing ? 'EDIT EXPENSE' : 'NEW EXPENSE RECORD', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Outflow Intel' : 'Authorize Disbursement', 
+                  Text(isEditing ? 'Update Details' : 'Record Expenditure', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Expense Classification', Icons.category_rounded, categoryController, theme),
+                  _buildInputField('Expense Category', Icons.category_rounded, categoryController, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Amount (Ksh)', Icons.payments_rounded, amountController, theme, keyboardType: TextInputType.number),
+                  _buildInputField('Amount (Ksh)', Icons.payments_rounded, amountController, theme, keyboardType: TextInputType.number),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Intelligence Details / Purpose', Icons.notes_rounded, descController, theme, maxLines: 3),
+                  _buildInputField('Description / Purpose', Icons.notes_rounded, descController, theme, maxLines: 3),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
@@ -108,7 +108,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                               _loadExpenses();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('Neural Pulse Synced: Expenditure Recorded', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  content: const Text('Expense Recorded Successfully', style: TextStyle(fontWeight: FontWeight.bold)),
                                   backgroundColor: Colors.red.shade800,
                                   behavior: SnackBarBehavior.floating,
                                 )
@@ -128,7 +128,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE DISBURSEMENT', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      child: Text(isEditing ? 'UPDATE RECORD' : 'SAVE EXPENSE', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -141,7 +141,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -152,13 +152,13 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1, TextInputType? keyboardType}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1, TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
       keyboardType: keyboardType,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -167,11 +167,11 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Void Transaction?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Text('Remove this record of Ksh ${item['amount']}? This will permanently erase the outflow metadata.'),
+        title: const Text('Delete Record?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('Remove this record of Ksh ${item['amount']}? This will permanently delete the record.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('VOID', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -190,7 +190,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Expenditure Matrix', 
+        title: const Text('Expense Records', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -273,8 +273,8 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                                           if (val == 'delete') _deleteExpense(item);
                                         },
                                         itemBuilder: (context) => [
-                                          const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Intel', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
-                                          const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Void Entry', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
+                                          const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit details', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
+                                          const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Delete entry', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
                                         ],
                                       ),
                                     ],
@@ -310,7 +310,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_shopping_cart_rounded),
-          label: const Text('Log Neural Expense', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Log New Expense', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -324,7 +324,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('TOTAL QUANTUM OUTFLOW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+            const Text('TOTAL EXPENDITURE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
             const SizedBox(height: 8),
             Row(
               children: [
@@ -368,7 +368,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('NO EXPENDITURE DATA DISCOVERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          const Text('NO EXPENSE RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

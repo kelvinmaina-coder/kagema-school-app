@@ -38,7 +38,7 @@ class PdfGeneratorService {
         pw.Center(child: pw.Text('KAGEMA COMPREHENSIVE SCHOOL', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.deepOrange))),
         pw.Center(child: pw.Text('OFFICIAL FEE RECEIPT', style: pw.TextStyle(fontSize: 12, decoration: pw.TextDecoration.underline, fontWeight: pw.FontWeight.bold))),
         pw.SizedBox(height: 20),
-        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Receipt No: ${payment['receipt_number'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Date: ${payment['payment_date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now())}')]),
+        pw.Row(mainAxisAlignment: pw.TextDirection.ltr == pw.TextDirection.ltr ? pw.MainAxisAlignment.spaceBetween : pw.MainAxisAlignment.start, children: [pw.Text('Receipt No: ${payment['receipt_number'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)), pw.Text('Date: ${payment['payment_date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now())}')]),
         pw.Divider(thickness: 1),
         pw.SizedBox(height: 10),
         pw.Text('Student Name: ${payment['student_name'] ?? 'Unknown'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
@@ -56,13 +56,13 @@ class PdfGeneratorService {
     pdf.addPage(pw.Page(pageFormat: PdfPageFormat.a4, build: (pw.Context context) {
       return pw.Padding(padding: const pw.EdgeInsets.all(40), child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
         pw.Center(child: pw.Text('KAGEMA COMPREHENSIVE SCHOOL', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.indigo))),
-        pw.Center(child: pw.Text('NEURAL SALARY ADVICE', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold))),
+        pw.Center(child: pw.Text('OFFICIAL SALARY ADVICE', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold))),
         pw.Center(child: pw.Text('Pay Period: $monthYear')),
         pw.SizedBox(height: 40),
         pw.Text('Name: ${staff['name'] ?? 'N/A'}'),
         pw.Text('Designation: ${staff['role'] ?? 'Staff'}'),
         pw.Divider(),
-        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('NET DISBURSEMENT:'), pw.Text('Ksh ${NumberFormat("#,##0").format(salary)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16))]),
+        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('NET PAYABLE:'), pw.Text('Ksh ${NumberFormat("#,##0").format(salary)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16))]),
         pw.Spacer(),
         pw.Center(child: pw.Text('This is an auto-generated document.', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey))),
       ]));
@@ -91,7 +91,7 @@ class PdfGeneratorService {
     final pdf = pw.Document();
     pdf.addPage(pw.Page(pageFormat: PdfPageFormat.a4, build: (pw.Context context) {
       return pw.Padding(padding: const pw.EdgeInsets.all(20), child: pw.Column(children: [
-        pw.Text('KAGEMA COMPREHENSIVE SCHOOL: SECURITY VISITOR MATRIX', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+        pw.Text('KAGEMA COMPREHENSIVE SCHOOL: VISITOR LOG', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
         pw.SizedBox(height: 20),
         pw.TableHelper.fromTextArray(
           headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),

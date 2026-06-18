@@ -96,10 +96,10 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
                         decoration: BoxDecoration(color: Colors.blueGrey.withOpacity(0.1), shape: BoxShape.circle),
                         child: const Icon(Icons.book_rounded, color: Colors.blueGrey, size: 24),
                       ),
-                      title: Text(book?['title'] ?? 'Neural Volume', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      title: Text(book?['title'] ?? 'Book Record', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4),
-                        child: Text('Return Threshold: ${record['due_date'] ?? "N/A"}', 
+                        child: Text('Return Date: ${record['due_date'] ?? "N/A"}', 
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
                         ),
                       ),
@@ -147,7 +147,7 @@ class _ChildLibraryScreenState extends State<ChildLibraryScreen> {
         children: [
           Icon(Icons.library_books_rounded, size: 80, color: Colors.grey),
           const SizedBox(height: 16),
-          Text('NO ACTIVE LOANS IN MATRIX', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO ACTIVE BOOK LOANS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

@@ -33,7 +33,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Neural Link Error: $e'),
+          content: Text('Sync Error: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -71,19 +71,19 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY SCHEDULE' : 'INITIATE APPOINTMENT', 
+                  Text(isEditing ? 'EDIT APPOINTMENT' : 'NEW APPOINTMENT', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Protocol' : 'Neural Schedule Entry', 
+                  Text(isEditing ? 'Update Details' : 'Add to Schedule', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Purpose / Subject', Icons.title_rounded, titleController, theme),
+                  _buildInputField('Purpose / Subject', Icons.title_rounded, titleController, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Visitor Identity', Icons.person_pin_rounded, visitorController, theme),
+                  _buildInputField('Visitor Name', Icons.person_pin_rounded, visitorController, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Intelligence Details', Icons.notes_rounded, descController, theme, maxLines: 2),
+                  _buildInputField('Additional Details', Icons.notes_rounded, descController, theme, maxLines: 2),
                   const SizedBox(height: 24),
                   Row(
                     children: [
@@ -114,39 +114,41 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                     ],
                   ),
                   const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final DateTime fullDateTime = DateTime(
-                          selectedDate.year, selectedDate.month, selectedDate.day,
-                          selectedTime.hour, selectedTime.minute
-                        );
-                        
-                        final data = {
-                          'appointment_id': isEditing ? appointment['appointment_id'] : const Uuid().v4(),
-                          'title': titleController.text.trim(),
-                          'visitor_name': visitorController.text.trim(),
-                          'description': descController.text.trim(),
-                          'appointment_date': fullDateTime.toIso8601String(),
-                          'status': appointment?['status'] ?? 'Scheduled',
-                        };
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final DateTime fullDateTime = DateTime(
+                            selectedDate.year, selectedDate.month, selectedDate.day,
+                            selectedTime.hour, selectedTime.minute
+                          );
+                          
+                          final data = {
+                            'appointment_id': isEditing ? appointment['appointment_id'] : const Uuid().v4(),
+                            'title': titleController.text.trim(),
+                            'visitor_name': visitorController.text.trim(),
+                            'description': descController.text.trim(),
+                            'appointment_date': fullDateTime.toIso8601String(),
+                            'status': appointment?['status'] ?? 'Scheduled',
+                          };
 
-                        await SupabaseService.instance.upsertAppointment(data);
-                        if (mounted) {
-                          Navigator.pop(context);
-                          _loadAppointments();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade800,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                      ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE SCHEDULE', 
-                        style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
+                          await SupabaseService.instance.upsertAppointment(data);
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _loadAppointments();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade800,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          elevation: 8,
+                        ),
+                        child: Text(isEditing ? 'UPDATE APPOINTMENT' : 'SAVE APPOINTMENT', 
+                          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
+                        ),
                       ),
                     ),
                   ),
@@ -160,7 +162,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
@@ -202,7 +204,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Appointment Matrix', 
+        title: const Text('Appointments', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -256,7 +258,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                           decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
                           child: Icon(Icons.event_note_rounded, color: color, size: 24),
                         ),
-                        title: Text(appt['title'] ?? 'Neural Session', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                        title: Text(appt['title'] ?? 'Appointment', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                         subtitle: Padding(
                           padding: const EdgeInsets.only(top: 4),
                           child: Text('${appt['visitor_name']} \n${DateFormat('MMM dd • hh:mm a').format(dt)}', 
@@ -267,9 +269,9 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                           icon: const Icon(Icons.more_vert_rounded, color: Colors.grey),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'completed', child: ListTile(leading: Icon(Icons.check_circle_rounded, color: Colors.green), title: Text('Verified'), dense: true)),
+                            const PopupMenuItem(value: 'completed', child: ListTile(leading: Icon(Icons.check_circle_rounded, color: Colors.green), title: Text('Completed'), dense: true)),
                             const PopupMenuItem(value: 'cancel', child: ListTile(leading: Icon(Icons.cancel_rounded, color: Colors.orange), title: Text('Cancel'), dense: true)),
-                            const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red), title: Text('Purge'), dense: true)),
+                            const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red), title: Text('Delete'), dense: true)),
                           ],
                           onSelected: (val) async {
                             if (val == 'delete') {
@@ -309,7 +311,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Schedule Quantum Visit', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Schedule Appointment', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -322,7 +324,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
         children: [
           Icon(Icons.calendar_today_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL APPOINTMENTS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO APPOINTMENTS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

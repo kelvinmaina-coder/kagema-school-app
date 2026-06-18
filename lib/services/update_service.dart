@@ -72,7 +72,7 @@ class UpdateService extends ChangeNotifier {
         await prefs.setString('update_notified_version', _remoteVersion);
       }
     } catch (e) {
-      debugPrint("Update check failed: $e");
+      debugPrint("Sync check failed: $e");
     }
   }
 
@@ -85,7 +85,7 @@ class UpdateService extends ChangeNotifier {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                "New OS Upgrade V$_remoteVersion Available",
+                "New Version V$_remoteVersion Available",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
@@ -124,7 +124,7 @@ class UpdateService extends ChangeNotifier {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Your Kagema OS is up to date with the latest school protocols."),
+          content: Text("Your Kagema App is synced with the latest school settings."),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -137,7 +137,7 @@ class UpdateService extends ChangeNotifier {
     showGeneralDialog(
       context: context,
       barrierDismissible: !_isMandatory,
-      barrierLabel: "Update",
+      barrierLabel: "Sync",
       barrierColor: Colors.black87,
       transitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, anim1, anim2) {
@@ -145,7 +145,7 @@ class UpdateService extends ChangeNotifier {
           builder: (context, setState) {
             bool isUpdating = false;
             double progress = 0.0;
-            String status = "Connecting to Kagema Cloud...";
+            String status = "Connecting to School Cloud...";
 
             void startUpgrade() {
               setState(() => isUpdating = true);
@@ -180,12 +180,12 @@ class UpdateService extends ChangeNotifier {
                           _buildAnimatedIcon(Theme.of(context), isUpdating),
                           const SizedBox(height: 24),
                           Text(
-                            isUpdating ? "SYNCHRONIZING..." : "SYSTEM UPGRADE READY",
+                            isUpdating ? "SYNCHRONIZING..." : "SYSTEM VERSION READY",
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            isUpdating ? status : "Intelligence Patch V$_remoteVersion",
+                            isUpdating ? status : "System Patch V$_remoteVersion",
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                           ),
@@ -224,7 +224,7 @@ class UpdateService extends ChangeNotifier {
       ),
       child: Center(
         child: active 
-          ? CircularProgressIndicator(strokeWidth: 2)
+          ? const CircularProgressIndicator(strokeWidth: 2)
           : Icon(Icons.rocket_launch_rounded, size: 45, color: theme.primaryColor),
       ),
     );
@@ -252,7 +252,7 @@ class UpdateService extends ChangeNotifier {
               backgroundColor: theme.primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             ),
-            child: const Text("INSTALL UPGRADE NOW", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            child: const Text("INSTALL SYNC NOW", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ),
         if (!_isMandatory) ...[

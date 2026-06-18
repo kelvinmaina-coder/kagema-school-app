@@ -79,7 +79,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Neural identity updated successfully!' : 'Entity registered and synced to cloud!'), 
+            content: Text(isEditing ? 'Student details updated successfully!' : 'Student registered successfully!'), 
             backgroundColor: Colors.green.shade800,
             behavior: SnackBarBehavior.floating,
           ),
@@ -90,7 +90,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (e == "OFFLINE_QUEUED") {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Working Offline: Record saved in local vault.'), backgroundColor: Colors.orange, behavior: SnackBarBehavior.floating),
+            const SnackBar(content: Text('Working Offline: Record saved locally.'), backgroundColor: Colors.orange, behavior: SnackBarBehavior.floating),
           );
           Navigator.pop(context, true);
         }
@@ -121,7 +121,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(isEditing ? 'MODIFY IDENTITY' : 'NEURAL ENROLLMENT', 
+        title: Text(isEditing ? 'EDIT STUDENT' : 'STUDENT REGISTRATION', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -176,7 +176,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                       ),
                       child: _isSaving 
                         ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE ENROLLMENT', 
+                        : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION', 
                             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                     ),
                   ),
@@ -193,11 +193,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('BIOMETRIC INTEL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+        Text('STUDENT INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
         const SizedBox(height: 24),
-        _buildField(theme, _nameController, 'Full Pupil Name', Icons.person_outline),
+        _buildField(theme, _nameController, 'Full Name', Icons.person_outline),
         const SizedBox(height: 20),
-        _buildField(theme, _admController, 'Admission Identifier', Icons.badge_outlined),
+        _buildField(theme, _admController, 'Admission Number', Icons.badge_outlined),
         const SizedBox(height: 20),
         
         InkWell(
@@ -230,11 +230,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         ),
         
         const SizedBox(height: 32),
-        Text('GUARDIAN NEXUS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+        Text('GUARDIAN INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
         const SizedBox(height: 24),
-        _buildField(theme, _parentNameController, 'Legal Guardian', Icons.family_restroom_outlined),
+        _buildField(theme, _parentNameController, 'Guardian Name', Icons.family_restroom_outlined),
         const SizedBox(height: 20),
-        _buildField(theme, _parentPhoneController, 'Encrypted Contact', Icons.phone_outlined, keyboardType: TextInputType.phone),
+        _buildField(theme, _parentPhoneController, 'Contact Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
 
         const SizedBox(height: 32),
         const Divider(color: Colors.white10),
@@ -269,7 +269,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
+      validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
@@ -282,7 +282,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
           items: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'JSS 1', 'JSS 2', 'JSS 3']
               .map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
           onChanged: (v) => setState(() => _selectedGrade = v!),
-          decoration: _neuralInputDecoration('Quantum Grade', Icons.school_outlined, theme),
+          decoration: _inputDecoration('Grade', Icons.school_outlined, theme),
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
@@ -290,13 +290,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
           items: ['North', 'South', 'East', 'West'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (v) => setState(() => _selectedStream = v!),
-          decoration: _neuralInputDecoration('Neural Stream', Icons.grid_view_rounded, theme),
+          decoration: _inputDecoration('Stream', Icons.grid_view_rounded, theme),
         ),
       ],
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),

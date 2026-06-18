@@ -43,7 +43,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Analytics', 
+        title: const Text('Student Analytics', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -87,7 +87,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 const SizedBox(height: 48),
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
-                  child: Text('CLOUD-SYNCED INSIGHTS', 
+                  child: Text('PERFORMANCE INSIGHTS', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5)
                   ),
                 ),
@@ -108,14 +108,14 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           child: const Icon(Icons.auto_graph_rounded, size: 40, color: Colors.cyan),
         ),
         const SizedBox(height: 20),
-        const Text('OVERALL ACADEMIC INDEX', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+        const Text('AVERAGE PERFORMANCE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
         const SizedBox(height: 12),
         const Text('88.4%', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: -1)),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-          child: const Text('NEURAL GROWTH +4.2%', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          child: const Text('IMPROVEMENT: +4.2%', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ],
     );
@@ -139,9 +139,9 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
       leading: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
-        child: const Icon(Icons.bolt_rounded, color: Colors.orange, size: 24),
+        child: const Icon(Icons.tips_and_updates_rounded, color: Colors.orange, size: 24),
       ),
-      title: Text(item['title'] ?? 'Insight Node', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+      title: Text(item['title'] ?? 'Insight', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 4),
         child: Text(item['subtitle'] ?? '', style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)),

@@ -76,7 +76,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Pupil Intelligence', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('Student Records', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -158,7 +158,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
       onChanged: (v) => setState(() => _searchQuery = v),
       style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
-        hintText: 'Neural search by name or ADM...',
+        hintText: 'Search by name or ADM...',
         hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
         border: InputBorder.none,
@@ -201,7 +201,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         children: [
           Icon(Icons.cloud_off_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('No pupil data found in neural cloud.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Text('No student records found in the system.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1)),
         ],
       ),
     );

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:ui';
 import '../../services/supabase_service.dart';
-import '../../app_theme.dart';
-import 'package:intl/intl.dart';
+import '../../services/authentication_service.dart';
 import 'fee_management.dart';
 import 'income_management.dart';
 import 'expense_management.dart';
@@ -10,6 +11,8 @@ import 'fee_structure_screen.dart';
 import 'inventory_management.dart';
 import '../admin/hr_management_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../app_theme.dart';
+import 'package:intl/intl.dart';
 
 class AccountantDashboard extends StatefulWidget {
   const AccountantDashboard({super.key});
@@ -25,6 +28,9 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
   bool _isLoading = true;
   String? _errorMessage;
 
+  final Color primaryAccent = const Color(0xFFFF5722); 
+  final Color slateDark = const Color(0xFF1A1C2E);
+
   @override
   void initState() {
     super.initState();
@@ -33,10 +39,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
 
   Future<void> _loadFinancialData() async {
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() { _isLoading = true; _errorMessage = null; });
     try {
       final summary = await SupabaseService.instance.getFinancialSummary();
       final payments = await SupabaseService.instance.client
@@ -53,13 +56,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
         });
       }
     } catch (e) {
-      debugPrint("Accountant Sync Error: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = "Financial sync paused. Swipe down to refresh.";
-        });
-      }
+      if (mounted) setState(() { _isLoading = false; _errorMessage = "FINANCIAL SYNC PAUSED. SWIPE TO REFRESH."; });
     }
   }
 
@@ -67,57 +64,53 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // RESPONSIVE MAX WIDTH
+    double maxWidth = screenWidth > 1200 ? 1100 : (screenWidth > 800 ? 850 : screenWidth);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: isDark ? const Color(0xFF0D0E12) : const Color(0xFFF4F7FA),
       body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _currentIndex == 0 ? _buildOverviewTab(theme, gemini) : _buildOperationsTab(theme, gemini),
-      ) ?? (_currentIndex == 0 ? _buildOverviewTab(theme, null) : _buildOperationsTab(theme, null)),
-      bottomNavigationBar: _buildModernNavBar(theme, gemini),
+        isDark: isDark,
+        maxWidth: maxWidth,
+        child: Stack(
+          children: [
+            _currentIndex == 0 ? _buildOverviewTab(theme, isDark, screenWidth) : _buildOperationsTab(theme, isDark, screenWidth),
+            _buildBottomNav(isDark, screenWidth),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildOverviewTab(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildOverviewTab(ThemeData theme, bool isDark, double screenWidth) {
     return RefreshIndicator(
       onRefresh: _loadFinancialData,
-      color: Colors.deepOrange,
+      color: primaryAccent,
+      edgeOffset: 120,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildHeroAppBar(theme, gemini, 'TREASURY HUB'),
-          if (_errorMessage != null)
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.red.withOpacity(0.1))),
-                child: Row(
-                  children: [
-                    const Icon(Icons.sync_problem_rounded, color: Colors.red, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold))),
-                    IconButton(icon: const Icon(Icons.refresh, color: Colors.red, size: 18), onPressed: _loadFinancialData),
-                  ],
-                ),
-              ),
-            ),
+          _buildElegantHeader('TREASURY HUB', Icons.account_balance_rounded),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 24),
-                  _buildBalanceCard(theme, gemini),
-                  const SizedBox(height: 32),
-                  _buildSectionLabel('CORE OPERATIONS'),
-                  const SizedBox(height: 12),
-                  _buildQuickGrid(theme, gemini),
-                  const SizedBox(height: 32),
-                  _buildSectionLabel('LIVE TRANSACTION STREAM'),
-                  const SizedBox(height: 16),
-                  _buildTransactionsList(theme, gemini),
-                  const SizedBox(height: 100),
+                  if (_errorMessage != null) _buildErrorBanner(),
+                  _buildMainMetricCard(isDark, screenWidth),
+                  const SizedBox(height: 40),
+                  _buildSectionHeader('CORE OPERATIONS'),
+                  const SizedBox(height: 20),
+                  _buildQuickActionGrid(isDark),
+                  const SizedBox(height: 40),
+                  _buildSectionHeader('LIVE TRANSACTION STREAM'),
+                  const SizedBox(height: 20),
+                  _buildTransactionList(isDark, screenWidth),
+                  const SizedBox(height: 140),
                 ],
               ),
             ),
@@ -127,264 +120,357 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildOperationsTab(ThemeData theme, GeminiThemeExtension? gemini) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 100, 24, 120),
-      children: [
-        _buildSectionLabel('INCOME & REVENUE'),
-        _operationTile(theme, 'Fee Management', 'Collection, STK Push & Waivers', Icons.payments_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
-        _operationTile(theme, 'Other Income', 'Grants, Donations & Canteen', Icons.add_business_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
-        _operationTile(theme, 'Billing Structures', 'Manage grades & termly fees', Icons.account_tree_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
-        const SizedBox(height: 32),
-        _buildSectionLabel('OUTFLOW & PAYROLL'),
-        _operationTile(theme, 'Expense Ledger', 'Log school operational costs', Icons.shopping_cart_checkout_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
-        _operationTile(theme, 'Salary Treasury', 'Staff payments & deductions', Icons.badge_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
-        const SizedBox(height: 32),
-        _buildSectionLabel('ASSETS & AUDITING'),
-        _operationTile(theme, 'Inventory Control', 'Manage school assets & stock', Icons.inventory_2_rounded, Colors.brown, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
-        _operationTile(theme, 'Audit Reports', 'Revenue, Waivers & Tax analytics', Icons.assessment_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
-      ],
-    );
-  }
-
-  Widget _operationTile(ThemeData theme, String title, String sub, IconData icon, Color color, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardColor.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
-            border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
-          ),
-          child: Row(
-            children: [
-              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 22)),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                    Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeroAppBar(ThemeData theme, GeminiThemeExtension? gemini, String title) {
+  Widget _buildElegantHeader(String title, IconData icon) {
     return SliverAppBar(
-      expandedHeight: 120.0,
+      expandedHeight: 120,
       pinned: true,
-      backgroundColor: Colors.transparent,
       elevation: 0,
+      backgroundColor: primaryAccent,
       flexibleSpace: FlexibleSpaceBar(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
         centerTitle: true,
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.deepOrange.shade900, Colors.deepOrange.shade600], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -30, top: -20,
-                child: Icon(Icons.account_balance_rounded, size: 200, color: Colors.white.withOpacity(0.1)),
-              ),
-            ],
-          ),
+        titlePadding: const EdgeInsets.only(bottom: 16),
+        title: Text(title, 
+          style: const TextStyle(
+            fontWeight: FontWeight.w900, 
+            fontSize: 18, 
+            letterSpacing: 4, 
+            color: Colors.white,
+          )
+        ),
+        background: Stack(
+          children: [
+            Container(color: primaryAccent),
+            Positioned(
+              right: -20, top: -10,
+              child: Icon(icon, size: 180, color: Colors.white.withOpacity(0.1)),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildBalanceCard(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildMainMetricCard(bool isDark, double screenWidth) {
     double income = (_stats['total_income'] as num? ?? 0.0).toDouble();
     double expenses = (_stats['total_expenses'] as num? ?? 0.0).toDouble();
-    double waivers = (_stats['total_waivers'] as num? ?? 0.0).toDouble();
     double netBalance = income - expenses;
-    
-    final content = Column(
-      children: [
-        const Text('NET OPERATIONAL CAPITAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
-        const SizedBox(height: 12),
-        Text('Ksh ${NumberFormat('#,###.##').format(netBalance)}', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: theme.primaryColor)),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            _flowItem('Cash In', income, Colors.green, Icons.south_east_rounded),
-            const SizedBox(width: 8),
-            _flowItem('Cash Out', expenses, Colors.red, Icons.north_east_rounded),
-            const SizedBox(width: 8),
-            _flowItem('Waivers', waivers, Colors.purple, Icons.stars_rounded),
-          ],
-        ),
-      ],
-    );
 
-    return gemini?.buildGlowContainer(
-      borderRadius: 30,
-      borderThickness: 2.5,
-      backgroundColor: theme.cardColor.withOpacity(0.85),
-      padding: const EdgeInsets.all(24),
-      child: content,
-    ) ?? Container(
-      padding: const EdgeInsets.all(24),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.95), 
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))]
+        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(35),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
       ),
-      child: content,
-    );
-  }
-
-  Widget _flowItem(String label, double val, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.05), 
-          borderRadius: BorderRadius.circular(15), 
-          border: Border.all(color: color.withOpacity(0.1))
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 14),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey)),
-            const SizedBox(height: 4),
-            FittedBox(child: Text('Ksh ${NumberFormat('#,###').format(val)}', style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 11))),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickGrid(ThemeData theme, GeminiThemeExtension? gemini) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      childAspectRatio: 1.5,
-      children: [
-        _quickCard(theme, gemini, 'FEE COLLECTION', Icons.add_card_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
-        _quickCard(theme, gemini, 'LOG EXPENSE', Icons.trending_down_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
-      ],
-    );
-  }
-
-  Widget _quickCard(ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, VoidCallback onTap) {
-    final content = Column(
-      mainAxisAlignment: MainAxisAlignment.center, 
-      children: [
-        Icon(icon, color: color, size: 32), 
-        const SizedBox(height: 10), 
-        Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1.5))
-      ]
-    );
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: gemini?.buildGlowContainer(
-        borderRadius: 24,
-        borderThickness: 1.5,
-        backgroundColor: color.withOpacity(0.08),
-        padding: EdgeInsets.zero,
-        child: content,
-      ) ?? Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1), 
-          borderRadius: BorderRadius.circular(24), 
-          border: Border.all(color: color.withOpacity(0.2)),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.05), blurRadius: 10)]
-        ),
-        child: content,
-      ),
-    );
-  }
-
-  Widget _buildTransactionsList(ThemeData theme, GeminiThemeExtension? gemini) {
-    if (_isLoading && _recentTransactions.isEmpty) return const Center(child: CircularProgressIndicator(color: Colors.deepOrange));
-    if (_recentTransactions.isEmpty) return const Center(child: Text('No cloud transactions discovered.', style: TextStyle(color: Colors.grey, fontSize: 12)));
-    return Column(
-      children: _recentTransactions.map((tx) {
-        final isWaiver = tx['payment_method'] == 'Waiver';
-        final color = isWaiver ? Colors.purple : Colors.green;
-        final content = ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.1),
-            child: Icon(isWaiver ? Icons.stars_rounded : Icons.payments_rounded, color: color, size: 20),
+      child: Column(
+        children: [
+          Text('NET OPERATIONAL CAPITAL', 
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 2)
           ),
-          title: Text(tx['students']?['name'] ?? 'Ref: ${tx['receipt_number']}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-          subtitle: Text(tx['payment_date']?.toString().split(' ')[0] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)),
-          trailing: Column(
+          const SizedBox(height: 16),
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('${isWaiver ? '' : '+'}${tx['amount_paid']}', style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 15)),
-              Text(isWaiver ? 'GRANT' : 'CASH', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400)),
+              Text('KSH', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: primaryAccent)),
+              const SizedBox(width: 12),
+              Text(NumberFormat('#,###.##').format(netBalance), 
+                style: TextStyle(fontSize: screenWidth > 600 ? 48 : 36, fontWeight: FontWeight.w900, color: isDark ? Colors.white : slateDark, letterSpacing: -1.5)
+              ),
             ],
           ),
-        );
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: gemini?.buildGlowContainer(
-            borderRadius: 20,
-            borderThickness: 1,
-            backgroundColor: theme.cardColor.withOpacity(0.8),
-            padding: EdgeInsets.zero,
-            child: content,
-          ) ?? Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: theme.dividerColor.withOpacity(0.05))),
-            child: content,
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              _metricSubItem('CASH IN', income, const Color(0xFF10B981), Icons.arrow_downward_rounded, isDark),
+              const SizedBox(width: 16),
+              _metricSubItem('CASH OUT', expenses, const Color(0xFFEF4444), Icons.arrow_upward_rounded, isDark),
+            ],
           ),
-        );
-      }).toList(),
+        ],
+      ),
     );
   }
 
-  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _metricSubItem(String label, double value, Color color, IconData icon, bool isDark) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: color.withOpacity(0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 14, color: color),
+                const SizedBox(width: 6),
+                Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 1)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('KSH ${NumberFormat('#,###').format(value)}', 
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : slateDark)
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionGrid(bool isDark) {
+    return Row(
+      children: [
+        _actionCard('FEE COLLECTION', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
+        const SizedBox(width: 16),
+        _actionCard('LOG EXPENSE', Icons.shopping_bag_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
+      ],
+    );
+  }
+
+  Widget _actionCard(String title, IconData icon, Color accent, bool isDark, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: accent.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: accent, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : slateDark, fontSize: 11, letterSpacing: 1)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTransactionList(bool isDark, double screenWidth) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_recentTransactions.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(60),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1C2E).withOpacity(0.5) : Colors.white.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Center(child: Text('NO RECENT TRANSACTIONS', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.grey, fontSize: 10, letterSpacing: 1.5))),
+      );
+    }
+
+    if (screenWidth > 900) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 12,
+          mainAxisExtent: 90,
+        ),
+        itemCount: _recentTransactions.length,
+        itemBuilder: (context, index) => _buildTransactionTile(_recentTransactions[index], isDark),
+      );
+    }
+
+    return Column(
+      children: _recentTransactions.map((tx) => _buildTransactionTile(tx, isDark)).toList(),
+    );
+  }
+
+  Widget _buildTransactionTile(Map<String, dynamic> tx, bool isDark) {
+    final bool isWaiver = tx['payment_method'] == 'Waiver';
+    final color = isWaiver ? const Color(0xFF8B5CF6) : const Color(0xFF10B981);
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      height: 70,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.95), 
-        borderRadius: BorderRadius.circular(30), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, spreadRadius: -10)],
-        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _navItem(0, Icons.account_balance_rounded, 'Treasury'),
-          _navItem(1, Icons.grid_view_rounded, 'Operations'),
-          _navItem(2, Icons.settings_rounded, 'Settings'),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(isWaiver ? Icons.auto_awesome_rounded : Icons.receipt_long_rounded, color: color, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(tx['students']?['name']?.toString().toUpperCase() ?? 'REF: ${tx['receipt_number']}', 
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : slateDark)
+                ),
+                const SizedBox(height: 2),
+                Text(tx['payment_date']?.toString().split(' ')[0] ?? '', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white38 : Colors.black38)
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('KSH ${NumberFormat('#,###').format(tx['amount_paid'])}', 
+                style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 16)
+              ),
+              Text(isWaiver ? 'WAIVER' : 'COLLECTED', 
+                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOperationsTab(ThemeData theme, bool isDark, double screenWidth) {
+    int crossAxisCount = screenWidth > 900 ? 3 : (screenWidth > 600 ? 2 : 1);
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        _buildElegantHeader('OPERATIONS', Icons.grid_view_rounded),
+        SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
+          sliver: crossAxisCount == 1 
+            ? SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildSectionHeader('INCOME & REVENUE'),
+                  const SizedBox(height: 12),
+                  _opTile('Fee Management', 'Collection & STK Push', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
+                  _opTile('Other Income', 'Grants & Canteen', Icons.add_business_rounded, const Color(0xFF3B82F6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
+                  _opTile('Billing Structures', 'Manage termly fees', Icons.account_tree_rounded, const Color(0xFF8B5CF6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('OUTFLOW & PAYROLL'),
+                  const SizedBox(height: 12),
+                  _opTile('Expense Ledger', 'Operational costs', Icons.shopping_cart_checkout_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
+                  _opTile('Salary Treasury', 'Staff payments', Icons.badge_rounded, const Color(0xFF009688), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('ASSETS & AUDITING'),
+                  const SizedBox(height: 12),
+                  _opTile('Inventory Control', 'School assets', Icons.inventory_2_rounded, const Color(0xFF795548), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
+                  _opTile('Audit Reports', 'Revenue analytics', Icons.assessment_rounded, const Color(0xFFF59E0B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
+                  const SizedBox(height: 140),
+                ]),
+              )
+            : SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 90,
+                ),
+                delegate: SliverChildListDelegate([
+                   _opTile('Fee Portal', 'Collections', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
+                   _opTile('Income', 'Grants', Icons.add_business_rounded, const Color(0xFF3B82F6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
+                   _opTile('Fee Setup', 'Structures', Icons.account_tree_rounded, const Color(0xFF8B5CF6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
+                   _opTile('Expenses', 'Cost Control', Icons.shopping_cart_checkout_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
+                   _opTile('Payroll', 'Staff pay', Icons.badge_rounded, const Color(0xFF009688), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
+                   _opTile('Inventory', 'Assets', Icons.inventory_2_rounded, const Color(0xFF795548), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
+                   _opTile('Auditing', 'Analytics', Icons.assessment_rounded, const Color(0xFFF59E0B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
+                ]),
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _opTile(String title, String sub, IconData icon, Color color, bool isDark, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : slateDark)),
+                      const SizedBox(height: 2),
+                      Text(sub.toUpperCase(), style: TextStyle(fontSize: 9, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white12 : Colors.black12, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(bool isDark, double screenWidth) {
+    double navWidth = screenWidth > 800 ? 500 : screenWidth - 40;
+
+    return Positioned(
+      bottom: 25, left: 0, right: 0,
+      child: Center(
+        child: Container(
+          width: navWidth,
+          height: 70,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1C2E).withOpacity(0.95) : Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 10))],
+            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _navItem(0, Icons.account_balance_wallet_rounded, 'TREASURY'),
+              _navItem(1, Icons.grid_view_rounded, 'OPERATIONS'),
+              _navItem(2, Icons.settings_rounded, 'SETUP'),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _navItem(int index, IconData icon, String label) {
     bool isSelected = _currentIndex == index;
-    return InkWell(
+    return GestureDetector(
       onTap: () {
         if (index == 2) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen(role: 'Accountant')));
@@ -392,25 +478,39 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
         }
         setState(() => _currentIndex = index);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: isSelected ? BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)) : null,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 24),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? Theme.of(context).primaryColor : Colors.grey)),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), size: 26),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), letterSpacing: 1.5)),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12.0),
-      child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey)),
+  Widget _buildSectionHeader(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: primaryAccent, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: Color(0xFF475569))),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFFCDD2))),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFD32F2F)),
+          const SizedBox(width: 12),
+          Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 11, fontWeight: FontWeight.w800))),
+        ],
+      ),
     );
   }
 }

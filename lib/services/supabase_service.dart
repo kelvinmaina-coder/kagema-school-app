@@ -9,27 +9,6 @@ class SupabaseService {
   SupabaseClient get client => Supabase.instance.client;
   SupabaseService._init();
 
-  // --- HELPER: NETWORK AWARE WRAPPERS ---
-  Future<dynamic> _getDataWithCache(String key, Future<dynamic> Function() networkCall) async {
-    try {
-      final data = await networkCall();
-      await OfflineDbService.instance.saveCache(key, data);
-      return data;
-    } catch (e) {
-      debugPrint("Offline Mode: Fetching $key from vault.");
-      return await OfflineDbService.instance.getCache(key);
-    }
-  }
-
-  Future<void> _performMutation(String action, Map<String, dynamic> payload, Future<void> Function() networkCall) async {
-    try {
-      await networkCall();
-    } catch (e) {
-      await OfflineDbService.instance.addToQueue(action, payload);
-      throw "OFFLINE_QUEUED"; 
-    }
-  }
-
   // --- 1. ADMIN & SECRETARY HUB OPERATIONS ---
   Future<Map<String, dynamic>> getDashboardSummary() async {
     try {
@@ -63,15 +42,17 @@ class SupabaseService {
       final a = await client.from('appointments').select().like('appointment_date', '$today%').count(CountOption.exact);
       final s = await client.from('students').select().count(CountOption.exact);
       final n = await client.from('students').select().gte('admission_date', lastMonth).count(CountOption.exact);
+      final ann = await client.from('notifications').select().count(CountOption.exact);
       
       return {
         'visitors_today': v.count,
         'upcomingAppointments': a.count,
         'totalStudents': s.count,
         'newAdmissions': n.count,
+        'announcements': ann.count,
       };
     } catch (e) {
-      return {'visitors_today': 0, 'upcomingAppointments': 0, 'totalStudents': 0, 'newAdmissions': 0};
+      return {'visitors_today': 0, 'upcomingAppointments': 0, 'totalStudents': 0, 'newAdmissions': 0, 'announcements': 0};
     }
   }
 
@@ -172,7 +153,12 @@ class SupabaseService {
     final paid = await client.from('fees').select('amount_paid').eq('student_id', id);
     double totalFee = (struct?['total_fee'] as num? ?? 15000.0).toDouble();
     double totalPaid = paid.fold(0.0, (sum, item) => sum + (item['amount_paid'] as num? ?? 0).toDouble());
-    return {'total_fee': totalFee, 'total_paid': totalPaid, 'balance': totalFee - totalPaid};
+    return {
+      'total_fee': totalFee, 
+      'total_paid': totalPaid, 
+      'balance': totalFee - totalPaid,
+      'status': (totalFee - totalPaid) <= 0 ? 'Cleared' : 'Pending'
+    };
   }
 
   Future<List<Map<String, dynamic>>> getClassTimetable(String g, String s) async {
@@ -191,7 +177,12 @@ class SupabaseService {
       if (item['payment_method'] == 'Waiver') { totalWaivers += amt; } else { totalIncome += amt; }
     }
     double totalExpenses = expensesRes.fold(0.0, (sum, item) => sum + (item['amount'] as num? ?? 0.0).toDouble());
-    return {'total_income': totalIncome, 'total_expenses': totalExpenses, 'total_waivers': totalWaivers};
+    return {
+      'total_income': totalIncome, 
+      'total_expenses': totalExpenses, 
+      'total_waivers': totalWaivers,
+      'net_balance': totalIncome - totalExpenses
+    };
   }
 
   Future<void> insertFeePayment(Map<String, dynamic> d) async => await client.from('fees').insert(d);
@@ -266,7 +257,7 @@ class SupabaseService {
 
   Future<Map<String, dynamic>> getSyllabusStatus(String subject) async {
     try {
-      final res = await client.from('syllabus').select().eq('subject_name', subject).maybeSingle();
+      final res = await client.from('syllabus').select().maybeSingle();
       return res ?? {'subject_name': subject, 'completion_percentage': 0, 'remaining_topics': []};
     } catch (e) {
       return {'subject_name': subject, 'completion_percentage': 0, 'remaining_topics': []};

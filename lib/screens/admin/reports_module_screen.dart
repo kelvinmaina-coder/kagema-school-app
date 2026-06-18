@@ -17,10 +17,9 @@ class _ReportsModuleScreenState extends State<ReportsModuleScreen> {
   Future<void> _handleReportAction(String reportName) async {
     setState(() => _isGenerating = true);
     
-    // Professional SNACKBAR feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('NEURAL ENGINE: Synthesizing "$reportName"...'),
+        content: Text('REPORTS ENGINE: Generating "$reportName"...'),
         backgroundColor: Colors.cyan.shade900,
         behavior: SnackBarBehavior.floating,
       )
@@ -32,24 +31,23 @@ class _ReportsModuleScreenState extends State<ReportsModuleScreen> {
         await PdfGeneratorService.generateStudentList(students);
       } else if (reportName.contains('Fee') || reportName.contains('Revenue')) {
         final date = DateFormat('yyyy-MM').format(DateTime.now());
-        // This triggers the PDF flow via Printing library
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Financial Matrix generated.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Financial Reports generated.')));
       } else if (reportName.contains('Visitor')) {
         final visitors = await SupabaseService.instance.getVisitors();
         await PdfGeneratorService.generateVisitorLog(visitors);
       }
 
-      await Future.delayed(const Duration(seconds: 1)); // UX feel
+      await Future.delayed(const Duration(seconds: 1)); 
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Report Synchronization Success!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('✅ Report Generated Successfully!'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('CRITICAL: Neural sync failed. $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('ERROR: Report generation failed. $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -65,7 +63,7 @@ class _ReportsModuleScreenState extends State<ReportsModuleScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Intelligence reports', 
+        title: const Text('System Reports', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
         ),
         centerTitle: true,
@@ -83,15 +81,15 @@ class _ReportsModuleScreenState extends State<ReportsModuleScreen> {
       body: gemini?.buildCreativeBackground(
         isDark: theme.brightness == Brightness.dark,
         child: _isGenerating 
-          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: Colors.cyan), SizedBox(height: 24), Text('EXECUTING NEURAL SYNTESIS...', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.cyan, letterSpacing: 1.5))]))
+          ? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: Colors.cyan), SizedBox(height: 24), Text('GENERATING SYSTEM REPORT...', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.cyan, letterSpacing: 1.5))]))
           : ListView(
               padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 40),
               children: [
-                _buildReportSection(context, gemini, 'NEURAL PUPIL ANALYTICS', Icons.people_alt_rounded, Colors.blue, ['Full Student Intelligence List', 'Demographic Class Distribution', 'Admission Handshake Records']),
+                _buildReportSection(context, gemini, 'STUDENT ANALYTICS', Icons.people_alt_rounded, Colors.blue, ['Full Student Records List', 'Class Distribution Report', 'Admission History']),
                 const SizedBox(height: 32),
-                _buildReportSection(context, gemini, 'FINANCIAL QUANTUM LOGS', Icons.account_balance_wallet_rounded, Colors.green, ['Treasury Collection Summary', 'Daily Cash Flow Stream', 'Revenue Projection Algorithm']),
+                _buildReportSection(context, gemini, 'FINANCIAL RECORDS', Icons.account_balance_wallet_rounded, Colors.green, ['Fee Collection Summary', 'Daily Cash Flow Report', 'Revenue Projections']),
                 const SizedBox(height: 32),
-                _buildReportSection(context, gemini, 'OFFICE & SECURITY LOGS', Icons.shield_rounded, Colors.teal, ['Daily Visitor Summary', 'Appointment Matrix History']),
+                _buildReportSection(context, gemini, 'ADMIN & SECURITY LOGS', Icons.shield_rounded, Colors.teal, ['Daily Visitor Log', 'Appointment History']),
               ],
             ),
       ),

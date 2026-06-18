@@ -48,7 +48,7 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Handshakes', 
+        title: const Text('School Communications', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -94,10 +94,10 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
                     decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
                     child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 24),
                   ),
-                  title: Text(msg['title'] ?? 'Neural Notice', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                  title: Text(msg['title'] ?? 'Notice', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                   subtitle: Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(msg['message'] ?? 'No transmission data.', 
+                    child: Text(msg['message'] ?? 'No message content.',
                       style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)
                     ),
                   ),

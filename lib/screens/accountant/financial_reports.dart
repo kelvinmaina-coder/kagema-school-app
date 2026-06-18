@@ -75,7 +75,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Neural Auditing', 
+        title: const Text('Financial Auditing', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -175,7 +175,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
         children: [
           _summaryBox(theme, gemini, 'Net Cash', _cashCollection, Icons.account_balance_wallet_rounded, Colors.green),
           const SizedBox(width: 12),
-          _summaryBox(theme, gemini, 'Neural Grants', _waiverAmount, Icons.stars_rounded, Colors.purple),
+          _summaryBox(theme, gemini, 'Fee Waivers', _waiverAmount, Icons.stars_rounded, Colors.purple),
         ],
       ),
     );
@@ -249,7 +249,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
             style: TextStyle(fontWeight: FontWeight.w900, color: isWaiver ? Colors.purple : Colors.blue.shade800, fontSize: 14, letterSpacing: 0.5),
           ),
           Text(
-            isWaiver ? 'NEURAL GRANT' : (item['payment_method']?.toString().toUpperCase() ?? 'LIQUID CASH'),
+            isWaiver ? 'FEE WAIVER' : (item['payment_method']?.toString().toUpperCase() ?? 'CASH'),
             style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1),
           ),
         ],
@@ -296,7 +296,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('NEURAL REVENUE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2, color: Colors.green)),
+              const Text('TOTAL REVENUE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2, color: Colors.green)),
               Text(
                 'Ksh ${NumberFormat("#,##0").format(_cashCollection)}', 
                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: Colors.green, letterSpacing: -0.5)
@@ -315,7 +315,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('NO TRANSACTION DATA DISCOVERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          const Text('NO TRANSACTION RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

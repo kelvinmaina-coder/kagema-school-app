@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
-import '../../services/pdf_generator_service.dart';
-import '../../services/mpesa_service.dart';
+import '../../services/pesapal_service.dart';
 import '../../app_theme.dart';
 
 class FeeManagementScreen extends StatefulWidget {
@@ -42,7 +42,6 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
         return;
       }
 
-      // OPTIMIZED: Process students in parallel to avoid "plain screen" hang
       final List<Future<Map<String, dynamic>?>> futures = studentsList.map((sMap) async {
         try {
           final student = Student.fromMap(sMap);
@@ -56,16 +55,14 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
             'totalExpected': (balanceData['total_fee'] as num? ?? 0.0).toDouble(),
             'totalPaid': (balanceData['total_paid'] as num? ?? 0.0).toDouble(),
             'balance': (balanceData['balance'] as num? ?? 0.0).toDouble(),
-            'arrears': 0.0, 
           };
         } catch (e) {
-          debugPrint("Neural processing error for student: $e");
           return null;
         }
       }).toList();
 
       final results = await Future.wait(futures);
-      final List<Map<String, dynamic>> validRecords = results.whereType<Map<String, dynamic>>().toList();
+      final validRecords = results.whereType<Map<String, dynamic>>().toList();
 
       if (mounted) {
         setState(() {
@@ -75,11 +72,10 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
         });
       }
     } catch (e) {
-      debugPrint("Fee Matrix Sync Error: $e");
       if (mounted) {
         setState(() {
           isLoading = false;
-          errorMsg = "Sync interrupted. Pull down to retry connection.";
+          errorMsg = "Sync failed. Please check connection.";
         });
       }
     }
@@ -103,12 +99,13 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.mode == 'collection' ? 'Neural Collection' : 'Quantum Statements', 
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white, fontSize: 18)
+        title: Text(widget.mode == 'collection' ? 'COLLECTIONS' : 'STATEMENTS', 
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 4, color: Colors.white, fontSize: 14)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -117,57 +114,40 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.deepOrange.shade900, Colors.deepOrange.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        flexibleSpace: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: gemini?.primaryGradient ?? LinearGradient(colors: [Colors.deepOrange.shade900, Colors.deepOrange.shade600]),
             ),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.deepOrange.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20, top: -10,
-                child: Icon(Icons.account_balance_wallet_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
-              ),
-            ],
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: _loadData,
-          ),
-        ],
       ),
       body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
+        isDark: isDark,
         child: SafeArea(
           child: Column(
             children: [
-              _buildSearchHeader(theme, gemini),
-              if (errorMsg != null)
-                _buildErrorPanel(errorMsg!),
+              _buildSearchHeader(theme, gemini, isDark),
+              if (errorMsg != null) _buildErrorBanner(errorMsg!),
               Expanded(
                 child: isLoading
-                    ? const Center(child: CircularProgressIndicator(color: Colors.deepOrange))
-                    : filteredRecords.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _loadData,
-                            color: Colors.deepOrange,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
-                              itemCount: filteredRecords.length,
-                              itemBuilder: (context, index) {
-                                final record = filteredRecords[index];
-                                return _buildStudentRecordCard(theme, gemini, record);
-                              },
-                            ),
-                          ),
+                    ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: theme.primaryColor,
+                        child: filteredRecords.isEmpty
+                            ? _buildEmptyState(isDark)
+                            : ListView.builder(
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                                itemCount: filteredRecords.length,
+                                itemBuilder: (context, index) {
+                                  final record = filteredRecords[index];
+                                  return _buildStudentCard(theme, gemini, record, isDark);
+                                },
+                              ),
+                      ),
               ),
             ],
           ),
@@ -176,385 +156,87 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     );
   }
 
-  Widget _buildErrorPanel(String msg) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.red.withOpacity(0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.red.withOpacity(0.1))),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Colors.red, size: 18),
-          const SizedBox(width: 12),
-          Expanded(child: Text(msg, style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchHeader(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = TextField(
-      controller: _searchController,
-      onChanged: _searchStudents,
-      style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: InputDecoration(
-        hintText: 'Neural search by name or ADM...',
-        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-        prefixIcon: const Icon(Icons.search_rounded, color: Colors.deepOrange),
-        border: InputBorder.none,
-        suffixIcon: _searchController.text.isNotEmpty 
-          ? IconButton(icon: const Icon(Icons.cancel_rounded, color: Colors.grey), onPressed: () {
-              _searchController.clear();
-              _searchStudents('');
-            })
-          : null,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
-      ),
-    );
-
+  Widget _buildSearchHeader(ThemeData theme, GeminiThemeExtension? gemini, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       child: gemini?.buildGlowContainer(
-        borderRadius: 20,
+        borderRadius: 25,
         borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.95),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: content,
-      ) ?? Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: theme.cardColor.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))]
+        backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
+        padding: const EdgeInsets.symmetric(horizontal: 15),
+        child: TextField(
+          controller: _searchController,
+          onChanged: _searchStudents,
+          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+          decoration: InputDecoration(
+            hintText: 'SEARCH BY NAME / ADM NO',
+            hintStyle: TextStyle(fontSize: 10, letterSpacing: 2, color: isDark ? Colors.white24 : Colors.black26),
+            prefixIcon: Icon(Icons.search_rounded, color: theme.primaryColor),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          ),
         ),
-        child: content,
-      ),
+      ) ?? const SizedBox(),
     );
   }
 
-  Widget _buildStudentRecordCard(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> record) {
+  Widget _buildStudentCard(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> record, bool isDark) {
     final Student student = record['student'];
     final double balance = record['balance'] ?? 0.0;
-    final double paid = record['totalPaid'] ?? 0.0;
-    final double expected = record['totalExpected'] ?? 0.0;
-    final double arrears = record['arrears'] ?? 0.0;
-
-    final content = ExpansionTile(
-      shape: const Border(),
-      leading: CircleAvatar(
-        radius: 25,
-        backgroundColor: Colors.deepOrange.withOpacity(0.1),
-        child: Text(student.name.isNotEmpty ? student.name[0].toUpperCase() : '?', 
-          style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w900, fontSize: 20)
-        ),
-      ),
-      title: Text(student.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-      subtitle: Text('ADM: ${student.admissionNumber} • Grade ${student.grade}', 
-        style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12, fontWeight: FontWeight.w700)
-      ),
-      childrenPadding: const EdgeInsets.all(20),
-      children: [
-        gemini?.buildGlowContainer(
-          borderRadius: 24,
-          borderThickness: 1,
-          backgroundColor: Colors.deepOrange.withOpacity(0.02),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _ledgerItem('Total Neural Invoice', expected, Colors.blueGrey),
-                  _ledgerItem('Synchronized', paid, Colors.green),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _ledgerItem('Arrears', arrears, Colors.orange.shade700),
-                  _ledgerItem('Quantum Balance', balance, balance > 0 ? Colors.red : Colors.green, isBold: true),
-                ],
-              ),
-              const Divider(height: 40, thickness: 1, color: Colors.white10),
-              Text('NEURAL OPERATIONS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-              const SizedBox(height: 20),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 2.5,
-                children: [
-                  _operationButton('RECORD CASH', Icons.payments_rounded, Colors.green, () => _showPaymentDialog(student)),
-                  _operationButton('STK PUSH', Icons.phonelink_ring_rounded, Colors.blue, () => _showStkPushDialog(student)),
-                  _operationButton('WAIVER', Icons.stars_rounded, Colors.purple, () => _showWaiverDialog(student)),
-                  _operationButton('LEDGER', Icons.list_alt_rounded, Colors.blueGrey, () => _viewHistory(student)),
-                ],
-              ),
-            ],
-          ),
-        ) ?? const SizedBox(),
-      ],
-    );
-
+    
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: gemini?.buildGlowContainer(
         borderRadius: 30,
-        borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.85),
+        borderThickness: 1.2,
+        backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
         padding: EdgeInsets.zero,
-        child: content,
-      ) ?? Card(child: content),
-    );
-  }
-
-  Widget _operationButton(String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: color.withOpacity(0.15)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _ledgerItem(String label, double amount, Color color, {bool isBold = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.blueGrey.shade400, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        const SizedBox(height: 6),
-        Text(
-          'Ksh ${NumberFormat("#,##0.##").format(amount)}', 
-          style: TextStyle(fontWeight: isBold ? FontWeight.w900 : FontWeight.w800, color: color, fontSize: 14, letterSpacing: 0.5)
-        ),
-      ],
-    );
-  }
-
-  void _showPaymentDialog(Student student) {
-    final theme = Theme.of(context);
-    final amountController = TextEditingController();
-    final refController = TextEditingController();
-    String selectedMethod = 'Cash';
-    String selectedCategory = 'Tuition';
-    String selectedTerm = 'Term 1';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            leading: CircleAvatar(
+              radius: 25,
+              backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+              child: Text(student.name[0].toUpperCase(), 
+                style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900)
+              ),
+            ),
+            title: Text(student.name.toUpperCase(), 
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: isDark ? Colors.white : Colors.black87)
+            ),
+            subtitle: Text('ADM: ${student.admissionNumber} • GRADE ${student.grade}', 
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 24),
-                Text('NEURAL REVENUE ENTRY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-                const SizedBox(height: 8),
-                Text(student.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                const SizedBox(height: 32),
-                _buildNeuralDropdown('Target Cycle', selectedTerm, ['Term 1', 'Term 2', 'Term 3'], (v) => selectedTerm = v!, Icons.layers_rounded, theme),
-                const SizedBox(height: 16),
-                _buildNeuralDropdown('Payment Mode', selectedMethod, ['Cash', 'M-Pesa', 'Bank Deposit', 'Cheque'], (v) => selectedMethod = v!, Icons.hub_rounded, theme),
-                const SizedBox(height: 16),
-                _buildNeuralDropdown('Category', selectedCategory, ['Tuition', 'Transport', 'Boarding', 'Activities', 'Uniform'], (v) => selectedCategory = v!, Icons.category_rounded, theme),
-                const SizedBox(height: 16),
-                _buildNeuralField('Amount Received (Ksh)', Icons.payments_rounded, amountController, theme, keyboardType: TextInputType.number),
-                const SizedBox(height: 16),
-                _buildNeuralField('Neural Ref / Note', Icons.qr_code_rounded, refController, theme),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      if (amountController.text.isNotEmpty) {
-                        final amount = double.tryParse(amountController.text) ?? 0.0;
-                        final receiptNo = 'RCP-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
-                        final paymentDate = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
-                        
-                        final payment = {
-                          'student_id': student.studentId,
-                          'student_name': student.name,
-                          'amount_paid': amount,
-                          'term': selectedTerm,
-                          'year': DateTime.now().year,
-                          'payment_method': selectedMethod,
-                          'category': selectedCategory,
-                          'reference': refController.text.trim(),
-                          'receipt_number': receiptNo,
-                          'payment_date': paymentDate,
-                        };
-
-                        try {
-                          await SupabaseService.instance.insertFeePayment(payment);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            await PdfGeneratorService.generateReceipt(payment);
-                            _showSuccessAndReceipt(payment);
-                            _loadData();
-                          }
-                        } catch (e) {
-                          if (mounted) _loadData();
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrange.shade800, 
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 8,
-                    ),
-                    child: const Text('AUTHORIZE & PRINT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  ),
+                Text('KSH ${NumberFormat('#,###').format(balance)}', 
+                  style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), fontSize: 14)
                 ),
-                const SizedBox(height: 40),
+                const Text('BALANCE', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 1)),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNeuralDropdown(String label, String value, List<String> items, Function(String?) onChanged, IconData icon, ThemeData theme) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label, 
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-        prefixIcon: Icon(icon, color: Colors.deepOrange, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-      ),
-    );
-  }
-
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-        prefixIcon: Icon(icon, color: Colors.deepOrange, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-      ),
-    );
-  }
-
-  void _showWaiverDialog(Student student) {
-    final theme = Theme.of(context);
-    final amountController = TextEditingController();
-    final reasonController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-              const SizedBox(height: 24),
-              Text('NEURAL GRANT AUTHORIZATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-              const SizedBox(height: 8),
-              Text(student.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 32),
-              _buildNeuralField('Waiver Quota (Ksh)', Icons.stars_rounded, amountController, theme, keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
-              _buildNeuralField('Intelligence Logic (Reason)', Icons.psychology_rounded, reasonController, theme),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (amountController.text.isNotEmpty) {
-                      final amount = double.tryParse(amountController.text) ?? 0.0;
-                      final receiptNo = 'WAV-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-                      final paymentDate = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
-                      
-                      final payment = {
-                        'student_id': student.studentId,
-                        'student_name': student.name,
-                        'amount_paid': amount,
-                        'term': 'Annual',
-                        'year': DateTime.now().year,
-                        'payment_method': 'Waiver',
-                        'category': 'Grant/Discount',
-                        'reference': reasonController.text.trim(),
-                        'receipt_number': receiptNo,
-                        'payment_date': paymentDate,
-                      };
-                      
-                      try {
-                        await SupabaseService.instance.insertFeePayment(payment);
-                        if (mounted) {
-                          Navigator.pop(context);
-                          await PdfGeneratorService.generateReceipt(payment);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Neural Grant Applied & Cataloged!', style: TextStyle(fontWeight: FontWeight.bold)), 
-                              backgroundColor: Colors.purple.shade800,
-                              behavior: SnackBarBehavior.floating,
-                            )
-                          );
-                          _loadData();
-                        }
-                      } catch (e) {
-                        if (mounted) _loadData();
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple.shade800, 
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    elevation: 8,
-                  ),
-                  child: const Text('AUTHORIZE GRANT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: Column(
+                  children: [
+                    Container(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1)),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _actionIcon('CASH', Icons.payments_rounded, const Color(0xFF00E676), () => _showManualPayment(student, 'Cash')),
+                        _actionIcon('PESAPAL', Icons.qr_code_scanner_rounded, const Color(0xFF2979FF), () => _showPesapalPayment(student)),
+                        _actionIcon('WAIVER', Icons.card_giftcard_rounded, const Color(0xFF7C4DFF), () => _showManualPayment(student, 'Waiver')),
+                        _actionIcon('HISTORY', Icons.history_rounded, Colors.blueGrey, () => _viewHistory(student)),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 40),
+              )
             ],
           ),
         ),
@@ -562,9 +244,27 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     );
   }
 
-  void _showStkPushDialog(Student student) {
+  Widget _actionIcon(String label, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: color, letterSpacing: 1.5)),
+        ],
+      ),
+    );
+  }
+
+  void _showPesapalPayment(Student student) {
     final theme = Theme.of(context);
-    final phoneController = TextEditingController(text: student.parentPhone.replaceAll(' ', ''));
+    final gemini = theme.extension<GeminiThemeExtension>();
     final amountController = TextEditingController();
     bool isProcessing = false;
 
@@ -573,102 +273,155 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Container(
+        builder: (context, setModalState) => Container(
           decoration: BoxDecoration(
             color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
-          child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-                const SizedBox(height: 24),
-                Text('STK QUANTUM PUSH', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-                const SizedBox(height: 8),
-                const Text('M-Pesa Express Sync', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                const SizedBox(height: 32),
-                _buildNeuralField('Verified Contact', Icons.phone_iphone_rounded, phoneController, theme, keyboardType: TextInputType.phone),
-                const SizedBox(height: 16),
-                _buildNeuralField('Neural Quota to Push', Icons.add_shopping_cart_rounded, amountController, theme, keyboardType: TextInputType.number),
-                const SizedBox(height: 32),
-                if (isProcessing) 
-                  const Center(child: Column(children: [CircularProgressIndicator(color: Colors.green), SizedBox(height: 12), Text('Establishing Secure Handshake...', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic))])),
-                const SizedBox(height: 40),
-                if (!isProcessing)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (amountController.text.isNotEmpty && phoneController.text.isNotEmpty) {
-                          setDialogState(() => isProcessing = true);
-                          final amount = double.tryParse(amountController.text) ?? 0.0;
-                          final result = await MpesaService.instance.initiateStkPush(
-                            phoneNumber: phoneController.text,
-                            amount: amount,
-                            reference: "FEES-${student.admissionNumber}",
-                          );
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 32, right: 32, top: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 32),
+              const Text('INITIATE PESAPAL STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+                decoration: InputDecoration(
+                  labelText: 'COLLECTION AMOUNT',
+                  labelStyle: TextStyle(color: theme.primaryColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
+                  prefixIcon: Icon(Icons.currency_exchange_rounded, color: theme.primaryColor),
+                  filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.white10)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                ),
+              ),
+              const SizedBox(height: 32),
+              if (isProcessing) 
+                const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Color(0xFF2979FF)))
+              else SizedBox(
+                width: double.infinity, height: 65,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (amountController.text.isEmpty) return;
+                    setModalState(() => isProcessing = true);
+                    
+                    final response = await PesapalService.instance.initiatePayment(
+                      phoneNumber: student.parentPhone,
+                      amount: double.parse(amountController.text),
+                      email: student.parentEmail ?? 'finance@kagema.edu',
+                      reference: "FEES-${student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
+                      studentName: student.name,
+                    );
 
-                          if (context.mounted) {
-                            if (result['success'] == true) {
-                              final receiptNo = 'MPA-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}';
-                              final payment = {
-                                'student_id': student.studentId,
-                                'student_name': student.name,
-                                'amount_paid': amount,
-                                'term': 'Term 1',
-                                'year': DateTime.now().year,
-                                'payment_method': 'M-Pesa',
-                                'category': 'Tuition',
-                                'reference': 'STK:${result['CheckoutRequestID']}',
-                                'receipt_number': receiptNo,
-                                'payment_date': DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-                              };
-                              await SupabaseService.instance.insertFeePayment(payment);
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                await PdfGeneratorService.generateReceipt(payment);
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('STK Push Initiated: ${result['message']}'), backgroundColor: Colors.green.shade800));
-                                _loadData();
-                              }
-                            } else {
-                              setDialogState(() => isProcessing = false);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Push Error: ${result['message']}'), backgroundColor: Colors.red));
-                            }
-                          }
+                    if (mounted) {
+                      setModalState(() => isProcessing = false);
+                      if (response['success']) {
+                        final url = Uri.parse(response['redirect_url']);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          Navigator.pop(context);
+                          _showSuccessToast("STK PUSH / CHECKOUT SENT");
                         }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700, 
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                      ),
-                      child: const Text('AUTHORIZE PUSH SIGNAL', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                    ),
+                      } else {
+                        _showErrorToast(response['message'] ?? "GATEWAY ERROR");
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2979FF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    elevation: 0,
                   ),
-                const SizedBox(height: 40),
-              ],
-            ),
+                  child: const Text('TRIGGER PAYMENT NODE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
           ),
         ),
       ),
     );
   }
 
-  void _showSuccessAndReceipt(Map<String, dynamic> payment) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Neural Transaction Success: Logged & Verified!', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.green.shade800,
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'RE-PRINT',
-          textColor: Colors.white,
-          onPressed: () => PdfGeneratorService.generateReceipt(payment),
+  void _showManualPayment(Student student, String method) {
+    final theme = Theme.of(context);
+    final amountController = TextEditingController();
+    final refController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 32, right: 32, top: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 32),
+            Text('RECORD $method PAYMENT'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
+            const SizedBox(height: 24),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'AMOUNT (KSH)',
+                labelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
+                filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: refController,
+              decoration: InputDecoration(
+                labelText: 'REFERENCE / RECEIPT NO',
+                labelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
+                filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity, height: 65,
+              child: ElevatedButton(
+                onPressed: () async {
+                  if (amountController.text.isNotEmpty) {
+                    final data = {
+                      'student_id': student.studentId,
+                      'student_name': student.name,
+                      'amount_paid': double.parse(amountController.text),
+                      'payment_method': method,
+                      'receipt_number': refController.text.isEmpty ? 'M-$method-${DateTime.now().millisecondsSinceEpoch}' : refController.text,
+                      'payment_date': DateTime.now().toIso8601String(),
+                      'term': 'Term 1', // Simplified for now
+                      'year': DateTime.now().year,
+                    };
+                    await SupabaseService.instance.insertFeePayment(data);
+                    if (mounted) { Navigator.pop(context); _loadData(); _showSuccessToast("RECORD SAVED"); }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: method == 'Cash' ? const Color(0xFF00E676) : const Color(0xFF7C4DFF),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                ),
+                child: const Text('AUTHORIZE RECORD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
         ),
       ),
     );
@@ -677,7 +430,9 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   void _viewHistory(Student student) async {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = theme.brightness == Brightness.dark;
     final history = await SupabaseService.instance.getFeeHistory(student.studentId);
+    
     if (!mounted) return;
     
     showModalBottomSheet(
@@ -687,75 +442,103 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
-        height: MediaQuery.of(context).size.height * 0.85,
-        child: gemini?.buildCreativeBackground(
-          isDark: theme.brightness == Brightness.dark,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2))),
-                const SizedBox(height: 24),
-                Text('NEURAL LEDGER MATRIX', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-                const SizedBox(height: 8),
-                Text(student.name.toUpperCase(), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                Text('ADM IDENTIFIER: ${student.admissionNumber}', style: TextStyle(color: Colors.blueGrey.shade400, fontWeight: FontWeight.w900, fontSize: 11)),
-                const Divider(height: 40, thickness: 1, color: Colors.white10),
-                Expanded(
-                  child: history.isEmpty 
-                    ? const Center(child: Text('NO NEURAL RECORDS DISCOVERED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)))
-                    : ListView.builder(
-                        itemCount: history.length,
-                        itemBuilder: (context, i) {
-                          final p = history[i];
-                          final isWaiver = p['payment_method'] == 'Waiver';
-                          final color = isWaiver ? Colors.purple : Colors.green;
-                          final hContent = ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                            leading: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                              child: Icon(isWaiver ? Icons.stars_rounded : Icons.receipt_long_rounded, color: color, size: 22),
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
+            const SizedBox(height: 32),
+            Text('PAYMENT LEDGER: ${student.name.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+            const SizedBox(height: 20),
+            Expanded(
+              child: history.isEmpty 
+                ? _buildEmptyState(isDark)
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: history.length,
+                    itemBuilder: (context, i) {
+                      final p = history[i];
+                      final isManual = p['payment_method'] == 'Cash' || p['payment_method'] == 'Waiver';
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white10),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('KSH ${NumberFormat('#,###').format(p['amount_paid'])}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                                Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}', 
+                                  style: TextStyle(fontSize: 8, color: Colors.blueGrey, fontWeight: FontWeight.w900, letterSpacing: 1)
+                                ),
+                              ],
                             ),
-                            title: Text('Ksh ${NumberFormat("#,##0").format(p['amount_paid'])}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                            subtitle: Text('${p['payment_method']} • ${p['category']}\n${p['payment_date']}', style: const TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: Colors.grey)),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.print_rounded, color: Colors.blue),
-                              onPressed: () => PdfGeneratorService.generateReceipt(p),
-                            ),
-                          );
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: gemini?.buildGlowContainer(
-                              borderRadius: 24,
-                              borderThickness: 1,
-                              backgroundColor: theme.cardColor.withOpacity(0.85),
-                              padding: EdgeInsets.zero,
-                              child: hContent,
-                            ) ?? Card(child: hContent),
-                          );
-                        },
-                      ),
-                ),
-              ],
+                            Icon(isManual ? Icons.verified_user_rounded : Icons.cloud_done_rounded, color: Colors.blueGrey.withValues(alpha: 0.3), size: 20),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
             ),
-          ),
-        ) ?? const SizedBox(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  void _showSuccessToast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
+      backgroundColor: const Color(0xFF00E676),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    ));
+  }
+
+  void _showErrorToast(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
+      backgroundColor: const Color(0xFFFF3D00),
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    ));
+  }
+
+  Widget _buildErrorBanner(String msg) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: const Color(0xFFFF3D00).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFFF3D00).withValues(alpha: 0.1))),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Color(0xFFFF3D00), size: 18),
+          const SizedBox(width: 12),
+          Expanded(child: Text(msg, style: const TextStyle(color: Color(0xFFFF3D00), fontSize: 11, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.layers_clear_rounded, size: 100, color: Colors.grey),
-          SizedBox(height: 20),
-          Text('IDENTITY REGISTRY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 16, letterSpacing: 1.5)),
+          Icon(Icons.person_search_rounded, size: 80, color: isDark ? Colors.white12 : Colors.black12),
+          const SizedBox(height: 24),
+          const Text('NO STUDENT MATCHES FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3, fontSize: 12)),
         ],
       ),
     );

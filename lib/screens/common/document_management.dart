@@ -42,16 +42,16 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                Text('NEURAL REPOSITORY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                Text('SYSTEM REPOSITORY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                const Text('Upload New Volume', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text('Upload New Document', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Document Designation', Icons.title_rounded, titleController, theme),
+                _buildFormField('Document Name', Icons.title_rounded, titleController, theme),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: category,
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  decoration: _neuralInputDecoration('Intelligence Category', Icons.category_rounded, theme),
+                  decoration: _formInputDecoration('Document Category', Icons.category_rounded, theme),
                   items: ['Forms', 'Letters', 'Certificates', 'Archive'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => category = v!,
                 ),
@@ -93,7 +93,7 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _formInputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -104,11 +104,11 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildFormField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _formInputDecoration(label, icon, theme),
     );
   }
 
@@ -120,7 +120,7 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Knowledge Vault', 
+        title: const Text('School Vault', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -205,7 +205,7 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const Text('SYNC NEW VOLUME', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                label: const Text('SYNC NEW DOCUMENT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
               ),
             )
           : null,

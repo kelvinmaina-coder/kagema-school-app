@@ -65,19 +65,19 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY LOG' : 'NEURAL VISITOR ENTRY', 
+                  Text(isEditing ? 'MODIFY LOG' : 'VISITOR ENTRY', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Profile' : 'Identity Verification', 
+                  Text(isEditing ? 'Change Profile' : 'Identity Verification', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Legal Full Name', Icons.person_outline_rounded, nameController, theme),
+                  _buildFormField('Legal Full Name', Icons.person_outline_rounded, nameController, theme),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Neural Contact', Icons.phone_android_rounded, phoneController, theme, keyboardType: TextInputType.phone),
+                  _buildFormField('Contact Number', Icons.phone_android_rounded, phoneController, theme, keyboardType: TextInputType.phone),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Visit Intelligence (Purpose)', Icons.info_outline_rounded, purposeController, theme),
+                  _buildFormField('Visit Purpose', Icons.info_outline_rounded, purposeController, theme),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
@@ -101,7 +101,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
                               _loadVisitors();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('Neural Pulse Synced: Visitor Logged', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  content: const Text('System Synced: Visitor Logged', style: TextStyle(fontWeight: FontWeight.bold)),
                                   backgroundColor: Colors.teal.shade800,
                                   behavior: SnackBarBehavior.floating,
                                 )
@@ -118,7 +118,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE ENTRY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      child: Text(isEditing ? 'COMMIT SYNC' : 'AUTHORIZE ENTRY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -131,7 +131,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
+  Widget _buildFormField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
@@ -152,11 +152,11 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Log?', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text('Delete Log?', style: TextStyle(fontWeight: FontWeight.w900)),
         content: Text('Are you sure you want to erase the log for "${v['name']}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -175,7 +175,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Security Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+        title: const Text('Visitor Logs', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -247,7 +247,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
                               },
                               itemBuilder: (context) => [
                                 const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Info', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
-                                const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Purge', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
+                                const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Remove', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
                               ],
                             ),
                           ],
@@ -279,7 +279,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Log Quantum Visitor', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Log New Visitor', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -292,7 +292,7 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
         children: [
           Icon(Icons.shield_outlined, size: 80, color: Colors.grey.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('SECURITY REGISTRY EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          const Text('VISITOR LOGS EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

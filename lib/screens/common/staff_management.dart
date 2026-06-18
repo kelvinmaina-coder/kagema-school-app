@@ -56,7 +56,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Faculty Intelligence', 
+        title: const Text('Staff Directory', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -155,7 +155,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Recruit Entity', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add Staff', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ) : null,
     );
@@ -166,7 +166,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       onChanged: (v) => setState(() => _searchQuery = v),
       style: const TextStyle(fontWeight: FontWeight.bold),
       decoration: InputDecoration(
-        hintText: 'Neural search faculty...',
+        hintText: 'Search staff members...',
         hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
         prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
         border: InputBorder.none,
@@ -213,7 +213,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         children: [
           Icon(Icons.badge_outlined, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL ENTITIES FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO STAFF MEMBERS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

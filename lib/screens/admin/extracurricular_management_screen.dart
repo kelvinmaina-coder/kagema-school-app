@@ -13,7 +13,7 @@ class ExtracurricularManagementScreen extends StatefulWidget {
 class _ExtracurricularManagementScreenState extends State<ExtracurricularManagementScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _activities = [];
-  bool isLoading = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -24,17 +24,17 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
 
   Future<void> _loadData() async {
     if (!mounted) return;
-    setState(() => isLoading = true);
+    setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getActivities();
       if (mounted) {
         setState(() {
           _activities = data;
-          isLoading = false;
+          _isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -61,11 +61,11 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                const Text('AUTHORIZE SCHOOL ACTIVITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
+                const Text('ADD SCHOOL ACTIVITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
                 const SizedBox(height: 32),
-                _buildNeuralField('Activity Name', Icons.hub_rounded, titleCtrl, theme),
+                _buildInputField('Activity Name', Icons.groups_rounded, titleCtrl, theme),
                 const SizedBox(height: 16),
-                _buildNeuralField('Participants (e.g. 24 Pupils)', Icons.groups_rounded, statsCtrl, theme),
+                _buildInputField('Number of Participants (e.g. 24 Students)', Icons.person_add_rounded, statsCtrl, theme),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: category,
@@ -91,7 +91,7 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
                       }
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.pink.shade700, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                    child: const Text('COMMIT TO CLOUD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: const Text('SAVE ACTIVITY', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -103,7 +103,7 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
     return TextField(
       controller: ctrl,
       style: const TextStyle(fontWeight: FontWeight.bold),
@@ -118,7 +118,7 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Activity Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('School Activities', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.pink.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
@@ -128,7 +128,7 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
         isDark: theme.brightness == Brightness.dark,
         child: Padding(
           padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
-          child: isLoading
+          child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: Colors.pink))
             : TabBarView(
                 controller: _tabController,
@@ -139,7 +139,7 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
               ),
         ),
       ),
-      floatingActionButton: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: Colors.pink.shade700, padding: EdgeInsets.zero, child: FloatingActionButton.extended(onPressed: _showAddDialog, icon: const Icon(Icons.add), label: const Text('Add Neural Record', style: TextStyle(fontWeight: FontWeight.w900)))),
+      floatingActionButton: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 2, backgroundColor: Colors.pink.shade700, padding: EdgeInsets.zero, child: FloatingActionButton.extended(onPressed: _showAddDialog, icon: const Icon(Icons.add), label: const Text('Add Activity', style: TextStyle(fontWeight: FontWeight.w900)))) ?? FloatingActionButton.extended(onPressed: _showAddDialog, icon: const Icon(Icons.add), label: const Text('Add Activity', style: TextStyle(fontWeight: FontWeight.w900)), backgroundColor: Colors.pink.shade700),
     );
   }
 
@@ -151,11 +151,11 @@ class _ExtracurricularManagementScreenState extends State<ExtracurricularManagem
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final a = filtered[index];
-        final content = ListTile(leading: const CircleAvatar(backgroundColor: Colors.pink, child: Icon(Icons.hub, color: Colors.white)), title: Text(a['title'] ?? 'Activity', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text(a['stats'] ?? '0 Nodes'));
+        final content = ListTile(leading: const CircleAvatar(backgroundColor: Colors.pink, child: Icon(Icons.star_rounded, color: Colors.white)), title: Text(a['title'] ?? 'Activity', style: const TextStyle(fontWeight: FontWeight.w900)), subtitle: Text(a['stats'] ?? '0 Students'));
         return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
       },
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.layers_clear, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO ACTIVITIES LOGGED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))]));
+  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.layers_clear, size: 80, color: Colors.grey), SizedBox(height: 16), Text('NO ACTIVITIES RECORDED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey))]));
 }

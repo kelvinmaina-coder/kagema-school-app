@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:ui';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
 import '../settings/settings_screen.dart';
@@ -83,51 +84,62 @@ class _ParentDashboardState extends State<ParentDashboard> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = theme.brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // INTELLIGENT RESPONSIVENESS: Limit content width on Desktop/Tablet
+    double maxWidth = screenWidth > 1200 ? 1000 : (screenWidth > 800 ? 800 : screenWidth);
 
     return Scaffold(
       extendBody: true,
       body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
+        isDark: isDark,
+        maxWidth: maxWidth, 
         child: isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
+          ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
           : IndexedStack(
               index: _selectedIndex,
               children: [
-                _buildHomeTab(theme, gemini),
+                _buildHomeTab(theme, gemini, screenWidth),
                 const AnnouncementsScreen(),
                 ChildListScreen(parentPhone: widget.parentPhone),
                 const SettingsScreen(role: 'Parent'),
               ],
             ),
-      ),
-      bottomNavigationBar: _buildModernNavBar(theme, gemini),
+      ) ?? const SizedBox(),
+      bottomNavigationBar: _buildModernNavBar(theme, gemini, screenWidth),
     );
   }
 
-  Widget _buildHomeTab(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildHomeTab(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
     return RefreshIndicator(
       onRefresh: _loadAllData,
+      color: theme.primaryColor,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           _buildHeroAppBar(theme, gemini),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth > 600 ? 40 : 20, 
+                vertical: 32
+              ),
               child: children.isEmpty 
-                ? _buildEmptyState()
+                ? _buildEmptyState(theme.brightness == Brightness.dark)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildChildSelector(theme, gemini),
-                      const SizedBox(height: 32),
-                      _buildSectionLabel(theme, 'SCHOOL PERFORMANCE'),
+                      const SizedBox(height: 40),
+                      _buildSectionLabel('INTELLIGENT INSIGHTS'),
                       const SizedBox(height: 16),
-                      _buildVitalsRow(theme, gemini),
-                      const SizedBox(height: 32),
-                      _buildSectionLabel(theme, 'ACADEMIC & SCHOOL SERVICES'),
+                      _buildVitalsRow(theme, gemini, screenWidth),
+                      const SizedBox(height: 40),
+                      _buildSectionLabel('STUDENT SERVICES'),
                       const SizedBox(height: 16),
-                      _buildServiceGrid(theme, gemini),
-                      const SizedBox(height: 120),
+                      _buildServiceGrid(theme, gemini, screenWidth),
+                      const SizedBox(height: 140),
                     ],
                   ),
             ),
@@ -137,171 +149,330 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildVitalsRow(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildVitalsRow(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
+    // Wrap vitals on very small screens
+    if (screenWidth < 360) {
+       return Column(
+         children: [
+           Row(children: [
+             _vitalBox(theme, gemini, 'ATTENDANCE', '${_attendancePercent.toInt()}%', const Color(0xFF2979FF), true),
+             const SizedBox(width: 12),
+             _vitalBox(theme, gemini, 'AVG SCORE', '${_avgGrade.toInt()}%', const Color(0xFFFFAB40), false),
+           ]),
+           const SizedBox(height: 12),
+           _vitalBox(theme, gemini, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), false),
+         ],
+       );
+    }
+    
     return Row(
       children: [
-        _vitalBox(theme, gemini, 'Attendance', '${_attendancePercent.toInt()}%', Colors.blue),
+        _vitalBox(theme, gemini, 'ATTENDANCE', '${_attendancePercent.toInt()}%', const Color(0xFF2979FF), true),
         const SizedBox(width: 12),
-        _vitalBox(theme, gemini, 'Fee Balance', 'Ksh ${_feeBalance.toInt()}', _feeBalance > 0 ? Colors.red : Colors.green),
+        _vitalBox(theme, gemini, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), false),
         const SizedBox(width: 12),
-        _vitalBox(theme, gemini, 'Avg Score', '${_avgGrade.toInt()}%', Colors.orange),
+        _vitalBox(theme, gemini, 'AVG SCORE', '${_avgGrade.toInt()}%', const Color(0xFFFFAB40), false),
       ],
     );
   }
 
-  Widget _vitalBox(ThemeData theme, GeminiThemeExtension? gemini, String l, String v, Color c) {
+  Widget _vitalBox(ThemeData theme, GeminiThemeExtension? gemini, String label, String value, Color color, bool useAIBorder) {
+    final isDark = theme.brightness == Brightness.dark;
+    
     final content = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(v, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: c)), 
-        const SizedBox(height: 4), 
-        Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1))
+        Text(value, 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color, shadows: [Shadow(color: color.withOpacity(0.2), blurRadius: 15)])
+        ), 
+        const SizedBox(height: 6), 
+        Text(label, 
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1.5)
+        )
       ]
     );
 
     return Expanded(
+      flex: 1,
       child: gemini?.buildGlowContainer(
-        borderRadius: 20,
-        borderThickness: 1,
-        backgroundColor: theme.cardColor.withOpacity(0.9),
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        useAIBorder: true, 
+        borderRadius: 24,
+        borderThickness: 1.5,
+        backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+        useAIBorder: useAIBorder, 
         child: content,
       ) ?? Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
+          borderRadius: BorderRadius.circular(24),
+        ),
         child: content,
       ),
     );
   }
 
-  Widget _buildServiceGrid(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildServiceGrid(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
+    // Dynamic column count for responsiveness
+    int crossAxisCount = screenWidth > 900 ? 4 : (screenWidth > 600 ? 3 : 2);
+
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
+      crossAxisCount: crossAxisCount,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.2,
+      childAspectRatio: 1.4,
       children: [
-        _serviceCard(theme, gemini, 'Roll Call', Icons.event_available_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildAttendanceScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Performance', Icons.auto_graph_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Fee Portal', Icons.payments_rounded, Colors.green, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Homework', Icons.assignment_rounded, Colors.purple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
-        _serviceCard(theme, gemini, 'Timetable', Icons.calendar_view_week_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Library', Icons.local_library_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Conduct', Icons.gavel_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'Calendar', Icons.event_note_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentCalendarScreen()))),
+        _serviceCard(theme, gemini, 'ROLL CALL', Icons.event_available_rounded, const Color(0xFF2979FF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildAttendanceScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'PERFORMANCE', Icons.auto_graph_rounded, const Color(0xFFFFAB40), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'FEE PORTAL', Icons.account_balance_wallet_rounded, const Color(0xFF00E676), () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'HOMEWORK', Icons.assignment_rounded, const Color(0xFF7C4DFF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
+        _serviceCard(theme, gemini, 'TIMETABLE', Icons.calendar_view_week_rounded, const Color(0xFF00B0FF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'LIBRARY', Icons.local_library_rounded, const Color(0xFF607D8B), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'CONDUCT', Icons.gavel_rounded, const Color(0xFFFF3D00), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
+        _serviceCard(theme, gemini, 'CALENDAR', Icons.event_note_rounded, const Color(0xFFFF4081), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentCalendarScreen()))),
       ],
     );
   }
 
   Widget _serviceCard(ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, VoidCallback onTap) {
-    final content = Column(
+    final isDark = theme.brightness == Brightness.dark;
+    
+    final cardContent = Column(
       mainAxisAlignment: MainAxisAlignment.center, 
       children: [
-        Icon(icon, color: color, size: 28), 
-        const SizedBox(height: 10), 
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5))
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ), 
+        const SizedBox(height: 12), 
+        Text(title, 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1.5, color: isDark ? Colors.white70 : Colors.black87)
+        )
       ]
     );
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: gemini?.buildGlowContainer(
-        borderRadius: 24,
-        borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.8),
-        padding: const EdgeInsets.all(12),
-        child: content,
-      ) ?? Container(
-        decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24)),
-        child: content,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: gemini?.buildGlowContainer(
+          borderRadius: 28,
+          borderThickness: 1.2,
+          backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
+          padding: const EdgeInsets.all(12),
+          child: cardContent,
+        ) ?? Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: cardContent,
+        ),
       ),
     );
   }
 
-  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      height: 70,
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.95), 
-        borderRadius: BorderRadius.circular(30), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, spreadRadius: -10)],
-        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _navIcon(0, Icons.home_rounded, 'Home'),
-          _navIcon(1, Icons.campaign_rounded, 'Notices'),
-          _navIcon(2, Icons.people_rounded, 'Family'),
-          _navIcon(3, Icons.person_rounded, 'Profile'),
-        ],
+  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Narrow navigation for tablets/desktop to keep it looking clean
+    double navWidth = screenWidth > 800 ? 500 : screenWidth - 40;
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(0, 0, 0, 25),
+        width: navWidth,
+        height: 75,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF), 
+          borderRadius: BorderRadius.circular(30), 
+          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.4)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10))
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _navIcon(0, Icons.grid_view_rounded, 'HUB'),
+                _navIcon(1, Icons.campaign_rounded, 'ALERTS'),
+                _navIcon(2, Icons.family_restroom_rounded, 'FAMILY'),
+                _navIcon(3, Icons.person_rounded, 'PROFILE'),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _navIcon(int index, IconData icon, String label) {
     bool isSelected = _selectedIndex == index;
-    return InkWell(
+    final color = isSelected ? Theme.of(context).primaryColor : Colors.blueGrey.withOpacity(0.5);
+    
+    return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: isSelected ? BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)) : null,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, 
-          children: [
-            Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 24), 
-            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? Theme.of(context).primaryColor : Colors.grey))
-          ]
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, 
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ), 
+          const SizedBox(height: 4),
+          Text(label, 
+            style: TextStyle(
+              fontSize: 8, 
+              fontWeight: FontWeight.w900, 
+              color: color,
+              letterSpacing: 1
+            )
+          )
+        ]
       ),
     );
   }
 
   Widget _buildChildSelector(ThemeData theme, GeminiThemeExtension? gemini) {
     if (children.isEmpty) return const SizedBox.shrink();
-    final content = Row(
+    final isDark = theme.brightness == Brightness.dark;
+
+    final selectorContent = Row(
       children: [
-        CircleAvatar(radius: 18, backgroundColor: theme.primaryColor, child: Text(selectedChild?.name[0] ?? '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: theme.primaryColor, width: 2),
+          ),
+          child: CircleAvatar(
+            radius: 18, 
+            backgroundColor: theme.primaryColor.withOpacity(0.1), 
+            child: Text(selectedChild?.name[0] ?? '?', 
+              style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)
+            )
+          ),
+        ),
+        const SizedBox(width: 16),
         Expanded(
           child: DropdownButtonHideUnderline(
             child: DropdownButton<Student>(
               value: selectedChild,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded),
-              items: children.map((c) => DropdownMenuItem(value: c, child: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)))).toList(),
+              dropdownColor: isDark ? const Color(0xFF1A1C22) : Colors.white,
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.primaryColor),
+              items: children.map((c) => DropdownMenuItem(
+                value: c, 
+                child: Text(c.name.toUpperCase(), 
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: isDark ? Colors.white : Colors.black87, letterSpacing: 1)
+                )
+              )).toList(),
               onChanged: (v) { if (v != null) { setState(() => selectedChild = v); _loadChildVitals(); } },
             ),
           ),
         ),
       ],
     );
-    return gemini?.buildGlowContainer(borderRadius: 20, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: content) ?? Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(20)), child: content);
+
+    return gemini?.buildGlowContainer(
+      borderRadius: 30, 
+      borderThickness: 1.5, 
+      backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF), 
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), 
+      useAIBorder: true,
+      child: selectorContent,
+    ) ?? Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: selectorContent,
+    );
   }
 
   Widget _buildHeroAppBar(ThemeData theme, GeminiThemeExtension? gemini) {
     return SliverAppBar(
-      expandedHeight: 120.0, pinned: true, backgroundColor: Colors.transparent, elevation: 0,
+      expandedHeight: 140.0, 
+      pinned: true, 
+      backgroundColor: Colors.transparent, 
+      elevation: 0,
+      stretch: true,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text('PARENT PORTAL', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
         centerTitle: true,
-        background: Container(
-          decoration: BoxDecoration(gradient: gemini?.primaryGradient, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)), boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)]),
-          child: Stack(children: [Positioned(left: -20, top: -10, child: Icon(Icons.family_restroom_rounded, size: 160, color: Colors.white.withOpacity(0.1)))]),
+        title: Text('PARENT PORTAL', 
+          style: TextStyle(
+            fontWeight: FontWeight.w900, 
+            fontSize: 16, 
+            letterSpacing: 4, 
+            color: Colors.white,
+            shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)]
+          )
+        ),
+        background: ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Container(decoration: BoxDecoration(gradient: gemini?.primaryGradient)),
+              Positioned(
+                right: -30, 
+                bottom: -20, 
+                child: Icon(Icons.hub_rounded, size: 180, color: Colors.white.withOpacity(0.05))
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(ThemeData theme, String text) {
-    return Padding(padding: const EdgeInsets.only(left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)));
+  Widget _buildSectionLabel(String text) {
+    return Row(
+      children: [
+        Container(width: 4, height: 14, decoration: BoxDecoration(color: const Color(0xFF00E676), borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        Text(text, 
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3)
+        ),
+      ],
+    );
   }
 
-  Widget _buildEmptyState() {
-    return Center(child: Column(children: [const SizedBox(height: 60), Icon(Icons.hub_rounded, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 24), const Text('NO LINKED CHILDREN FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2, fontSize: 12)), const SizedBox(height: 8), const Text('Please link your child at the school office.', style: TextStyle(color: Colors.grey, fontSize: 11))]));
+  Widget _buildEmptyState(bool isDark) {
+    return Center(
+      child: Column(
+        children: [
+          const SizedBox(height: 80), 
+          Icon(Icons.diversity_3_rounded, size: 80, color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)), 
+          const SizedBox(height: 24), 
+          Text('NO LINKED STUDENTS', 
+            style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 3, fontSize: 13)
+          ), 
+          const SizedBox(height: 8), 
+          Text('Link your account at the school office.', 
+            style: TextStyle(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1), fontSize: 11, fontWeight: FontWeight.bold)
+          ),
+        ]
+      )
+    );
   }
 }

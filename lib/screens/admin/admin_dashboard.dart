@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import '../../services/supabase_service.dart';
 import '../settings/settings_screen.dart';
-import '../common/student_management_screen.dart';
 import 'inventory_manager.dart';
 import 'fee_management_screen.dart';
 import 'communication_hub_screen.dart';
@@ -28,9 +28,12 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
   Map<String, dynamic> stats = {};
-  List<Map<String, dynamic>> _insights = [];
+  List<Map<String, dynamic>> _statusInsights = [];
   bool isLoading = true;
   String? _errorMessage;
+
+  final Color primaryAccent = const Color(0xFF1A237E); 
+  final Color slateDark = const Color(0xFF0F172A);
 
   @override
   void initState() {
@@ -49,50 +52,66 @@ class _AdminDashboardState extends State<AdminDashboard> {
       if (mounted) {
         setState(() {
           stats = results[0] as Map<String, dynamic>;
-          _insights = results[1] as List<Map<String, dynamic>>;
+          _statusInsights = results[1] as List<Map<String, dynamic>>;
           isLoading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() { isLoading = false; _errorMessage = "Sync Failed. Retrying..."; });
+      if (mounted) setState(() { isLoading = false; _errorMessage = "SYSTEM SYNC PAUSED. SWIPE TO RETRY."; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final gemini = theme.extension<GeminiThemeExtension>();
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // RESPONSIVE MAX WIDTH
+    double maxWidth = screenWidth > 1200 ? 1100 : (screenWidth > 800 ? 800 : screenWidth);
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: isDark ? const Color(0xFF0D0E12) : const Color(0xFFF4F7FA),
       body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _currentIndex == 0 ? _buildHomeTab(theme, gemini) : _buildOperationsTab(theme, gemini),
+        isDark: isDark,
+        maxWidth: maxWidth,
+        child: Stack(
+          children: [
+            _currentIndex == 0 ? _buildHomeTab(isDark, screenWidth) : _buildOperationsTab(isDark, screenWidth),
+            _buildBottomNav(isDark, screenWidth),
+          ],
+        ),
       ),
-      bottomNavigationBar: _buildModernNavBar(theme, gemini),
     );
   }
 
-  Widget _buildHomeTab(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildHomeTab(bool isDark, double screenWidth) {
     return RefreshIndicator(
       onRefresh: _loadDashboardData,
+      color: primaryAccent,
+      edgeOffset: 120,
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildHeroAppBar(theme, gemini),
-          if (_errorMessage != null) SliverToBoxAdapter(child: _buildErrorPanel(_errorMessage!)),
+          _buildElegantHeader('SYSTEM MATRIX', Icons.admin_panel_settings_rounded),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 24),
-                  _buildInsightsPanel(theme, gemini),
-                  const SizedBox(height: 32),
-                  _buildSummaryStats(theme, gemini),
-                  const SizedBox(height: 32),
-                  _buildSectionLabel(theme, 'QUICK ACCESS'),
-                  _buildQuickActions(theme, gemini),
-                  const SizedBox(height: 120),
+                  if (_errorMessage != null) _buildErrorBanner(),
+                  _buildInsightSlider(isDark),
+                  const SizedBox(height: 40),
+                  _buildSectionHeader('GLOBAL VITALS'),
+                  const SizedBox(height: 20),
+                  _buildSummaryStats(isDark, screenWidth),
+                  const SizedBox(height: 40),
+                  _buildSectionHeader('COMMAND CENTER'),
+                  const SizedBox(height: 20),
+                  _buildQuickActions(isDark, screenWidth),
+                  const SizedBox(height: 140),
                 ],
               ),
             ),
@@ -102,69 +121,346 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildOperationsTab(ThemeData theme, GeminiThemeExtension? gemini) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 100, 24, 120),
-      children: [
-        _buildSectionLabel(theme, 'REGISTRY & WORKFLOW'),
-        _operationTile(theme, 'User Registry', 'Enroll Students, Staff & Parents', Icons.people_alt_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
-        _operationTile(theme, 'Task Manager', 'Assign duties to faculty', Icons.assignment_ind_rounded, Colors.deepOrange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskManagementScreen()))),
-        const SizedBox(height: 32),
-        _buildSectionLabel(theme, 'ACADEMIC RECORDS'),
-        _operationTile(theme, 'Exams & Grading', 'Schedule assessments & grades', Icons.quiz_rounded, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()))),
-        _operationTile(theme, 'Academic Hub', 'Classes & subjects management', Icons.auto_stories_rounded, Colors.indigo, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicManagementScreen()))),
-        _operationTile(theme, 'Activities', 'Manage Clubs & Sports', Icons.sports_basketball_rounded, Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExtracurricularManagementScreen()))),
-        const SizedBox(height: 32),
-        _buildSectionLabel(theme, 'LOGISTICS & ADMIN'),
-        _operationTile(theme, 'Transport', 'Routes & drivers management', Icons.bus_alert_rounded, Colors.deepPurple, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransportManagementScreen()))),
-        _operationTile(theme, 'Library Center', 'Lending records & history', Icons.local_library_rounded, Colors.blueGrey, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryManagementScreen()))),
-        _operationTile(theme, 'HR & Payroll', 'Staff leave & salary management', Icons.badge_rounded, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
-        _operationTile(theme, 'Discipline Records', 'Behavioral incidents & logs', Icons.gavel_rounded, Colors.red, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DisciplineManagementScreen()))),
-        _operationTile(theme, 'Business Reports', 'Analytics & system reports', Icons.insights_rounded, Colors.cyan, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsModuleScreen()))),
-      ],
-    );
-  }
-
-  Widget _operationTile(ThemeData theme, String title, String sub, IconData icon, Color color, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(24),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24), border: Border.all(color: theme.dividerColor.withOpacity(0.05))),
-          child: Row(children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 22)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)), Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold))])), const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey)]),
+  Widget _buildElegantHeader(String title, IconData icon) {
+    return SliverAppBar(
+      expandedHeight: 120,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: primaryAccent,
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        titlePadding: const EdgeInsets.only(bottom: 16),
+        title: Text(title, 
+          style: const TextStyle(
+            fontWeight: FontWeight.w900, 
+            fontSize: 18, 
+            letterSpacing: 4, 
+            color: Colors.white,
+          )
+        ),
+        background: Stack(
+          children: [
+            Container(color: primaryAccent),
+            Positioned(
+              right: -20, top: -10,
+              child: Icon(icon, size: 180, color: Colors.white.withOpacity(0.1)),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryStats(ThemeData theme, GeminiThemeExtension? gemini) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildInsightSlider(bool isDark) {
+    if (_statusInsights.isEmpty) return const SizedBox.shrink();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _miniStat(theme, gemini, 'STAFF', '${stats['staff'] ?? 0}', Colors.teal),
-        _miniStat(theme, gemini, 'FEES PAID', 'Ksh ${stats['totalFees'] ?? 0}', Colors.green),
-        _miniStat(theme, gemini, 'PARENTS', '${stats['parents'] ?? 0}', Colors.orange),
+        _buildSectionHeader('LIVE INSIGHTS'),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _statusInsights.length,
+            itemBuilder: (context, index) {
+              final insight = _statusInsights[index];
+              final color = insight['type'] == 'critical' ? const Color(0xFFD32F2F) : (insight['type'] == 'success' ? const Color(0xFF2E7D32) : primaryAccent);
+              
+              return Container(
+                width: 300,
+                margin: const EdgeInsets.only(right: 16),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: insight['type'] == 'critical' ? color.withOpacity(0.3) : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05))),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(insight['type'] == 'critical' ? Icons.warning_rounded : Icons.tips_and_updates_rounded, color: color, size: 18),
+                        const SizedBox(width: 10),
+                        Text(insight['title'].toString().toUpperCase(), 
+                          style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1)
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(insight['subtitle'] ?? '', 
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : slateDark)
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
       ],
     );
   }
 
-  Widget _miniStat(ThemeData theme, GeminiThemeExtension? gemini, String l, String v, Color c) {
-    final content = Column(children: [Text(v, style: TextStyle(fontWeight: FontWeight.w900, color: c, fontSize: 18)), const SizedBox(height: 2), Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1))]);
-    return Expanded(child: Container(margin: const EdgeInsets.only(right: 8), child: gemini?.buildGlowContainer(borderRadius: 20, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.7), padding: const EdgeInsets.symmetric(vertical: 16), child: content) ?? Container(padding: const EdgeInsets.symmetric(vertical: 16), decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.6), borderRadius: BorderRadius.circular(20)), child: content)));
+  Widget _buildSummaryStats(bool isDark, double screenWidth) {
+    // WRAP STATS ON SMALL SCREENS
+    if (screenWidth < 400) {
+      return Column(
+        children: [
+          Row(children: [
+            _miniStat('STAFF', '${stats['staff'] ?? 0}', const Color(0xFF00796B), isDark),
+            const SizedBox(width: 12),
+            _miniStat('PARENTS', '${stats['parents'] ?? 0}', const Color(0xFFF57C00), isDark),
+          ]),
+          const SizedBox(height: 12),
+          _miniStat('FEES', 'KSH ${stats['totalFees'] ?? 0}', const Color(0xFF2E7D32), isDark),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        _miniStat('STAFF', '${stats['staff'] ?? 0}', const Color(0xFF00796B), isDark),
+        const SizedBox(width: 12),
+        _miniStat('FEES', 'KSH ${stats['totalFees'] ?? 0}', const Color(0xFF2E7D32), isDark),
+        const SizedBox(width: 12),
+        _miniStat('PARENTS', '${stats['parents'] ?? 0}', const Color(0xFFF57C00), isDark),
+      ],
+    );
   }
 
-  Widget _buildInsightsPanel(ThemeData theme, GeminiThemeExtension? gemini) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildSectionLabel(theme, 'SYSTEM INSIGHTS'), const SizedBox(height: 12), SizedBox(height: 150, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: _insights.length, itemBuilder: (context, index) { final insight = _insights[index]; final color = insight['type'] == 'critical' ? Colors.red : (insight['type'] == 'success' ? Colors.green : Colors.blue); return Container(width: 280, margin: const EdgeInsets.only(right: 16), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.8), padding: const EdgeInsets.all(20), useAIBorder: insight['type'] == 'critical', child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(insight['type'] == 'critical' ? Icons.warning_rounded : Icons.tips_and_updates_rounded, color: color, size: 16), const SizedBox(width: 10), Text(insight['title'], style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 12, letterSpacing: 0.5))]), const SizedBox(height: 12), Text(insight['subtitle'] ?? '', style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w600))]))); }))]);
+  Widget _miniStat(String label, String value, Color color, bool isDark) {
+    return Expanded(
+      flex: 1,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+        ),
+        child: Column(
+          children: [
+            Text(value, 
+              style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 18)
+            ), 
+            const SizedBox(height: 6), 
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black38, letterSpacing: 1.2))
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini) { return Container(margin: const EdgeInsets.fromLTRB(20, 0, 20, 20), height: 70, decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.95), borderRadius: BorderRadius.circular(30), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, spreadRadius: -10)], border: Border.all(color: theme.dividerColor.withOpacity(0.05))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [_navItem(0, Icons.dashboard_rounded, 'Dashboard'), _navItem(1, Icons.grid_view_rounded, 'Services'), _navItem(2, Icons.settings_rounded, 'Settings')])); }
-  Widget _navItem(int index, IconData icon, String label) { bool isSelected = _currentIndex == index; return InkWell(onTap: () { if (index == 2) { Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen(role: 'Admin'))); return; } setState(() => _currentIndex = index); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: isSelected ? BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)) : null, child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 24), const SizedBox(height: 2), Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? Theme.of(context).primaryColor : Colors.grey))]))); }
-  Widget _buildQuickActions(ThemeData theme, GeminiThemeExtension? gemini) { return GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 1.5, children: [_quickCard(theme, gemini, 'USERS HUB', Icons.hub_rounded, Colors.blue, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))), _quickCard(theme, gemini, 'NOTICE BOARD', Icons.campaign_rounded, Colors.pink, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunicationHubScreen())))]); }
-  Widget _quickCard(ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, VoidCallback onTap) { final content = Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: color, size: 30), const SizedBox(height: 10), Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1.5))]); return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(24), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1.2, backgroundColor: color.withOpacity(0.08), padding: const EdgeInsets.all(12), child: content)); }
-  Widget _buildHeroAppBar(ThemeData theme, GeminiThemeExtension? gemini) { return SliverAppBar(expandedHeight: 120.0, pinned: true, backgroundColor: Colors.transparent, elevation: 0, flexibleSpace: FlexibleSpaceBar(title: const Text('ADMINISTRATION', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)), centerTitle: true, background: Container(decoration: BoxDecoration(gradient: gemini?.primaryGradient, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)), boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)]), child: Stack(children: [Positioned(right: -20, top: -20, child: Icon(Icons.shield_rounded, size: 150, color: Colors.white.withOpacity(0.1)))])))); }
-  Widget _buildSectionLabel(ThemeData theme, String text) { return Padding(padding: const EdgeInsets.only(left: 4, bottom: 12.0), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.blueGrey))); }
-  Widget _buildErrorPanel(String msg) { return Container(margin: const EdgeInsets.all(20), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.red.withOpacity(0.05), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.withOpacity(0.1))), child: Row(children: [const Icon(Icons.sync_problem_rounded, color: Colors.red), const SizedBox(width: 12), Expanded(child: Text(msg, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold))), IconButton(icon: const Icon(Icons.refresh, color: Colors.red, size: 20), onPressed: _loadDashboardData)])); }
+  Widget _buildQuickActions(bool isDark, double screenWidth) {
+    return Row(
+      children: [
+        _actionCard('USER HUB', Icons.hub_rounded, primaryAccent, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
+        const SizedBox(width: 16),
+        _actionCard('NOTICE BOARD', Icons.campaign_rounded, const Color(0xFF7B1FA2), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommunicationHubScreen()))),
+      ],
+    );
+  }
+
+  Widget _actionCard(String title, IconData icon, Color accent, bool isDark, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: accent.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: accent, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : slateDark, fontSize: 11, letterSpacing: 1)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOperationsTab(bool isDark, double screenWidth) {
+    int crossAxisCount = screenWidth > 900 ? 2 : 1;
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        _buildElegantHeader('OPERATIONS', Icons.grid_view_rounded),
+        SliverPadding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
+          sliver: crossAxisCount == 1 
+            ? SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildSectionHeader('REGISTRY & WORKFLOW'),
+                  const SizedBox(height: 12),
+                  _opTile('User Hub', 'Enroll Students & Staff', Icons.people_alt_rounded, primaryAccent, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
+                  _opTile('Task Manager', 'Assign duties to staff', Icons.assignment_ind_rounded, const Color(0xFFF57C00), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskManagementScreen()))),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('ACADEMIC RECORDS'),
+                  const SizedBox(height: 12),
+                  _opTile('Exams & Grading', 'Manage results', Icons.quiz_rounded, const Color(0xFFD32F2F), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()))),
+                  _opTile('Academic Hub', 'Classes & subjects', Icons.auto_stories_rounded, const Color(0xFF00ACC1), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicManagementScreen()))),
+                  const SizedBox(height: 24),
+                  _buildSectionHeader('LOGISTICS'),
+                  const SizedBox(height: 12),
+                  _opTile('Transport', 'Routes & drivers', Icons.bus_alert_rounded, const Color(0xFF7B1FA2), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransportManagementScreen()))),
+                  _opTile('Library Center', 'Lending records', Icons.local_library_rounded, const Color(0xFF546E7A), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryManagementScreen()))),
+                  _opTile('Conduct Logs', 'Incident tracking', Icons.gavel_rounded, const Color(0xFFC2185B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DisciplineManagementScreen()))),
+                  const SizedBox(height: 140),
+                ]),
+              )
+            : SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 20,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 90,
+                ),
+                delegate: SliverChildListDelegate([
+                   _opTile('User Hub', 'Enroll Users', Icons.people_alt_rounded, primaryAccent, isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserManagementHub()))),
+                   _opTile('Task Manager', 'Assign duties', Icons.assignment_ind_rounded, const Color(0xFFF57C00), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskManagementScreen()))),
+                   _opTile('Exams & Grading', 'Manage results', Icons.quiz_rounded, const Color(0xFFD32F2F), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExamManagementScreen()))),
+                   _opTile('Academic Hub', 'Classes', Icons.auto_stories_rounded, const Color(0xFF00ACC1), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AcademicManagementScreen()))),
+                   _opTile('Transport', 'Routes', Icons.bus_alert_rounded, const Color(0xFF7B1FA2), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TransportManagementScreen()))),
+                   _opTile('Library', 'Lending', Icons.local_library_rounded, const Color(0xFF546E7A), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LibraryManagementScreen()))),
+                   _opTile('Conduct Logs', 'Incidents', Icons.gavel_rounded, const Color(0xFFC2185B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DisciplineManagementScreen()))),
+                ]),
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _opTile(String title, String sub, IconData icon, Color color, bool isDark, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : slateDark)),
+                      const SizedBox(height: 2),
+                      Text(sub.toUpperCase(), style: TextStyle(fontSize: 9, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white12 : Colors.black12, size: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav(bool isDark, double screenWidth) {
+    double navWidth = screenWidth > 800 ? 500 : screenWidth - 40;
+
+    return Positioned(
+      bottom: 25, left: 0, right: 0,
+      child: Center(
+        child: Container(
+          width: navWidth,
+          height: 70,
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1A1C2E).withOpacity(0.95) : Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 10))],
+            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _navItem(0, Icons.dashboard_rounded, 'MATRIX'),
+              _navItem(1, Icons.grid_view_rounded, 'SERVICES'),
+              _navItem(2, Icons.settings_rounded, 'SETUP'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, String label) {
+    bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (index == 2) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen(role: 'Admin')));
+          return;
+        }
+        setState(() => _currentIndex = index);
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), size: 26),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), letterSpacing: 1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: primaryAccent, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 10),
+        Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: Color(0xFF475569))),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFFCDD2))),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFD32F2F)),
+          const SizedBox(width: 12),
+          Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 11, fontWeight: FontWeight.w800))),
+        ],
+      ),
+    );
+  }
 }

@@ -66,9 +66,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Neural Profile ${widget.staffToEdit != null ? 'Synchronized' : 'Generated'} Successfully!', 
-              style: const TextStyle(fontWeight: FontWeight.bold)
-            ), 
+            content: Text('Staff Profile ${widget.staffToEdit != null ? 'Updated' : 'Created'} Successfully!'), 
             backgroundColor: Colors.teal.shade800,
             behavior: SnackBarBehavior.floating,
           ),
@@ -76,7 +74,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -90,7 +88,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(widget.staffToEdit != null ? 'MODIFY ENTITY' : 'NEURAL ONBOARDING', 
+        title: Text(widget.staffToEdit != null ? 'EDIT STAFF' : 'STAFF REGISTRATION', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -136,10 +134,10 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
                     height: 60,
                     child: ElevatedButton.icon(
                       onPressed: _isSaving ? null : _saveStaff,
-                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.cloud_sync_rounded),
+                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
                       label: _isSaving 
                         ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(widget.staffToEdit != null ? 'COMMIT UPDATES' : 'AUTHORIZE REGISTRATION', 
+                        : Text(widget.staffToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
                             style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.teal.shade700,
@@ -163,15 +161,15 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('IDENTITY INTEL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+        Text('STAFF DETAILS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
         const SizedBox(height: 24),
-        _buildField(theme, _nameController, 'Full Legal Name', Icons.person_outline),
+        _buildField(theme, _nameController, 'Full Name', Icons.person_outline),
         const SizedBox(height: 20),
-        _buildField(theme, _phoneController, 'Neural Contact', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+        _buildField(theme, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
         const SizedBox(height: 20),
-        _buildField(theme, _emailController, 'Cloud Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+        _buildField(theme, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
         const SizedBox(height: 20),
-        _buildField(theme, _salaryController, 'Quantum Salary (Ksh)', Icons.payments_rounded, keyboardType: TextInputType.number),
+        _buildField(theme, _salaryController, 'Basic Salary (Ksh)', Icons.payments_rounded, keyboardType: TextInputType.number),
         const SizedBox(height: 32),
         const Divider(color: Colors.white10),
         const SizedBox(height: 24),
@@ -207,7 +205,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
-      validator: (v) => v!.isEmpty ? 'Neural entry required' : null,
+      validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
@@ -218,7 +216,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
       onChanged: (v) => setState(() => _selectedRole = v!),
       decoration: InputDecoration(
-        labelText: 'Access Level',
+        labelText: 'Role',
         labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
         prefixIcon: const Icon(Icons.security_rounded, color: Colors.teal, size: 20),
         filled: true,

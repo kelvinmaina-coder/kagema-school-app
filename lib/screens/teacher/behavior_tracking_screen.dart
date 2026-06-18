@@ -65,25 +65,25 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY CHARACTER LOG' : 'RECORD NEURAL OBSERVATION', 
+                  Text(isEditing ? 'EDIT BEHAVIOR LOG' : 'RECORD BEHAVIOR OBSERVATION', 
                     style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Profile' : 'Identity Assessment', 
+                  Text(isEditing ? 'Sync Profile' : 'Student Assessment', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Pupil Identity / ADM', Icons.person_pin_rounded, nameCtrl, theme),
+                  _buildFormField('Student Name / ADM', Icons.person_pin_rounded, nameCtrl, theme),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
                     items: ['Positive', 'Warning', 'Incident'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                     onChanged: (v) => selectedCategory = v!,
-                    decoration: _neuralInputDecoration('Observation Matrix', Icons.category_rounded, theme),
+                    decoration: _inputDecoration('Behavior Category', Icons.category_rounded, theme),
                   ),
                   const SizedBox(height: 16),
-                  _buildNeuralField('Detailed Intelligence', Icons.notes_rounded, descCtrl, theme, maxLines: 3),
+                  _buildFormField('Observation Details', Icons.notes_rounded, descCtrl, theme, maxLines: 3),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
@@ -117,7 +117,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(isEditing ? 'COMMIT UPDATES' : 'AUTHORIZE PORTAL SYNC', 
+                      child: Text(isEditing ? 'COMMIT SYNC' : 'SAVE AND SYNC', 
                         style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
                       ),
                     ),
@@ -132,7 +132,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -143,12 +143,12 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+  Widget _buildFormField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -157,11 +157,11 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Record?', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text('Delete Record?', style: TextStyle(fontWeight: FontWeight.w900)),
         content: Text('Are you sure you want to erase this behavior entry for ${item['student_name']}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -180,7 +180,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Behavior Matrix', 
+        title: const Text('Behavior Center', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -236,10 +236,10 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
                               color: color, size: 24,
                             ),
                           ),
-                          title: Text(item['student_name'] ?? 'Pupil Entity', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                          title: Text(item['student_name'] ?? 'Student', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
-                            child: Text(item['description'] ?? 'No intelligence provided.', 
+                            child: Text(item['description'] ?? 'No details provided.', 
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4)
                             ),
                           ),
@@ -257,7 +257,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
                                 },
                                 itemBuilder: (context) => [
                                   const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Info', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
-                                  const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Purge', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
+                                  const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Remove', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
                                 ],
                               ),
                             ],
@@ -289,7 +289,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_moderator_rounded),
-          label: const Text('Log Neural Behavior', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Log Student Behavior', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -302,7 +302,7 @@ class _BehaviorTrackingScreenState extends State<BehaviorTrackingScreen> {
         children: [
           Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
           SizedBox(height: 16),
-          Text('CHARACTER MATRIX CLEAN', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('BEHAVIOR RECORDS CLEAN', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

@@ -69,11 +69,11 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
               children: [
                 Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                Text(grade == null ? 'NEW BILLING ENTRY' : 'MODIFY STRUCTURE', 
+                Text(grade == null ? 'NEW FEE ENTRY' : 'EDIT STRUCTURE', 
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
                 ),
                 const SizedBox(height: 8),
-                Text(grade == null ? 'Configure Fee Logic' : 'Update Grade Billing', 
+                Text(grade == null ? 'Configure Fees' : 'Update Grade Fees', 
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                 ),
                 const SizedBox(height: 32),
@@ -81,7 +81,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
                   DropdownButtonFormField<String>(
                     value: selectedGrade,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                    decoration: _neuralInputDecoration('Select Target Grade', Icons.school_rounded, theme),
+                    decoration: _inputDecoration('Select Grade', Icons.school_rounded, theme),
                     items: availableGrades.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
                     onChanged: (v) => selectedGrade = v,
                   )
@@ -96,7 +96,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
                       children: [
                         Icon(Icons.verified_user_rounded, color: theme.primaryColor, size: 20),
                         const SizedBox(width: 12),
-                        Text('Managing quantum billing for $grade', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Managing fees for $grade', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -105,7 +105,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
                   controller: controller,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(fontWeight: FontWeight.bold),
-                  decoration: _neuralInputDecoration('Termly Fee (Ksh)', Icons.payments_rounded, theme),
+                  decoration: _inputDecoration('Termly Fee (Ksh)', Icons.payments_rounded, theme),
                 ),
                 const SizedBox(height: 40),
                 SizedBox(
@@ -124,14 +124,14 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
                             _loadStructure();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Neural Sync: Billing updated for $selectedGrade'), 
+                                content: Text('Fees updated for $selectedGrade'), 
                                 backgroundColor: Colors.green.shade800,
                                 behavior: SnackBarBehavior.floating,
                               )
                             );
                           }
                         } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update failed. Check link stability.')));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Update failed. Please check connection.')));
                         }
                       }
                     },
@@ -141,7 +141,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       elevation: 8,
                     ),
-                    child: Text(grade == null ? 'AUTHORIZE INITIALIZATION' : 'COMMIT STRUCTURE UPDATES', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    child: Text(grade == null ? 'SAVE FEE' : 'UPDATE STRUCTURE', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -153,7 +153,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -169,13 +169,13 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Purge Fee Logic?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Text('This will erase the billing structure for $grade. Neural student balances might be affected.'),
+        title: const Text('Delete Fee Record?', style: TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('This will erase the fee structure for $grade. Student balances might be affected.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL')),
           TextButton(
             onPressed: () => Navigator.pop(context, true), 
-            child: const Text('PURGE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+            child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
           ),
         ],
       ),
@@ -199,7 +199,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Billing Matrix', 
+        title: const Text('Fee Management', 
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
         ),
         centerTitle: true,
@@ -231,7 +231,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.print_rounded, color: Colors.white),
-            tooltip: 'Generate Quantum PDF',
+            tooltip: 'Generate PDF',
             onPressed: () => PdfGeneratorService.generateFeeStructure(_feeStructure, _currentYear),
           ),
         ],
@@ -273,7 +273,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_rounded),
-          label: const Text('Configure Neural Fee', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add Fee Record', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -287,7 +287,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('CONFIGURED NODES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
+            const Text('GRADES CONFIGURED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
             const SizedBox(height: 4),
             Text('${_feeStructure.length}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
           ],
@@ -295,7 +295,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            const Text('QUANTUM PER PUPIL AVG', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+            const Text('AVERAGE ANNUAL FEE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
             const SizedBox(height: 4),
             Text(
               'Ksh ${NumberFormat("#,##0").format(_feeStructure.isEmpty ? 0 : totalAnnualPotential / _feeStructure.length)}', 
@@ -341,7 +341,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
           Text('Termly: Ksh ${NumberFormat("#,##0").format(amount)}', 
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
           ),
-          Text('Quantum Potential: Ksh ${NumberFormat("#,##0").format(amount * 3)}', 
+          Text('Annual Total: Ksh ${NumberFormat("#,##0").format(amount * 3)}', 
             style: TextStyle(fontSize: 10, color: Colors.indigo.withOpacity(0.6), fontWeight: FontWeight.w900, letterSpacing: 0.5)
           ),
         ],
@@ -380,7 +380,7 @@ class _FeeStructureScreenState extends State<FeeStructureScreen> {
         children: [
           Icon(Icons.account_balance_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL STRUCTURES DEFINED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO FEE STRUCTURES DEFINED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

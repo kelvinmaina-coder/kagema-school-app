@@ -70,32 +70,32 @@ class _InventoryManagementState extends State<InventoryManagement> {
                 children: [
                   Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 24),
-                  Text(item == null ? 'NEW ASSET REGISTRATION' : 'MODIFY ASSET INTEL', 
+                  Text(item == null ? 'NEW ASSET ENTRY' : 'EDIT ASSET DETAILS', 
                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)
                   ),
                   const SizedBox(height: 8),
-                  Text(item == null ? 'Authorize Property' : 'Update Record', 
+                  Text(item == null ? 'Add Property' : 'Update Record', 
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
                   ),
                   const SizedBox(height: 32),
-                  _buildNeuralField('Asset Designation', Icons.inventory_2_rounded, nameCtrl, theme),
+                  _buildInputField('Asset Name', Icons.inventory_2_rounded, nameCtrl, theme),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     value: category,
                     style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
                     items: ['Furniture', 'Electronics', 'Books', 'Sports', 'Lab'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                     onChanged: (v) => category = v!,
-                    decoration: _neuralInputDecoration('Intelligence Category', Icons.category_rounded, theme),
+                    decoration: _inputDecoration('Category', Icons.category_rounded, theme),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildNeuralField('Quantity', Icons.numbers_rounded, qtyCtrl, theme, keyboardType: TextInputType.number),
+                        child: _buildInputField('Quantity', Icons.numbers_rounded, qtyCtrl, theme, keyboardType: TextInputType.number),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _buildNeuralField('Unit Value', Icons.payments_rounded, valCtrl, theme, keyboardType: TextInputType.number),
+                        child: _buildInputField('Unit Price', Icons.payments_rounded, valCtrl, theme, keyboardType: TextInputType.number),
                       ),
                     ],
                   ),
@@ -126,7 +126,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         elevation: 8,
                       ),
-                      child: Text(item == null ? 'AUTHORIZE REGISTRATION' : 'COMMIT UPDATES', 
+                      child: Text(item == null ? 'SAVE ASSET' : 'UPDATE ASSET', 
                         style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 13)
                       ),
                     ),
@@ -141,7 +141,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
     );
   }
 
-  InputDecoration _neuralInputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
@@ -152,12 +152,12 @@ class _InventoryManagementState extends State<InventoryManagement> {
     );
   }
 
-  Widget _buildNeuralField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
+  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
       style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _neuralInputDecoration(label, icon, theme),
+      decoration: _inputDecoration(label, icon, theme),
     );
   }
 
@@ -184,7 +184,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
                     const SizedBox(height: 48),
                     Padding(
                       padding: const EdgeInsets.only(left: 4),
-                      child: Text('NEURAL ASSET REGISTRY', 
+                      child: Text('SCHOOL ASSET REGISTRY', 
                         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2.5)
                       ),
                     ),
@@ -209,7 +209,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.add_box_rounded),
-          label: const Text('Add Quantum Asset', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('Add New Asset', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
         ),
       ),
     );
@@ -223,7 +223,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
-        title: const Text('ASSET MATRIX', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
+        title: const Text('ASSET MANAGEMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)),
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -261,7 +261,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('ESTIMATED QUANTUM VALUE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+              const Text('TOTAL ASSET VALUE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
               const SizedBox(height: 4),
               Text('Ksh ${NumberFormat("#,###").format(totalValue)}', 
                 style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)
@@ -298,10 +298,10 @@ class _InventoryManagementState extends State<InventoryManagement> {
             decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
             child: Icon(Icons.category_rounded, color: theme.primaryColor, size: 24),
           ),
-          title: Text(item['name'] ?? 'Unknown Entity', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+          title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text('${item['category']} • ${item['quantity']} verified units', 
+            child: Text('${item['category']} • ${item['quantity']} units', 
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
             ),
           ),
@@ -332,7 +332,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
         children: [
           Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey),
           SizedBox(height: 16),
-          Text('NO NEURAL RECORDS IN CLOUD', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('NO ASSETS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         ],
       ),
     );

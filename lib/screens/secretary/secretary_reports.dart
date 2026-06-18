@@ -25,11 +25,11 @@ class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
         await PdfGeneratorService.generateVisitorLog(visitors);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Neural Synthesis: Exporting "$reportName"...'), backgroundColor: Colors.indigo)
+          SnackBar(content: Text('System: Exporting "$reportName"...'), backgroundColor: Colors.indigo)
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sync Error'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error connecting to system'), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isGenerating = false);
     }
@@ -43,7 +43,7 @@ class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Administrative Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('Administrative Center', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         flexibleSpace: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [theme.primaryColor, Colors.indigo.shade800], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)))),
@@ -55,9 +55,9 @@ class _SecretaryReportsScreenState extends State<SecretaryReportsScreen> {
           : ListView(
               padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 40),
               children: [
-                _reportCategory(context, theme, gemini, 'ENROLLMENT ANALYTICS', Icons.person_add_rounded, Colors.blue, ['Current Student List', 'Class Stream Summary']),
+                _reportCategory(context, theme, gemini, 'ENROLLMENT RECORDS', Icons.person_add_rounded, Colors.blue, ['Current Student List', 'Class Stream Summary']),
                 const SizedBox(height: 32),
-                _reportCategory(context, theme, gemini, 'OFFICE LOGS', Icons.business_center_rounded, Colors.teal, ['Daily Visitor Summary', 'Appointment Matrix History']),
+                _reportCategory(context, theme, gemini, 'OFFICE LOGS', Icons.business_center_rounded, Colors.teal, ['Daily Visitor Summary', 'Appointment History']),
                 const SizedBox(height: 32),
                 _reportCategory(context, theme, gemini, 'COMMUNICATION', Icons.campaign_rounded, Colors.orange, ['Broadcast Archive', 'Parent Notification Log']),
               ],
