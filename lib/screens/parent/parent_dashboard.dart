@@ -34,6 +34,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
   double _avgGrade = 0.0;
   double _feeBalance = 0.0;
 
+  final String _roleId = 'parent';
+
   @override
   void initState() {
     super.initState();
@@ -82,63 +84,82 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final screenWidth = context.sw;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
-    // INTELLIGENT RESPONSIVENESS: Limit content width on Desktop/Tablet
     double maxWidth = screenWidth > 1200 ? 1000 : (screenWidth > 800 ? 800 : screenWidth);
 
     return Scaffold(
       extendBody: true,
-      body: gemini?.buildCreativeBackground(
+      backgroundColor: dt.pageBg,
+      body: theme?.buildCreativeBackground(
         isDark: isDark,
-        maxWidth: maxWidth, 
-        child: isLoading 
-          ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
-          : IndexedStack(
-              index: _selectedIndex,
-              children: [
-                _buildHomeTab(theme, gemini, screenWidth),
-                const AnnouncementsScreen(),
-                ChildListScreen(parentPhone: widget.parentPhone),
-                const SettingsScreen(role: 'Parent'),
-              ],
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: RoleAuraLayer(
+              roleColor: roleColor,
+              isDark: isDark,
+              child: isLoading 
+                ? Center(child: CircularProgressIndicator(color: roleColor, strokeWidth: 3))
+                : IndexedStack(
+                    index: _selectedIndex,
+                    children: [
+                      _buildHomeTab(dt, theme, screenWidth),
+                      const AnnouncementsScreen(),
+                      ChildListScreen(parentPhone: widget.parentPhone),
+                      const SettingsScreen(role: 'Parent'),
+                    ],
+                  ),
             ),
-      ) ?? const SizedBox(),
-      bottomNavigationBar: _buildModernNavBar(theme, gemini, screenWidth),
+          ),
+        ),
+      ) ?? const SizedBox.shrink(),
+      bottomNavigationBar: _buildModernNavBar(dt, screenWidth),
     );
   }
 
-  Widget _buildHomeTab(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
+  Widget _buildHomeTab(DT dt, GeminiThemeExtension? theme, double screenWidth) {
+    final greeter = TimeGreeter.now;
     return RefreshIndicator(
       onRefresh: _loadAllData,
-      color: theme.primaryColor,
+      color: RoleColors.of(_roleId),
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildHeroAppBar(theme, gemini),
+          _buildHeroAppBar(dt),
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: screenWidth > 600 ? 40 : 20, 
+                horizontal: context.fluid(20, 40), 
                 vertical: 32
               ),
               child: children.isEmpty 
-                ? _buildEmptyState(theme.brightness == Brightness.dark)
+                ? _buildEmptyState(dt)
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildChildSelector(theme, gemini),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24, left: 4),
+                        child: Text(greeter.tailline.toUpperCase(), 
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2.5)
+                        ),
+                      ),
+                      _buildChildSelector(dt),
                       const SizedBox(height: 40),
-                      _buildSectionLabel('INTELLIGENT INSIGHTS'),
+                      _buildSectionLabel('INTELLIGENT INSIGHTS', dt),
                       const SizedBox(height: 16),
-                      _buildVitalsRow(theme, gemini, screenWidth),
+                      _buildVitalsRow(dt, theme, screenWidth),
                       const SizedBox(height: 40),
-                      _buildSectionLabel('STUDENT SERVICES'),
+                      _buildSectionLabel('STUDENT SERVICES', dt),
                       const SizedBox(height: 16),
-                      _buildServiceGrid(theme, gemini, screenWidth),
+                      _buildServiceGrid(dt, theme, screenWidth),
                       const SizedBox(height: 140),
                     ],
                   ),
@@ -149,73 +170,60 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildVitalsRow(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
-    // Wrap vitals on very small screens
+  Widget _buildVitalsRow(DT dt, GeminiThemeExtension? theme, double screenWidth) {
     if (screenWidth < 360) {
        return Column(
          children: [
            Row(children: [
-             _vitalBox(theme, gemini, 'ATTENDANCE', '${_attendancePercent.toInt()}%', const Color(0xFF2979FF), true),
+             _vitalBox(dt, theme, 'ATTENDANCE', '${_attendancePercent.toInt()}%', KagemaColors.azure, true),
              const SizedBox(width: 12),
-             _vitalBox(theme, gemini, 'AVG SCORE', '${_avgGrade.toInt()}%', const Color(0xFFFFAB40), false),
+             _vitalBox(dt, theme, 'AVG SCORE', '${_avgGrade.toInt()}%', KagemaColors.accountantAmber, false),
            ]),
            const SizedBox(height: 12),
-           _vitalBox(theme, gemini, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), false),
+           _vitalBox(dt, theme, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? KagemaColors.parentRed : KagemaColors.teacherGreen, false),
          ],
        );
     }
     
     return Row(
       children: [
-        _vitalBox(theme, gemini, 'ATTENDANCE', '${_attendancePercent.toInt()}%', const Color(0xFF2979FF), true),
+        _vitalBox(dt, theme, 'ATTENDANCE', '${_attendancePercent.toInt()}%', KagemaColors.azure, true),
         const SizedBox(width: 12),
-        _vitalBox(theme, gemini, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), false),
+        _vitalBox(dt, theme, 'FEES DUE', 'KSH ${_feeBalance.toInt()}', _feeBalance > 0 ? KagemaColors.parentRed : KagemaColors.teacherGreen, false),
         const SizedBox(width: 12),
-        _vitalBox(theme, gemini, 'AVG SCORE', '${_avgGrade.toInt()}%', const Color(0xFFFFAB40), false),
+        _vitalBox(dt, theme, 'AVG SCORE', '${_avgGrade.toInt()}%', KagemaColors.accountantAmber, false),
       ],
     );
   }
 
-  Widget _vitalBox(ThemeData theme, GeminiThemeExtension? gemini, String label, String value, Color color, bool useAIBorder) {
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final content = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(value, 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color, shadows: [Shadow(color: color.withOpacity(0.2), blurRadius: 15)])
-        ), 
-        const SizedBox(height: 6), 
-        Text(label, 
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1.5)
-        )
-      ]
-    );
-
+  Widget _vitalBox(DT dt, GeminiThemeExtension? theme, String label, String value, Color color, bool useAIBorder) {
     return Expanded(
       flex: 1,
-      child: gemini?.buildGlowContainer(
+      child: theme?.buildGlowContainer(
+        accentColor: color,
+        accentColor2: RoleColors.complement(_roleId),
         borderRadius: 24,
-        borderThickness: 1.5,
-        backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
         useAIBorder: useAIBorder, 
-        child: content,
-      ) ?? Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
-          borderRadius: BorderRadius.circular(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(value, 
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)
+            ), 
+            const SizedBox(height: 6), 
+            Text(label, 
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1.5)
+            )
+          ]
         ),
-        child: content,
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildServiceGrid(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
-    // Dynamic column count for responsiveness
-    int crossAxisCount = screenWidth > 900 ? 4 : (screenWidth > 600 ? 3 : 2);
+  Widget _buildServiceGrid(DT dt, GeminiThemeExtension? theme, double screenWidth) {
+    int crossAxisCount = context.isTablet || context.isDesktop ? 4 : 2;
 
     return GridView.count(
       shrinkWrap: true,
@@ -225,66 +233,49 @@ class _ParentDashboardState extends State<ParentDashboard> {
       mainAxisSpacing: 16,
       childAspectRatio: 1.4,
       children: [
-        _serviceCard(theme, gemini, 'ROLL CALL', Icons.event_available_rounded, const Color(0xFF2979FF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildAttendanceScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'PERFORMANCE', Icons.auto_graph_rounded, const Color(0xFFFFAB40), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'FEE PORTAL', Icons.account_balance_wallet_rounded, const Color(0xFF00E676), () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'HOMEWORK', Icons.assignment_rounded, const Color(0xFF7C4DFF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
-        _serviceCard(theme, gemini, 'TIMETABLE', Icons.calendar_view_week_rounded, const Color(0xFF00B0FF), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'LIBRARY', Icons.local_library_rounded, const Color(0xFF607D8B), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'CONDUCT', Icons.gavel_rounded, const Color(0xFFFF3D00), () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
-        _serviceCard(theme, gemini, 'CALENDAR', Icons.event_note_rounded, const Color(0xFFFF4081), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentCalendarScreen()))),
+        _serviceCard(dt, theme, 'ROLL CALL', Icons.event_available_rounded, KagemaColors.azure, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildAttendanceScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'PERFORMANCE', Icons.auto_graph_rounded, KagemaColors.accountantAmber, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildPerformanceScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'FEE PORTAL', Icons.account_balance_wallet_rounded, KagemaColors.teacherGreen, () => Navigator.push(context, MaterialPageRoute(builder: (_) => FeesPaymentScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'HOMEWORK', Icons.assignment_rounded, KagemaColors.secretaryViolet, () => Navigator.push(context, MaterialPageRoute(builder: (_) => HomeworkScreen(grade: selectedChild!.grade, stream: selectedChild!.stream)))),
+        _serviceCard(dt, theme, 'TIMETABLE', Icons.calendar_view_week_rounded, KagemaColors.staffSky, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildTimetableScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'LIBRARY', Icons.local_library_rounded, dt.textSecondary, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildLibraryScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'CONDUCT', Icons.gavel_rounded, KagemaColors.parentRed, () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChildDisciplineScreen(student: selectedChild!)))),
+        _serviceCard(dt, theme, 'CALENDAR', Icons.event_note_rounded, KagemaColors.electric, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParentCalendarScreen()))),
       ],
     );
   }
 
-  Widget _serviceCard(ThemeData theme, GeminiThemeExtension? gemini, String title, IconData icon, Color color, VoidCallback onTap) {
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final cardContent = Column(
-      mainAxisAlignment: MainAxisAlignment.center, 
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ), 
-        const SizedBox(height: 12), 
-        Text(title, 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1.5, color: isDark ? Colors.white70 : Colors.black87)
-        )
-      ]
-    );
-
-    return Material(
-      color: Colors.transparent,
+  Widget _serviceCard(DT dt, GeminiThemeExtension? theme, String title, IconData icon, Color color, VoidCallback onTap) {
+    return theme?.buildGlowContainer(
+      accentColor: color,
+      borderRadius: 28,
+      padding: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(28),
-        child: gemini?.buildGlowContainer(
-          borderRadius: 28,
-          borderThickness: 1.2,
-          backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
-          padding: const EdgeInsets.all(12),
-          child: cardContent,
-        ) ?? Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: cardContent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, 
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: dt.roleSoftBg(color),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ), 
+            const SizedBox(height: 12), 
+            Text(title, 
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1.5, color: dt.textPrimary)
+            )
+          ]
         ),
       ),
-    );
+    ) ?? const SizedBox.shrink();
   }
 
-  Widget _buildModernNavBar(ThemeData theme, GeminiThemeExtension? gemini, double screenWidth) {
-    final isDark = theme.brightness == Brightness.dark;
-    
-    // Narrow navigation for tablets/desktop to keep it looking clean
-    double navWidth = screenWidth > 800 ? 500 : screenWidth - 40;
+  Widget _buildModernNavBar(DT dt, double screenWidth) {
+    double navWidth = context.fluid(context.sw - 40, 500);
 
     return Center(
       child: Container(
@@ -292,35 +283,29 @@ class _ParentDashboardState extends State<ParentDashboard> {
         width: navWidth,
         height: 75,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF), 
+          color: dt.cardBg.withValues(alpha: 0.95), 
           borderRadius: BorderRadius.circular(30), 
-          border: Border.all(color: Colors.white.withOpacity(isDark ? 0.05 : 0.4)),
+          border: Border.all(color: dt.cardBorder),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10))
+            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 10))
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _navIcon(0, Icons.grid_view_rounded, 'HUB'),
-                _navIcon(1, Icons.campaign_rounded, 'ALERTS'),
-                _navIcon(2, Icons.family_restroom_rounded, 'FAMILY'),
-                _navIcon(3, Icons.person_rounded, 'PROFILE'),
-              ],
-            ),
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _navIcon(0, Icons.grid_view_rounded, 'HUB', dt),
+            _navIcon(1, Icons.campaign_rounded, 'ALERTS', dt),
+            _navIcon(2, Icons.family_restroom_rounded, 'FAMILY', dt),
+            _navIcon(3, Icons.person_rounded, 'PROFILE', dt),
+          ],
         ),
       ),
     );
   }
 
-  Widget _navIcon(int index, IconData icon, String label) {
+  Widget _navIcon(int index, IconData icon, String label, DT dt) {
     bool isSelected = _selectedIndex == index;
-    final color = isSelected ? Theme.of(context).primaryColor : Colors.blueGrey.withOpacity(0.5);
+    final color = isSelected ? RoleColors.of(_roleId) : dt.iconInactive;
     
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
@@ -329,10 +314,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
         mainAxisAlignment: MainAxisAlignment.center, 
         children: [
           AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
+            duration: KagemaMotion.normal,
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
             decoration: BoxDecoration(
-              color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+              color: isSelected ? dt.roleSoftBg(color) : Colors.transparent,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(icon, color: color, size: 26),
@@ -351,125 +336,112 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildChildSelector(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildChildSelector(DT dt) {
     if (children.isEmpty) return const SizedBox.shrink();
-    final isDark = theme.brightness == Brightness.dark;
+    final roleColor = RoleColors.of(_roleId);
 
-    final selectorContent = Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: theme.primaryColor, width: 2),
-          ),
-          child: CircleAvatar(
-            radius: 18, 
-            backgroundColor: theme.primaryColor.withOpacity(0.1), 
-            child: Text(selectedChild?.name[0] ?? '?', 
-              style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)
-            )
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<Student>(
-              value: selectedChild,
-              isExpanded: true,
-              dropdownColor: isDark ? const Color(0xFF1A1C22) : Colors.white,
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: theme.primaryColor),
-              items: children.map((c) => DropdownMenuItem(
-                value: c, 
-                child: Text(c.name.toUpperCase(), 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: isDark ? Colors.white : Colors.black87, letterSpacing: 1)
-                )
-              )).toList(),
-              onChanged: (v) { if (v != null) { setState(() => selectedChild = v); _loadChildVitals(); } },
-            ),
-          ),
-        ),
-      ],
-    );
-
-    return gemini?.buildGlowContainer(
+    return LiquidGlassCard(
+      accentColor: roleColor,
       borderRadius: 30, 
-      borderThickness: 1.5, 
-      backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF), 
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4), 
       useAIBorder: true,
-      child: selectorContent,
-    ) ?? Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
-        borderRadius: BorderRadius.circular(30),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: roleColor, width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 18, 
+              backgroundColor: dt.roleSoftBg(roleColor), 
+              child: Text(selectedChild?.name[0].toUpperCase() ?? '?',
+                style: TextStyle(color: roleColor, fontWeight: FontWeight.bold)
+              )
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<Student>(
+                value: selectedChild,
+                isExpanded: true,
+                dropdownColor: dt.cardBg,
+                icon: Icon(Icons.keyboard_arrow_down_rounded, color: roleColor),
+                items: children.map((c) => DropdownMenuItem(
+                  value: c, 
+                  child: Text(c.name.toUpperCase(), 
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: dt.textPrimary, letterSpacing: 1)
+                  )
+                )).toList(),
+                onChanged: (v) { if (v != null) { setState(() => selectedChild = v); _loadChildVitals(); } },
+              ),
+            ),
+          ),
+        ],
       ),
-      child: selectorContent,
     );
   }
 
-  Widget _buildHeroAppBar(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildHeroAppBar(DT dt) {
+    final roleColor = RoleColors.of(_roleId);
     return SliverAppBar(
       expandedHeight: 140.0, 
       pinned: true, 
-      backgroundColor: Colors.transparent, 
+      backgroundColor: roleColor, 
       elevation: 0,
       stretch: true,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         title: Text('PARENT PORTAL', 
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.w900, 
             fontSize: 16, 
             letterSpacing: 4, 
             color: Colors.white,
-            shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)]
           )
         ),
-        background: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(decoration: BoxDecoration(gradient: gemini?.primaryGradient)),
-              Positioned(
-                right: -30, 
-                bottom: -20, 
-                child: Icon(Icons.hub_rounded, size: 180, color: Colors.white.withOpacity(0.05))
-              ),
-            ],
-          ),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(color: roleColor),
+            Positioned(
+              right: -30, 
+              bottom: -20, 
+              child: Icon(Icons.hub_rounded, size: 180, color: Colors.white.withValues(alpha: 0.05))
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) {
+  Widget _buildSectionLabel(String text, DT dt) {
     return Row(
       children: [
-        Container(width: 4, height: 14, decoration: BoxDecoration(color: const Color(0xFF00E676), borderRadius: BorderRadius.circular(2))),
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: RoleColors.of(_roleId), borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 10),
         Text(text, 
-          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3)
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textSecondary, letterSpacing: 3)
         ),
       ],
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         children: [
           const SizedBox(height: 80), 
-          Icon(Icons.diversity_3_rounded, size: 80, color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1)), 
+          Icon(Icons.diversity_3_rounded, size: 80, color: dt.iconInactive), 
           const SizedBox(height: 24), 
           Text('NO LINKED STUDENTS', 
-            style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 3, fontSize: 13)
+            style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 3, fontSize: 13)
           ), 
           const SizedBox(height: 8), 
           Text('Link your account at the school office.', 
-            style: TextStyle(color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1), fontSize: 11, fontWeight: FontWeight.bold)
+            style: TextStyle(color: dt.textMuted, fontSize: 11, fontWeight: FontWeight.bold)
           ),
         ]
       )

@@ -48,16 +48,20 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    bool canManage = widget.role == 'Admin' || widget.role == 'Secretary';
-    final Color primaryColor = _getRoleColor();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(widget.role);
+    final compColor = RoleColors.complement(widget.role);
+    
+    bool canManage = widget.role.toLowerCase() == 'admin' || widget.role.toLowerCase() == 'secretary';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Staff Directory', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: const Text('STAFF DIRECTORY', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -68,19 +72,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryColor.withOpacity(0.9), primaryColor.withOpacity(0.6)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(widget.role, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.badge_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.badge_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
@@ -92,103 +91,103 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
           ),
         ],
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Column(
-          children: [
-            SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-            _buildSearchBox(theme, primaryColor, gemini),
-            const SizedBox(height: 20),
-            Expanded(
-              child: isLoading
-                  ? Center(child: CircularProgressIndicator(color: primaryColor))
-                  : _filteredStaff.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          itemCount: _filteredStaff.length,
-                          itemBuilder: (context, index) {
-                            final staff = _filteredStaff[index];
-                            final content = ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              leading: CircleAvatar(
-                                radius: 25,
-                                backgroundColor: primaryColor.withOpacity(0.1),
-                                child: Text(staff['name'][0], 
-                                  style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 18)
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Column(
+            children: [
+              SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+              _buildSearchBox(dt, roleColor, theme),
+              const SizedBox(height: 20),
+              Expanded(
+                child: isLoading
+                    ? Center(child: CircularProgressIndicator(color: roleColor))
+                    : _filteredStaff.isEmpty
+                        ? _buildEmptyState(dt)
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            itemCount: _filteredStaff.length,
+                            itemBuilder: (context, index) {
+                              final staff = _filteredStaff[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: theme?.buildGlowContainer(
+                                  accentColor: roleColor,
+                                  borderRadius: 24,
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: roleColor.withValues(alpha: 0.4), width: 1.5),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: dt.roleSoftBg(roleColor),
+                                        child: Text(staff['name'][0].toUpperCase(), 
+                                          style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 18)
+                                        ),
+                                      ),
+                                    ),
+                                    title: Text(staff['name'].toString().toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
+                                    subtitle: Text('${staff['role']} • ${staff['department'] ?? 'General'}', 
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)
+                                    ),
+                                    trailing: canManage 
+                                        ? IconButton(icon: Icon(Icons.edit_note_rounded, color: RoleColors.of('staff')), 
+                                            onPressed: () => _showStaffForm(staff: staff))
+                                        : Icon(Icons.chevron_right_rounded, color: dt.iconInactive),
+                                  ),
                                 ),
-                              ),
-                              title: Text(staff['name'], style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                              subtitle: Text('${staff['role']} • ${staff['department'] ?? 'General'}', 
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
-                              ),
-                              trailing: canManage 
-                                  ? IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.blue), 
-                                      onPressed: () => _showStaffForm(staff: staff))
-                                  : const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                            );
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: gemini?.buildGlowContainer(
-                                borderRadius: 24,
-                                borderThickness: 1,
-                                backgroundColor: theme.cardColor.withOpacity(0.85),
-                                padding: EdgeInsets.zero,
-                                child: content,
-                              ) ?? Card(child: content),
-                            );
-                          },
-                        ),
-            ),
-          ],
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: canManage ? gemini?.buildGlowContainer(
-        borderRadius: 30,
-        borderThickness: 2,
-        backgroundColor: primaryColor,
-        padding: EdgeInsets.zero,
+      ) ?? const SizedBox.shrink(),
+      floatingActionButton: canManage ? RolePlasma(
+        color: roleColor,
         child: FloatingActionButton.extended(
           onPressed: () => _showStaffForm(),
-          backgroundColor: Colors.transparent,
+          backgroundColor: roleColor,
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Add Staff', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('ADD STAFF', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
         ),
       ) : null,
     );
   }
 
-  Widget _buildSearchBox(ThemeData theme, Color color, GeminiThemeExtension? gemini) {
-    final content = TextField(
-      onChanged: (v) => setState(() => _searchQuery = v),
-      style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: InputDecoration(
-        hintText: 'Search staff members...',
-        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-        prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
-      ),
-    );
-
+  Widget _buildSearchBox(DT dt, Color color, GeminiThemeExtension? theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: gemini?.buildGlowContainer(
-        borderRadius: 20,
-        borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.9),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: content,
-      ) ?? Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.2)),
+      child: theme?.buildGlowContainer(
+        accentColor: color,
+        borderRadius: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: TextField(
+          onChanged: (v) => setState(() => _searchQuery = v),
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'SEARCH STAFF MEMBERS...',
+            hintStyle: TextStyle(color: dt.hint, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+            prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            filled: false,
+          ),
         ),
-        child: content,
       ),
     );
   }
@@ -197,23 +196,14 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => StaffRegistrationScreen(staffToEdit: staff))).then((_) => _loadStaff());
   }
 
-  Color _getRoleColor() {
-    switch (widget.role.toLowerCase()) {
-      case 'admin': return const Color(0xFF1A237E);
-      case 'teacher': return const Color(0xFF00695C);
-      case 'secretary': return const Color(0xFF4A148C);
-      default: return const Color(0xFFD84315);
-    }
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(DT dt) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.badge_outlined, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('NO STAFF MEMBERS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Icon(Icons.badge_outlined, size: 80, color: dt.iconInactive),
+          const SizedBox(height: 16),
+          Text('NO STAFF MEMBERS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2, fontSize: 12)),
         ],
       ),
     );

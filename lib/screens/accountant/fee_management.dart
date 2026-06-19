@@ -20,6 +20,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   List<Map<String, dynamic>> filteredRecords = [];
   bool isLoading = false;
   String? errorMsg;
+  final String _roleId = 'accountant';
 
   @override
   void initState() {
@@ -97,12 +98,13 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dt = DT.of(context);
+    final roleColor = RoleColors.of(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         title: Text(widget.mode == 'collection' ? 'COLLECTIONS' : 'STATEMENTS', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 4, color: Colors.white, fontSize: 14)
@@ -114,108 +116,113 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        flexibleSpace: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: gemini?.primaryGradient ?? LinearGradient(colors: [Colors.deepOrange.shade900, Colors.deepOrange.shade600]),
-            ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
+      body: NeuralBackground(
         isDark: isDark,
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildSearchHeader(theme, gemini, isDark),
-              if (errorMsg != null) _buildErrorBanner(errorMsg!),
-              Expanded(
-                child: isLoading
-                    ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
-                        color: theme.primaryColor,
-                        child: filteredRecords.isEmpty
-                            ? _buildEmptyState(isDark)
-                            : ListView.builder(
-                                physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                                itemCount: filteredRecords.length,
-                                itemBuilder: (context, index) {
-                                  final record = filteredRecords[index];
-                                  return _buildStudentCard(theme, gemini, record, isDark);
-                                },
-                              ),
-                      ),
-              ),
-            ],
+        primaryBlob: roleColor,
+        secondaryBlob: RoleColors.complement(_roleId),
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: SafeArea(
+            child: Column(
+              children: [
+                _buildSearchHeader(dt, roleColor),
+                if (errorMsg != null) _buildErrorBanner(errorMsg!),
+                Expanded(
+                  child: isLoading
+                      ? Center(child: CircularProgressIndicator(color: roleColor, strokeWidth: 3))
+                      : RefreshIndicator(
+                          onRefresh: _loadData,
+                          color: roleColor,
+                          child: filteredRecords.isEmpty
+                              ? _buildEmptyState(dt)
+                              : ListView.builder(
+                                  physics: const BouncingScrollPhysics(),
+                                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                                  itemCount: filteredRecords.length,
+                                  itemBuilder: (context, index) {
+                                    final record = filteredRecords[index];
+                                    return _buildStudentCard(dt, record);
+                                  },
+                                ),
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSearchHeader(ThemeData theme, GeminiThemeExtension? gemini, bool isDark) {
+  Widget _buildSearchHeader(DT dt, Color roleColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      child: gemini?.buildGlowContainer(
+      child: LiquidGlassCard(
         borderRadius: 25,
-        borderThickness: 1.5,
-        backgroundColor: isDark ? const Color(0xF2121418) : const Color(0xF2FFFFFF),
         padding: const EdgeInsets.symmetric(horizontal: 15),
         child: TextField(
           controller: _searchController,
           onChanged: _searchStudents,
-          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
           decoration: InputDecoration(
             hintText: 'SEARCH BY NAME / ADM NO',
-            hintStyle: TextStyle(fontSize: 10, letterSpacing: 2, color: isDark ? Colors.white24 : Colors.black26),
-            prefixIcon: Icon(Icons.search_rounded, color: theme.primaryColor),
+            hintStyle: TextStyle(fontSize: 10, letterSpacing: 2, color: dt.hint),
+            prefixIcon: Icon(Icons.search_rounded, color: roleColor),
             border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            fillColor: Colors.transparent,
             contentPadding: const EdgeInsets.symmetric(vertical: 15),
           ),
         ),
-      ) ?? const SizedBox(),
+      ),
     );
   }
 
-  Widget _buildStudentCard(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> record, bool isDark) {
+  Widget _buildStudentCard(DT dt, Map<String, dynamic> record) {
     final Student student = record['student'];
     final double balance = record['balance'] ?? 0.0;
+    final roleColor = RoleColors.of(_roleId);
     
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: gemini?.buildGlowContainer(
+      child: LiquidGlassCard(
+        accentColor: roleColor,
         borderRadius: 30,
-        borderThickness: 1.2,
-        backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
         padding: EdgeInsets.zero,
         child: Theme(
-          data: theme.copyWith(dividerColor: Colors.transparent),
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
             tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             leading: CircleAvatar(
               radius: 25,
-              backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+              backgroundColor: dt.roleSoftBg(roleColor),
               child: Text(student.name[0].toUpperCase(), 
-                style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900)
+                style: TextStyle(color: roleColor, fontWeight: FontWeight.w900)
               ),
             ),
             title: Text(student.name.toUpperCase(), 
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: isDark ? Colors.white : Colors.black87)
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: dt.textPrimary)
             ),
             subtitle: Text('ADM: ${student.admissionNumber} • GRADE ${student.grade}', 
-              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text('KSH ${NumberFormat('#,###').format(balance)}', 
-                  style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? const Color(0xFFFF3D00) : const Color(0xFF00E676), fontSize: 14)
+                  style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? KagemaColors.parentRed : KagemaColors.teacherGreen, fontSize: 14)
                 ),
-                const Text('BALANCE', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 1)),
+                Text('BALANCE', style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)),
               ],
             ),
             children: [
@@ -223,15 +230,15 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                 child: Column(
                   children: [
-                    Container(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.1)),
+                    Divider(color: dt.divider),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _actionIcon('CASH', Icons.payments_rounded, const Color(0xFF00E676), () => _showManualPayment(student, 'Cash')),
-                        _actionIcon('PESAPAL', Icons.qr_code_scanner_rounded, const Color(0xFF2979FF), () => _showPesapalPayment(student)),
-                        _actionIcon('WAIVER', Icons.card_giftcard_rounded, const Color(0xFF7C4DFF), () => _showManualPayment(student, 'Waiver')),
-                        _actionIcon('HISTORY', Icons.history_rounded, Colors.blueGrey, () => _viewHistory(student)),
+                        _actionIcon(dt, 'CASH', Icons.payments_rounded, KagemaColors.teacherGreen, () => _showManualPayment(student, 'Cash')),
+                        _actionIcon(dt, 'PESAPAL', Icons.qr_code_scanner_rounded, KagemaColors.azure, () => _showPesapalPayment(student)),
+                        _actionIcon(dt, 'WAIVER', Icons.card_giftcard_rounded, KagemaColors.secretaryViolet, () => _showManualPayment(student, 'Waiver')),
+                        _actionIcon(dt, 'HISTORY', Icons.history_rounded, dt.textSecondary, () => _viewHistory(student)),
                       ],
                     ),
                   ],
@@ -244,7 +251,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     );
   }
 
-  Widget _actionIcon(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _actionIcon(DT dt, String label, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
@@ -252,7 +259,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: dt.roleSoftBg(color), shape: BoxShape.circle),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(height: 8),
@@ -263,82 +270,146 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   }
 
   void _showPesapalPayment(Student student) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = DT.of(context);
     final amountController = TextEditingController();
     bool isProcessing = false;
+    final roleColor = RoleColors.of(_roleId);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        builder: (context, setModalState) => LiquidGlassCard(
+          borderRadius: 40,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 32, right: 32, top: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(10)))),
+                const SizedBox(height: 32),
+                Text('INITIATE PESAPAL STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: dt.textPrimary)),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: dt.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'COLLECTION AMOUNT',
+                    prefixIcon: Icon(Icons.currency_exchange_rounded, color: roleColor),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                if (isProcessing) 
+                  const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: KagemaColors.azure))
+                else SizedBox(
+                  width: double.infinity, height: 65,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (amountController.text.isEmpty) return;
+                      setModalState(() => isProcessing = true);
+                      
+                      final response = await PesapalService.instance.initiatePayment(
+                        phoneNumber: student.parentPhone,
+                        amount: double.parse(amountController.text),
+                        email: student.parentEmail ?? 'finance@kagema.edu',
+                        reference: "FEES-${student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
+                        studentName: student.name,
+                      );
+
+                      if (mounted) {
+                        setModalState(() => isProcessing = false);
+                        if (response['success']) {
+                          final url = Uri.parse(response['redirect_url']);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                            Navigator.pop(context);
+                            _showSuccessToast("STK PUSH / CHECKOUT SENT");
+                          }
+                        } else {
+                          _showErrorToast(response['message'] ?? "GATEWAY ERROR");
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: KagemaColors.azure,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('TRIGGER PAYMENT NODE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showManualPayment(Student student, String method) {
+    final dt = DT.of(context);
+    final amountController = TextEditingController();
+    final refController = TextEditingController();
+    final color = method == 'Cash' ? KagemaColors.teacherGreen : KagemaColors.secretaryViolet;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => LiquidGlassCard(
+        borderRadius: 40,
+        child: Padding(
           padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 32, right: 32, top: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(10)))),
               const SizedBox(height: 32),
-              const Text('INITIATE PESAPAL STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
+              Text('RECORD $method PAYMENT'.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12, color: dt.textPrimary)),
               const SizedBox(height: 24),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
-                decoration: InputDecoration(
-                  labelText: 'COLLECTION AMOUNT',
-                  labelStyle: TextStyle(color: theme.primaryColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
-                  prefixIcon: Icon(Icons.currency_exchange_rounded, color: theme.primaryColor),
-                  filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.white10)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide(color: theme.primaryColor, width: 2)),
+                style: TextStyle(color: dt.textPrimary, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  labelText: 'AMOUNT (KSH)',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: refController,
+                style: TextStyle(color: dt.textPrimary, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  labelText: 'REFERENCE / RECEIPT NO',
                 ),
               ),
               const SizedBox(height: 32),
-              if (isProcessing) 
-                const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Color(0xFF2979FF)))
-              else SizedBox(
+              SizedBox(
                 width: double.infinity, height: 65,
                 child: ElevatedButton(
                   onPressed: () async {
-                    if (amountController.text.isEmpty) return;
-                    setModalState(() => isProcessing = true);
-                    
-                    final response = await PesapalService.instance.initiatePayment(
-                      phoneNumber: student.parentPhone,
-                      amount: double.parse(amountController.text),
-                      email: student.parentEmail ?? 'finance@kagema.edu',
-                      reference: "FEES-${student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
-                      studentName: student.name,
-                    );
-
-                    if (mounted) {
-                      setModalState(() => isProcessing = false);
-                      if (response['success']) {
-                        final url = Uri.parse(response['redirect_url']);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                          Navigator.pop(context);
-                          _showSuccessToast("STK PUSH / CHECKOUT SENT");
-                        }
-                      } else {
-                        _showErrorToast(response['message'] ?? "GATEWAY ERROR");
-                      }
+                    if (amountController.text.isNotEmpty) {
+                      final data = {
+                        'student_id': student.studentId,
+                        'student_name': student.name,
+                        'amount_paid': double.parse(amountController.text),
+                        'payment_method': method,
+                        'receipt_number': refController.text.isEmpty ? 'M-$method-${DateTime.now().millisecondsSinceEpoch}' : refController.text,
+                        'payment_date': DateTime.now().toIso8601String(),
+                        'term': 'Term 1', 
+                        'year': DateTime.now().year,
+                      };
+                      await SupabaseService.instance.insertFeePayment(data);
+                      if (mounted) { Navigator.pop(context); _loadData(); _showSuccessToast("RECORD SAVED"); }
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2979FF),
+                    backgroundColor: color,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                    elevation: 0,
                   ),
-                  child: const Text('TRIGGER PAYMENT NODE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                  child: const Text('AUTHORIZE RECORD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
                 ),
               ),
               const SizedBox(height: 40),
@@ -349,88 +420,8 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     );
   }
 
-  void _showManualPayment(Student student, String method) {
-    final theme = Theme.of(context);
-    final amountController = TextEditingController();
-    final refController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 32, right: 32, top: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 32),
-            Text('RECORD $method PAYMENT'.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)),
-            const SizedBox(height: 24),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'AMOUNT (KSH)',
-                labelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
-                filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: refController,
-              decoration: InputDecoration(
-                labelText: 'REFERENCE / RECEIPT NO',
-                labelStyle: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 2),
-                filled: true, fillColor: Colors.white.withValues(alpha: 0.03),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-              ),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity, height: 65,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (amountController.text.isNotEmpty) {
-                    final data = {
-                      'student_id': student.studentId,
-                      'student_name': student.name,
-                      'amount_paid': double.parse(amountController.text),
-                      'payment_method': method,
-                      'receipt_number': refController.text.isEmpty ? 'M-$method-${DateTime.now().millisecondsSinceEpoch}' : refController.text,
-                      'payment_date': DateTime.now().toIso8601String(),
-                      'term': 'Term 1', // Simplified for now
-                      'year': DateTime.now().year,
-                    };
-                    await SupabaseService.instance.insertFeePayment(data);
-                    if (mounted) { Navigator.pop(context); _loadData(); _showSuccessToast("RECORD SAVED"); }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: method == 'Cash' ? const Color(0xFF00E676) : const Color(0xFF7C4DFF),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                ),
-                child: const Text('AUTHORIZE RECORD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-              ),
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _viewHistory(Student student) async {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
+    final dt = DT.of(context);
     final history = await SupabaseService.instance.getFeeHistory(student.studentId);
     
     if (!mounted) return;
@@ -439,58 +430,59 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        height: MediaQuery.of(context).size.height * 0.8,
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 32),
-            Text('PAYMENT LEDGER: ${student.name.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
-            const SizedBox(height: 20),
-            Expanded(
-              child: history.isEmpty 
-                ? _buildEmptyState(isDark)
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: history.length,
-                    itemBuilder: (context, i) {
-                      final p = history[i];
-                      final isManual = p['payment_method'] == 'Cash' || p['payment_method'] == 'Waiver';
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.03),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) => LiquidGlassCard(
+        borderRadius: 40,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.8,
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(10)))),
+              const SizedBox(height: 32),
+              Text('PAYMENT LEDGER: ${student.name.toUpperCase()}', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1, color: dt.textPrimary)),
+              const SizedBox(height: 20),
+              Expanded(
+                child: history.isEmpty 
+                  ? _buildEmptyState(dt)
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: history.length,
+                      itemBuilder: (context, i) {
+                        final p = history[i];
+                        final isManual = p['payment_method'] == 'Cash' || p['payment_method'] == 'Waiver';
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: dt.roleSoftBg(dt.textSecondary),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: dt.cardBorder),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('KSH ${NumberFormat('#,###').format(p['amount_paid'])}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                                Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}', 
-                                  style: TextStyle(fontSize: 8, color: Colors.blueGrey, fontWeight: FontWeight.w900, letterSpacing: 1)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('KSH ${NumberFormat('#,###').format(p['amount_paid'])}', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: dt.textPrimary)),
+                                    Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}', 
+                                      style: TextStyle(fontSize: 8, color: dt.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1)
+                                    ),
+                                  ],
                                 ),
+                                Icon(isManual ? Icons.verified_user_rounded : Icons.cloud_done_rounded, color: dt.iconInactive, size: 20),
                               ],
                             ),
-                            Icon(isManual ? Icons.verified_user_rounded : Icons.cloud_done_rounded, color: Colors.blueGrey.withValues(alpha: 0.3), size: 20),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-            ),
-          ],
+                          ),
+                        );
+                      },
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -499,7 +491,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   void _showSuccessToast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
-      backgroundColor: const Color(0xFF00E676),
+      backgroundColor: KagemaColors.teacherGreen,
       behavior: SnackBarBehavior.floating,
       margin: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -509,7 +501,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
   void _showErrorToast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
-      backgroundColor: const Color(0xFFFF3D00),
+      backgroundColor: KagemaColors.parentRed,
       behavior: SnackBarBehavior.floating,
       margin: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -520,25 +512,25 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFFF3D00).withValues(alpha: 0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFFF3D00).withValues(alpha: 0.1))),
+      decoration: BoxDecoration(color: KagemaColors.parentRed.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: KagemaColors.parentRed.withValues(alpha: 0.1))),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFFFF3D00), size: 18),
+          const Icon(Icons.info_outline, color: KagemaColors.parentRed, size: 18),
           const SizedBox(width: 12),
-          Expanded(child: Text(msg, style: const TextStyle(color: Color(0xFFFF3D00), fontSize: 11, fontWeight: FontWeight.bold))),
+          Expanded(child: Text(msg, style: const TextStyle(color: KagemaColors.parentRed, fontSize: 11, fontWeight: FontWeight.bold))),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_search_rounded, size: 80, color: isDark ? Colors.white12 : Colors.black12),
+          Icon(Icons.person_search_rounded, size: 80, color: dt.iconInactive),
           const SizedBox(height: 24),
-          const Text('NO STUDENT MATCHES FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3, fontSize: 12)),
+          Text('NO STUDENT MATCHES FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 3, fontSize: 12)),
         ],
       ),
     );

@@ -17,6 +17,7 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
   List<Map<String, dynamic>> _marksData = [];
   bool _isLoading = true;
   double _average = 0.0;
+  final String _roleId = 'parent';
 
   @override
   void initState() {
@@ -53,21 +54,18 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text('PERFORMANCE HUB', 
-          style: TextStyle(
-            fontWeight: FontWeight.w900, 
-            fontSize: 16, 
-            letterSpacing: 4, 
-            color: Colors.white, 
-            shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)]
-          )
+        title: const Text('PERFORMANCE HUB', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 4, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -76,115 +74,112 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        flexibleSpace: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+          ),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFFE65100), Color(0xFFFFAB40)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-              ),
               Positioned(
                 right: -30, top: -10,
-                child: Icon(Icons.auto_graph_rounded, size: 160, color: Colors.white.withOpacity(0.12)),
+                child: Icon(Icons.auto_graph_rounded, size: 160, color: Colors.white.withValues(alpha: 0.12)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
+      body: theme?.buildCreativeBackground(
         isDark: isDark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-          child: _isLoading 
-            ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
-            : Column(
-                children: [
-                  _buildPerformanceHero(theme, gemini, isDark),
-                  const SizedBox(height: 32),
-                  _buildSectionLabel('SUBJECT ANALYTICS'),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _marksData.isEmpty 
-                      ? _buildEmptyState(isDark)
-                      : ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          itemCount: _marksData.length,
-                          itemBuilder: (context, index) {
-                            final m = _marksData[index];
-                            final score = (m['score'] ?? 0).toDouble();
-                            final scoreColor = _getScoreColor(score);
-                            
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: gemini?.buildGlowContainer(
-                                borderRadius: 28,
-                                borderThickness: 1.2,
-                                backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: scoreColor.withOpacity(0.1),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: scoreColor.withOpacity(0.2))
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Padding(
+            padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 10),
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: roleColor))
+              : Column(
+                  children: [
+                    _buildPerformanceHero(dt, theme, roleColor),
+                    const SizedBox(height: 32),
+                    _buildSectionLabel(dt, 'SUBJECT ANALYTICS'),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _marksData.isEmpty 
+                        ? _buildEmptyState(dt)
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                            itemCount: _marksData.length,
+                            itemBuilder: (context, index) {
+                              final m = _marksData[index];
+                              final score = (m['score'] ?? 0).toDouble();
+                              final scoreColor = _getScoreColor(score, dt);
+                              
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: theme.buildGlowContainer(
+                                  accentColor: scoreColor,
+                                  borderRadius: 28,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: dt.roleSoftBg(scoreColor),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(Icons.analytics_rounded, color: scoreColor, size: 22),
                                       ),
-                                      child: Icon(Icons.analytics_rounded, color: scoreColor, size: 22),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(m['subject']?.toString().toUpperCase() ?? 'SUBJECT', 
-                                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: isDark ? Colors.white : Colors.black87)
-                                          ),
-                                          Text(m['exam_type']?.toString().toUpperCase() ?? 'ASSESSMENT', 
-                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)
-                                          ),
-                                        ],
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(m['subject']?.toString().toUpperCase() ?? 'SUBJECT', 
+                                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: dt.textPrimary)
+                                            ),
+                                            Text(m['exam_type']?.toString().toUpperCase() ?? 'ASSESSMENT', 
+                                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    Text('${score.toInt()}%', 
-                                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: scoreColor, letterSpacing: -0.5)
-                                    ),
-                                  ],
+                                      Text('${score.toInt()}%', 
+                                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: scoreColor, letterSpacing: -0.5)
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                  ),
-                  _buildDownloadButton(theme, gemini),
-                ],
-              ),
+                              );
+                            },
+                          ),
+                    ),
+                    _buildDownloadButton(dt, roleColor),
+                  ],
+                ),
+          ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildPerformanceHero(ThemeData theme, GeminiThemeExtension? gemini, bool isDark) {
+  Widget _buildPerformanceHero(DT dt, GeminiThemeExtension? theme, Color roleColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: gemini?.buildGlowContainer(
+      child: theme?.buildGlowContainer(
+        accentColor: roleColor,
         borderRadius: 35,
-        borderThickness: 2.5,
-        backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
         padding: const EdgeInsets.all(32),
         useAIBorder: true,
         child: Column(
           children: [
             Text('TERM AGGREGATE', 
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 3)
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 3)
             ),
             const SizedBox(height: 12),
             Row(
@@ -193,16 +188,15 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text('${_average.toInt()}', 
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 64, 
                     fontWeight: FontWeight.w900, 
                     letterSpacing: -3,
-                    color: isDark ? Colors.white : Colors.black87,
-                    shadows: [Shadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20)]
+                    color: Colors.white,
                   )
                 ),
                 Text('%', 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: theme.primaryColor)
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.6))
                 ),
               ],
             ),
@@ -210,21 +204,20 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF00E676).withOpacity(0.1), 
+                color: Colors.white.withValues(alpha: 0.15), 
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF00E676).withOpacity(0.2))
               ),
-              child: const Text('STATUS: EXCEEDING EXPECTATIONS', 
-                style: TextStyle(fontSize: 9, color: Color(0xFF00E676), fontWeight: FontWeight.w900, letterSpacing: 1.5)
+              child: Text(_average >= 50 ? 'STATUS: EXCEEDING EXPECTATIONS' : 'STATUS: NEEDS IMPROVEMENT', 
+                style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.5)
               ),
             ),
           ],
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildDownloadButton(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildDownloadButton(DT dt, Color roleColor) {
     if (_marksData.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -233,74 +226,59 @@ class _ChildPerformanceScreenState extends State<ChildPerformanceScreen> {
         height: 65,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [BoxShadow(color: const Color(0xFFE65100).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 5))],
+          boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 5))],
         ),
         child: ElevatedButton(
           onPressed: _downloadReport, 
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
+            backgroundColor: roleColor,
             foregroundColor: Colors.white,
-            padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
           ),
-          child: Ink(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE65100), Color(0xFFD84315)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.picture_as_pdf_rounded, size: 20),
+              SizedBox(width: 12),
+              Text('GENERATE PDF REPORT CARD', 
+                style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 11)
               ),
-              borderRadius: BorderRadius.circular(22),
-            ),
-            child: Container(
-              alignment: Alignment.center,
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.picture_as_pdf_rounded, size: 20),
-                  SizedBox(width: 12),
-                  Text('GENERATE PDF REPORT CARD', 
-                    style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 11)
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) {
+  Widget _buildSectionLabel(DT dt, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
         children: [
-          Container(width: 4, height: 14, decoration: BoxDecoration(color: const Color(0xFFE65100), borderRadius: BorderRadius.circular(2))),
+          Container(width: 4, height: 14, decoration: BoxDecoration(color: dt.info, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2.5)),
+          Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2.5)),
         ],
       ),
     );
   }
 
-  Color _getScoreColor(double score) {
-    if (score >= 80) return const Color(0xFF00E676);
-    if (score >= 60) return const Color(0xFF2979FF);
-    if (score >= 40) return const Color(0xFFFFAB40);
-    return const Color(0xFFFF3D00);
+  Color _getScoreColor(double score, DT dt) {
+    if (score >= 80) return dt.success;
+    if (score >= 60) return dt.info;
+    if (score >= 40) return dt.warning;
+    return dt.error;
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.layers_clear_rounded, size: 80, color: isDark ? Colors.white12 : Colors.black12),
+          Icon(Icons.layers_clear_rounded, size: 80, color: dt.iconInactive),
           const SizedBox(height: 24),
-          const Text('NO ANALYTICS DATA FOUND', 
-            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3, fontSize: 12)
+          Text('NO ANALYTICS DATA FOUND', 
+            style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 3, fontSize: 12)
           ),
         ],
       ),

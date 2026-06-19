@@ -28,8 +28,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  final Color primaryAccent = const Color(0xFFFF5722); 
-  final Color slateDark = const Color(0xFF1A1C2E);
+  final String _roleId = 'accountant';
 
   @override
   void initState() {
@@ -62,54 +61,76 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
+    final screenWidth = context.sw;
 
-    // RESPONSIVE MAX WIDTH
     double maxWidth = screenWidth > 1200 ? 1100 : (screenWidth > 800 ? 850 : screenWidth);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D0E12) : const Color(0xFFF4F7FA),
-      body: gemini?.buildCreativeBackground(
-        isDark: isDark,
-        maxWidth: maxWidth,
-        child: Stack(
-          children: [
-            _currentIndex == 0 ? _buildOverviewTab(theme, isDark, screenWidth) : _buildOperationsTab(theme, isDark, screenWidth),
-            _buildBottomNav(isDark, screenWidth),
-          ],
+      backgroundColor: dt.pageBg,
+      body: theme?.buildCreativeBackground(
+        isDark: context.isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: RoleAuraLayer(
+              roleColor: roleColor,
+              isDark: context.isDark,
+              child: Stack(
+                children: [
+                  _currentIndex == 0 ? _buildOverviewTab(dt, theme) : _buildOperationsTab(dt, theme),
+                  _buildBottomNav(dt),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildOverviewTab(ThemeData theme, bool isDark, double screenWidth) {
+  Widget _buildOverviewTab(DT dt, GeminiThemeExtension? theme) {
+    final greeter = TimeGreeter.now;
     return RefreshIndicator(
       onRefresh: _loadFinancialData,
-      color: primaryAccent,
+      color: RoleColors.of(_roleId),
       edgeOffset: 120,
       child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          _buildElegantHeader('TREASURY HUB', Icons.account_balance_rounded),
+          _buildElegantHeader(greeter.greet('Accountant'), Icons.account_balance_rounded, dt),
           SliverToBoxAdapter(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.fluid(20, 32), 
+                vertical: 24
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_errorMessage != null) _buildErrorBanner(),
-                  _buildMainMetricCard(isDark, screenWidth),
+                  if (_errorMessage != null) _buildErrorBanner(dt),
+                  
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24, left: 4),
+                    child: Text(greeter.tailline.toUpperCase(), 
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2.5)
+                    ),
+                  ),
+
+                  _buildMainMetricCard(dt, theme),
                   const SizedBox(height: 40),
-                  _buildSectionHeader('CORE OPERATIONS'),
+                  _buildSectionHeader('CORE OPERATIONS', dt),
                   const SizedBox(height: 20),
-                  _buildQuickActionGrid(isDark),
+                  _buildQuickActionGrid(dt, theme),
                   const SizedBox(height: 40),
-                  _buildSectionHeader('LIVE TRANSACTION STREAM'),
+                  _buildSectionHeader('LIVE TRANSACTION STREAM', dt),
                   const SizedBox(height: 20),
-                  _buildTransactionList(isDark, screenWidth),
+                  _buildTransactionList(dt, theme),
                   const SizedBox(height: 140),
                 ],
               ),
@@ -120,29 +141,43 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildElegantHeader(String title, IconData icon) {
+  Widget _buildElegantHeader(String title, IconData icon, DT dt) {
+    final roleColor = RoleColors.of(_roleId);
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 140,
       pinned: true,
       elevation: 0,
-      backgroundColor: primaryAccent,
+      backgroundColor: roleColor,
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         titlePadding: const EdgeInsets.only(bottom: 16),
-        title: Text(title, 
-          style: const TextStyle(
-            fontWeight: FontWeight.w900, 
-            fontSize: 18, 
-            letterSpacing: 4, 
-            color: Colors.white,
-          )
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(title, 
+              style: const TextStyle(
+                fontWeight: FontWeight.w900, 
+                fontSize: 16, 
+                letterSpacing: 4, 
+                color: Colors.white,
+              )
+            ),
+            const SizedBox(height: 4),
+            Container(
+              height: 2, width: 40,
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(1)),
+            )
+          ],
         ),
         background: Stack(
+          fit: StackFit.expand,
           children: [
-            Container(color: primaryAccent),
-            Positioned(
-              right: -20, top: -10,
-              child: Icon(icon, size: 180, color: Colors.white.withOpacity(0.1)),
+            Container(color: roleColor),
+            Center(
+              child: Opacity(
+                opacity: 0.08,
+                child: Icon(icon, size: 200, color: Colors.white),
+              ),
             ),
           ],
         ),
@@ -150,57 +185,54 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildMainMetricCard(bool isDark, double screenWidth) {
+  Widget _buildMainMetricCard(DT dt, GeminiThemeExtension? theme) {
     double income = (_stats['total_income'] as num? ?? 0.0).toDouble();
     double expenses = (_stats['total_expenses'] as num? ?? 0.0).toDouble();
     double netBalance = income - expenses;
+    final roleColor = RoleColors.of(_roleId);
 
-    return Container(
-      width: double.infinity,
+    return theme?.buildGlowContainer(
+      accentColor: roleColor,
+      accentColor2: RoleColors.complement(_roleId),
+      borderRadius: 35,
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(35),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10))],
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
-      ),
       child: Column(
         children: [
           Text('NET OPERATIONAL CAPITAL', 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 2)
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('KSH', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: primaryAccent)),
+              Text('KSH', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: roleColor)),
               const SizedBox(width: 12),
               Text(NumberFormat('#,###.##').format(netBalance), 
-                style: TextStyle(fontSize: screenWidth > 600 ? 48 : 36, fontWeight: FontWeight.w900, color: isDark ? Colors.white : slateDark, letterSpacing: -1.5)
+                style: TextStyle(fontSize: context.fluid(36, 48), fontWeight: FontWeight.w900, color: dt.textPrimary, letterSpacing: -1.5)
               ),
             ],
           ),
           const SizedBox(height: 32),
           Row(
             children: [
-              _metricSubItem('CASH IN', income, const Color(0xFF10B981), Icons.arrow_downward_rounded, isDark),
+              _metricSubItem('CASH IN', income, KagemaColors.teacherGreen, Icons.arrow_downward_rounded, dt),
               const SizedBox(width: 16),
-              _metricSubItem('CASH OUT', expenses, const Color(0xFFEF4444), Icons.arrow_upward_rounded, isDark),
+              _metricSubItem('CASH OUT', expenses, KagemaColors.parentRed, Icons.arrow_upward_rounded, dt),
             ],
           ),
         ],
       ),
-    );
+    ) ?? const SizedBox.shrink();
   }
 
-  Widget _metricSubItem(String label, double value, Color color, IconData icon, bool isDark) {
+  Widget _metricSubItem(String label, double value, Color color, IconData icon, DT dt) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: dt.roleSoftBg(color),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,7 +246,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
             ),
             const SizedBox(height: 8),
             Text('KSH ${NumberFormat('#,###').format(value)}', 
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : slateDark)
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: dt.textPrimary)
             ),
           ],
         ),
@@ -222,37 +254,38 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildQuickActionGrid(bool isDark) {
+  Widget _buildQuickActionGrid(DT dt, GeminiThemeExtension? theme) {
     return Row(
       children: [
-        _actionCard('FEE COLLECTION', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
+        _actionCard('FEE COLLECTION', Icons.payments_rounded, KagemaColors.teacherGreen, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
         const SizedBox(width: 16),
-        _actionCard('LOG EXPENSE', Icons.shopping_bag_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
+        _actionCard('LOG EXPENSE', Icons.shopping_bag_rounded, KagemaColors.parentRed, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
       ],
     );
   }
 
-  Widget _actionCard(String title, IconData icon, Color accent, bool isDark, VoidCallback onTap) {
+  Widget _actionCard(String title, IconData icon, Color accent, DT dt, GeminiThemeExtension? theme, VoidCallback onTap) {
     return Expanded(
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(24),
-        child: Container(
+        child: theme?.buildGlowContainer(
+          accentColor: accent,
+          accentColor2: RoleColors.complement(_roleId),
+          borderRadius: 24,
           padding: const EdgeInsets.symmetric(vertical: 32),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
-          ),
           child: Column(
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: accent.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(icon, color: accent, size: 32),
+              RolePlasma(
+                color: accent,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: dt.roleSoftBg(accent), shape: BoxShape.circle),
+                  child: Icon(icon, color: accent, size: 32),
+                ),
               ),
               const SizedBox(height: 16),
-              Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : slateDark, fontSize: 11, letterSpacing: 1)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: dt.textPrimary, fontSize: 11, letterSpacing: 1)),
             ],
           ),
         ),
@@ -260,163 +293,122 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildTransactionList(bool isDark, double screenWidth) {
+  Widget _buildTransactionList(DT dt, GeminiThemeExtension? theme) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
     if (_recentTransactions.isEmpty) {
-      return Container(
-        width: double.infinity,
+      return theme?.buildGlowContainer(
+        accentColor: RoleColors.of(_roleId),
+        borderRadius: 24,
         padding: const EdgeInsets.all(60),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1C2E).withOpacity(0.5) : Colors.white.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: const Center(child: Text('NO RECENT TRANSACTIONS', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.grey, fontSize: 10, letterSpacing: 1.5))),
-      );
-    }
-
-    if (screenWidth > 900) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 12,
-          mainAxisExtent: 90,
-        ),
-        itemCount: _recentTransactions.length,
-        itemBuilder: (context, index) => _buildTransactionTile(_recentTransactions[index], isDark),
-      );
+        child: Center(child: Text('NO RECENT TRANSACTIONS', style: TextStyle(fontWeight: FontWeight.w800, color: dt.textMuted, fontSize: 10, letterSpacing: 1.5))),
+      ) ?? const SizedBox.shrink();
     }
 
     return Column(
-      children: _recentTransactions.map((tx) => _buildTransactionTile(tx, isDark)).toList(),
+      children: _recentTransactions.map((tx) => _buildTransactionTile(tx, dt, theme)).toList(),
     );
   }
 
-  Widget _buildTransactionTile(Map<String, dynamic> tx, bool isDark) {
+  Widget _buildTransactionTile(Map<String, dynamic> tx, DT dt, GeminiThemeExtension? theme) {
     final bool isWaiver = tx['payment_method'] == 'Waiver';
-    final color = isWaiver ? const Color(0xFF8B5CF6) : const Color(0xFF10B981);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(isWaiver ? Icons.auto_awesome_rounded : Icons.receipt_long_rounded, color: color, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final color = isWaiver ? KagemaColors.secretaryViolet : KagemaColors.teacherGreen;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: theme?.buildGlowContainer(
+        accentColor: color,
+        borderRadius: 20,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: dt.roleSoftBg(color), shape: BoxShape.circle),
+              child: Icon(isWaiver ? Icons.auto_awesome_rounded : Icons.receipt_long_rounded, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(tx['students']?['name']?.toString().toUpperCase() ?? 'REF: ${tx['receipt_number']}', 
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary)
+                  ),
+                  const SizedBox(height: 2),
+                  Text(tx['payment_date']?.toString().split(' ')[0] ?? '', 
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: dt.textMuted)
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(tx['students']?['name']?.toString().toUpperCase() ?? 'REF: ${tx['receipt_number']}', 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : slateDark)
+                Text('KSH ${NumberFormat('#,###').format(tx['amount_paid'])}', 
+                  style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 16)
                 ),
-                const SizedBox(height: 2),
-                Text(tx['payment_date']?.toString().split(' ')[0] ?? '', 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: isDark ? Colors.white38 : Colors.black38)
+                Text(isWaiver ? 'WAIVER' : 'COLLECTED', 
+                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('KSH ${NumberFormat('#,###').format(tx['amount_paid'])}', 
-                style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 16)
-              ),
-              Text(isWaiver ? 'WAIVER' : 'COLLECTED', 
-                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildOperationsTab(ThemeData theme, bool isDark, double screenWidth) {
-    int crossAxisCount = screenWidth > 900 ? 3 : (screenWidth > 600 ? 2 : 1);
-
+  Widget _buildOperationsTab(DT dt, GeminiThemeExtension? theme) {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        _buildElegantHeader('OPERATIONS', Icons.grid_view_rounded),
+        _buildElegantHeader('OPERATIONS', Icons.grid_view_rounded, dt),
         SliverPadding(
-          padding: EdgeInsets.symmetric(horizontal: screenWidth > 600 ? 32 : 20, vertical: 24),
-          sliver: crossAxisCount == 1 
-            ? SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildSectionHeader('INCOME & REVENUE'),
-                  const SizedBox(height: 12),
-                  _opTile('Fee Management', 'Collection & STK Push', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
-                  _opTile('Other Income', 'Grants & Canteen', Icons.add_business_rounded, const Color(0xFF3B82F6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
-                  _opTile('Billing Structures', 'Manage termly fees', Icons.account_tree_rounded, const Color(0xFF8B5CF6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
-                  const SizedBox(height: 24),
-                  _buildSectionHeader('OUTFLOW & PAYROLL'),
-                  const SizedBox(height: 12),
-                  _opTile('Expense Ledger', 'Operational costs', Icons.shopping_cart_checkout_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
-                  _opTile('Salary Treasury', 'Staff payments', Icons.badge_rounded, const Color(0xFF009688), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
-                  const SizedBox(height: 24),
-                  _buildSectionHeader('ASSETS & AUDITING'),
-                  const SizedBox(height: 12),
-                  _opTile('Inventory Control', 'School assets', Icons.inventory_2_rounded, const Color(0xFF795548), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
-                  _opTile('Audit Reports', 'Revenue analytics', Icons.assessment_rounded, const Color(0xFFF59E0B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
-                  const SizedBox(height: 140),
-                ]),
-              )
-            : SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 12,
-                  mainAxisExtent: 90,
-                ),
-                delegate: SliverChildListDelegate([
-                   _opTile('Fee Portal', 'Collections', Icons.payments_rounded, const Color(0xFF10B981), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
-                   _opTile('Income', 'Grants', Icons.add_business_rounded, const Color(0xFF3B82F6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
-                   _opTile('Fee Setup', 'Structures', Icons.account_tree_rounded, const Color(0xFF8B5CF6), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
-                   _opTile('Expenses', 'Cost Control', Icons.shopping_cart_checkout_rounded, const Color(0xFFEF4444), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
-                   _opTile('Payroll', 'Staff pay', Icons.badge_rounded, const Color(0xFF009688), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
-                   _opTile('Inventory', 'Assets', Icons.inventory_2_rounded, const Color(0xFF795548), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
-                   _opTile('Auditing', 'Analytics', Icons.assessment_rounded, const Color(0xFFF59E0B), isDark, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
-                ]),
-              ),
+          padding: EdgeInsets.symmetric(horizontal: context.fluid(20, 32), vertical: 24),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              _buildSectionHeader('INCOME & REVENUE', dt),
+              const SizedBox(height: 12),
+              _opTile('Fee Management', 'Collection & STK Push', Icons.payments_rounded, KagemaColors.teacherGreen, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeManagementScreen()))),
+              _opTile('Other Income', 'Grants & Canteen', Icons.add_business_rounded, KagemaColors.staffSky, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncomeManagementScreen()))),
+              _opTile('Billing Structures', 'Manage termly fees', Icons.account_tree_rounded, KagemaColors.secretaryViolet, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeeStructureScreen()))),
+              const SizedBox(height: 24),
+              _buildSectionHeader('OUTFLOW & PAYROLL', dt),
+              const SizedBox(height: 12),
+              _opTile('Expense Ledger', 'Operational costs', Icons.shopping_cart_checkout_rounded, KagemaColors.parentRed, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseManagementScreen()))),
+              _opTile('Salary Treasury', 'Staff payments', Icons.badge_rounded, KagemaColors.teacherGreen, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HRManagementScreen()))),
+              const SizedBox(height: 24),
+              _buildSectionHeader('ASSETS & AUDITING', dt),
+              const SizedBox(height: 12),
+              _opTile('Inventory Control', 'School assets', Icons.inventory_2_rounded, dt.textSecondary, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InventoryManagement()))),
+              _opTile('Audit Reports', 'Revenue analytics', Icons.assessment_rounded, KagemaColors.accountantAmber, dt, theme, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialReportsScreen()))),
+              const SizedBox(height: 140),
+            ]),
+          ),
         ),
       ],
     );
   }
 
-  Widget _opTile(String title, String sub, IconData icon, Color color, bool isDark, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+  Widget _opTile(String title, String sub, IconData icon, Color color, DT dt, GeminiThemeExtension? theme, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: theme?.buildGlowContainer(
+        accentColor: color,
+        accentColor2: RoleColors.complement(_roleId),
+        borderRadius: 20,
+        padding: EdgeInsets.zero,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
-          child: Container(
+          child: Padding(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF1F5F9)),
-            ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: dt.roleSoftBg(color), shape: BoxShape.circle),
                   child: Icon(icon, color: color, size: 20),
                 ),
                 const SizedBox(width: 16),
@@ -425,13 +417,13 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : slateDark)),
+                      Text(title, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary)),
                       const SizedBox(height: 2),
-                      Text(sub.toUpperCase(), style: TextStyle(fontSize: 9, color: isDark ? Colors.white38 : Colors.black38, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      Text(sub.toUpperCase(), style: TextStyle(fontSize: 9, color: dt.textMuted, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white12 : Colors.black12, size: 20),
+                Icon(Icons.chevron_right_rounded, color: dt.iconInactive, size: 20),
               ],
             ),
           ),
@@ -440,8 +432,8 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _buildBottomNav(bool isDark, double screenWidth) {
-    double navWidth = screenWidth > 800 ? 500 : screenWidth - 40;
+  Widget _buildBottomNav(DT dt) {
+    double navWidth = context.fluid(context.sw - 40, 500);
 
     return Positioned(
       bottom: 25, left: 0, right: 0,
@@ -450,17 +442,17 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
           width: navWidth,
           height: 70,
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1A1C2E).withOpacity(0.95) : Colors.white.withOpacity(0.95),
+            color: dt.cardBg.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 10))],
-            border: Border.all(color: isDark ? Colors.white10 : Colors.black.withOpacity(0.05)),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 30, offset: const Offset(0, 10))],
+            border: Border.all(color: dt.cardBorder),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _navItem(0, Icons.account_balance_wallet_rounded, 'TREASURY'),
-              _navItem(1, Icons.grid_view_rounded, 'OPERATIONS'),
-              _navItem(2, Icons.settings_rounded, 'SETUP'),
+              _navItem(0, Icons.account_balance_wallet_rounded, 'TREASURY', dt),
+              _navItem(1, Icons.grid_view_rounded, 'OPERATIONS', dt),
+              _navItem(2, Icons.settings_rounded, 'SETUP', dt),
             ],
           ),
         ),
@@ -468,8 +460,9 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
     );
   }
 
-  Widget _navItem(int index, IconData icon, String label) {
+  Widget _navItem(int index, IconData icon, String label, DT dt) {
     bool isSelected = _currentIndex == index;
+    final activeColor = RoleColors.of(_roleId);
     return GestureDetector(
       onTap: () {
         if (index == 2) {
@@ -478,37 +471,40 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
         }
         setState(() => _currentIndex = index);
       },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), size: 26),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? primaryAccent : Colors.grey.withOpacity(0.5), letterSpacing: 1.5)),
-        ],
+      child: Container(
+        color: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isSelected ? activeColor : dt.iconInactive, size: 26),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isSelected ? activeColor : dt.iconInactive, letterSpacing: 1.5)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, DT dt) {
     return Row(
       children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: primaryAccent, borderRadius: BorderRadius.circular(2))),
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: RoleColors.of(_roleId), borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 10),
-        Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: Color(0xFF475569))),
+        Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 2.5, color: dt.textSecondary)),
       ],
     );
   }
 
-  Widget _buildErrorBanner() {
+  Widget _buildErrorBanner(DT dt) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: const Color(0xFFFFEBEE), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFFCDD2))),
+      decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.parentRed), borderRadius: BorderRadius.circular(20), border: Border.all(color: KagemaColors.parentRed.withValues(alpha: 0.3))),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFD32F2F)),
+          const Icon(Icons.error_outline_rounded, color: KagemaColors.parentRed),
           const SizedBox(width: 12),
-          Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Color(0xFFB71C1C), fontSize: 11, fontWeight: FontWeight.w800))),
+          Expanded(child: Text(_errorMessage!, style: const TextStyle(color: KagemaColors.parentRed, fontSize: 11, fontWeight: FontWeight.w800))),
         ],
       ),
     );

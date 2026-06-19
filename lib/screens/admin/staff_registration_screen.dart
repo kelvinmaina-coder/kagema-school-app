@@ -21,6 +21,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
   
   String _selectedRole = 'Teacher';
   bool _isSaving = false;
+  final String _roleId = 'admin';
 
   final List<String> _roles = ['Teacher', 'Accountant', 'Secretary', 'Admin', 'Support Staff'];
 
@@ -66,15 +67,15 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Staff Profile ${widget.staffToEdit != null ? 'Updated' : 'Created'} Successfully!'), 
-            backgroundColor: Colors.teal.shade800,
+            content: Text('Staff Profile ${widget.staffToEdit != null ? 'Updated' : 'Created'} Successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: KagemaColors.teacherGreen,
             behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: KagemaColors.parentRed));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -82,14 +83,16 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dt = DT.of(context);
+    final roleColor = RoleColors.of(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         title: Text(widget.staffToEdit != null ? 'EDIT STAFF' : 'STAFF REGISTRATION', 
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -100,55 +103,54 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [theme.primaryColor, Colors.teal.shade900],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.badge_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.badge_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  _buildFormContainer(theme, gemini),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _saveStaff,
-                      icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
-                      label: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(widget.staffToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
-                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade700,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                        shadowColor: Colors.teal.withOpacity(0.4),
+      body: NeuralBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: RoleColors.complement(_roleId),
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _buildFormContainer(dt, roleColor),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 60,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _saveStaff,
+                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
+                        label: _isSaving 
+                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                          : Text(widget.staffToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
+                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: roleColor,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -157,71 +159,57 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
     );
   }
 
-  Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('STAFF DETAILS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-        const SizedBox(height: 24),
-        _buildField(theme, _nameController, 'Full Name', Icons.person_outline),
-        const SizedBox(height: 20),
-        _buildField(theme, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-        const SizedBox(height: 20),
-        _buildField(theme, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
-        const SizedBox(height: 20),
-        _buildField(theme, _salaryController, 'Basic Salary (Ksh)', Icons.payments_rounded, keyboardType: TextInputType.number),
-        const SizedBox(height: 32),
-        const Divider(color: Colors.white10),
-        const SizedBox(height: 24),
-        Text('DESIGNATED ROLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-        const SizedBox(height: 16),
-        _buildRoleDropdown(theme),
-      ],
-    );
-
-    return gemini?.buildGlowContainer(
+  Widget _buildFormContainer(DT dt, Color roleColor) {
+    return LiquidGlassCard(
+      accentColor: KagemaColors.staffSky,
       borderRadius: 30,
-      borderThickness: 1.5,
-      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(24),
-      child: content,
-    ) ?? Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
-      child: content,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('STAFF DETAILS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          const SizedBox(height: 24),
+          _buildField(dt, _nameController, 'Full Name', Icons.person_outline),
+          const SizedBox(height: 20),
+          _buildField(dt, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+          const SizedBox(height: 20),
+          _buildField(dt, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 20),
+          _buildField(dt, _salaryController, 'Basic Salary (Ksh)', Icons.payments_rounded, keyboardType: TextInputType.number),
+          const SizedBox(height: 32),
+          Divider(color: dt.divider),
+          const SizedBox(height: 24),
+          Text('DESIGNATED ROLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          const SizedBox(height: 16),
+          _buildRoleDropdown(dt),
+        ],
+      ),
     );
   }
 
-  Widget _buildField(ThemeData theme, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildField(DT dt, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.teal, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
-  Widget _buildRoleDropdown(ThemeData theme) {
+  Widget _buildRoleDropdown(DT dt) {
     return DropdownButtonFormField<String>(
       value: _selectedRole,
-      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+      dropdownColor: dt.cardBg,
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
       onChanged: (v) => setState(() => _selectedRole = v!),
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         labelText: 'Role',
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: const Icon(Icons.security_rounded, color: Colors.teal, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(Icons.security_rounded, color: KagemaColors.staffSky, size: 20),
       ),
     );
   }

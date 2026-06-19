@@ -13,6 +13,7 @@ class TransportManagementScreen extends StatefulWidget {
 class _TransportManagementScreenState extends State<TransportManagementScreen> {
   List<Map<String, dynamic>> _routes = [];
   bool _isLoading = true;
+  final String _roleId = 'admin';
 
   @override
   void initState() {
@@ -21,21 +22,22 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
   }
 
   Future<void> _loadRoutes() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getBusRoutes();
-      setState(() {
-        _routes = List<Map<String, dynamic>>.from(data);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _routes = List<Map<String, dynamic>>.from(data);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showAddRouteDialog({Map<String, dynamic>? route}) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+  void _showAddRouteDialog(DT dt, GeminiThemeExtension? theme, Color roleColor, {Map<String, dynamic>? route}) {
     final nameCtrl = TextEditingController(text: route?['name']);
     final driverCtrl = TextEditingController(text: route?['driver']);
     final phoneCtrl = TextEditingController(text: route?['phone']);
@@ -44,100 +46,128 @@ class _TransportManagementScreenState extends State<TransportManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 24),
-        decoration: BoxDecoration(color: theme.scaffoldBackgroundColor, borderRadius: const BorderRadius.vertical(top: Radius.circular(35))),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('ROUTE ASSIGNMENT CENTER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 2)),
-            const SizedBox(height: 24),
-            _buildField(nameCtrl, 'Route Name (e.g. Westlands)', Icons.map_rounded, theme),
-            const SizedBox(height: 16),
-            _buildField(driverCtrl, 'Assigned Driver', Icons.person_outline, theme),
-            const SizedBox(height: 16),
-            _buildField(phoneCtrl, 'Driver Contact', Icons.phone_android_rounded, theme, keyboardType: TextInputType.phone),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (nameCtrl.text.isNotEmpty) {
-                    final data = {
-                      'route_id': route?['route_id'] ?? const Uuid().v4(),
-                      'name': nameCtrl.text.trim(),
-                      'driver': driverCtrl.text.trim(),
-                      'phone': phoneCtrl.text.trim(),
-                    };
-                    await SupabaseService.instance.saveBusRoute(data);
-                    if (mounted) { Navigator.pop(context); _loadRoutes(); }
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: theme.primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                child: const Text('COMMIT LOGISTICS DATA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-              ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: theme?.buildGlowContainer(
+          accentColor: roleColor,
+          borderRadius: 35,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                Text('ROUTE ASSIGNMENT CENTER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+                const SizedBox(height: 24),
+                _buildField(dt, nameCtrl, 'Route Name (e.g. Westlands)', Icons.map_rounded, roleColor),
+                const SizedBox(height: 16),
+                _buildField(dt, driverCtrl, 'Assigned Driver', Icons.person_outline, roleColor),
+                const SizedBox(height: 16),
+                _buildField(dt, phoneCtrl, 'Driver Contact', Icons.phone_android_rounded, roleColor, keyboardType: TextInputType.phone),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameCtrl.text.isNotEmpty) {
+                        final data = {
+                          'route_id': route?['route_id'] ?? const Uuid().v4(),
+                          'name': nameCtrl.text.trim(),
+                          'driver': driverCtrl.text.trim(),
+                          'phone': phoneCtrl.text.trim(),
+                        };
+                        await SupabaseService.instance.saveBusRoute(data);
+                        if (mounted) { Navigator.pop(context); _loadRoutes(); }
+                      }
+                    },
+                    child: const Text('COMMIT LOGISTICS DATA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
-        ),
+          ),
+        ) ?? const SizedBox.shrink(),
       ),
     );
   }
 
-  Widget _buildField(TextEditingController c, String l, IconData i, ThemeData t, {TextInputType? keyboardType}) => TextField(controller: c, keyboardType: keyboardType, decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, color: t.primaryColor), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20))));
+  Widget _buildField(DT dt, TextEditingController c, String l, IconData i, Color color, {TextInputType? keyboardType}) => TextField(controller: c, keyboardType: keyboardType, style: TextStyle(color: dt.textPrimary, fontWeight: FontWeight.bold), decoration: InputDecoration(labelText: l, prefixIcon: Icon(i, color: color)));
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Fleet Management', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('FLEET MANAGEMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.deepPurple.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20)],
           ),
-          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.bus_alert_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.bus_alert_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)))]),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : _routes.isEmpty 
-            ? _buildEmptyState()
-            : ListView.builder(
-                padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 100),
-                itemCount: _routes.length,
-                itemBuilder: (context, index) {
-                  final route = _routes[index];
-                  final content = ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.directions_bus_rounded, color: Colors.deepPurple, size: 24)),
-                    title: Text(route['name'] ?? 'School Route', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                    subtitle: Text('Driver: ${route['driver']}\nContact: ${route['phone']}', style: const TextStyle(fontSize: 11, height: 1.4)),
-                    trailing: IconButton(icon: const Icon(Icons.edit_location_alt_rounded), onPressed: () => _showAddRouteDialog(route: route)),
-                  );
-                  return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
-                },
-              ),
-      ),
-      floatingActionButton: gemini?.buildGlowContainer(
-        borderRadius: 30, borderThickness: 2, backgroundColor: theme.primaryColor, padding: EdgeInsets.zero,
-        child: FloatingActionButton.extended(onPressed: () => _showAddRouteDialog(), backgroundColor: Colors.transparent, elevation: 0, foregroundColor: Colors.white, icon: const Icon(Icons.add_location_alt_rounded), label: const Text('Add School Route', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1))),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: _isLoading 
+            ? Center(child: CircularProgressIndicator(color: roleColor))
+            : _routes.isEmpty 
+              ? _buildEmptyState(dt)
+              : ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 20, left: 20, right: 20, bottom: 100),
+                  itemCount: _routes.length,
+                  itemBuilder: (context, index) {
+                    final route = _routes[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12), 
+                      child: theme.buildGlowContainer(
+                        accentColor: KagemaColors.secretaryViolet, 
+                        borderRadius: 24, 
+                        padding: EdgeInsets.zero, 
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          leading: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.secretaryViolet), shape: BoxShape.circle), child: const Icon(Icons.directions_bus_rounded, color: KagemaColors.secretaryViolet, size: 24)),
+                          title: Text(route['name']?.toString().toUpperCase() ?? 'SCHOOL ROUTE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
+                          subtitle: Text('Driver: ${route['driver']}\nContact: ${route['phone']}', style: TextStyle(fontSize: 11, height: 1.4, color: dt.textSecondary, fontWeight: FontWeight.w600)),
+                          trailing: IconButton(icon: Icon(Icons.edit_location_alt_rounded, color: roleColor), onPressed: () => _showAddRouteDialog(dt, theme, roleColor, route: route)),
+                        ),
+                      ) ?? const SizedBox.shrink(),
+                    );
+                  },
+                ),
+        ),
+      ) ?? const SizedBox.shrink(),
+      floatingActionButton: RolePlasma(
+        color: roleColor,
+        child: FloatingActionButton.extended(
+          onPressed: () => _showAddRouteDialog(dt, theme, roleColor),
+          icon: const Icon(Icons.add_location_alt_rounded), 
+          label: const Text('ADD SCHOOL ROUTE', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11))
+        ),
       ),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.bus_alert_rounded, size: 80, color: Colors.grey), SizedBox(height: 16), Text('FLEET OFFLINE', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5))]));
+  Widget _buildEmptyState(DT dt) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.bus_alert_rounded, size: 80, color: dt.iconInactive), const SizedBox(height: 16), Text('FLEET OFFLINE', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2))]));
 }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
-import '../secretary/student_registration.dart';
-import '../teacher/marks_entry.dart';
 import 'student_detail_screen.dart';
 import '../../app_theme.dart';
 
@@ -69,14 +67,15 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final Color primaryColor = _getRoleColor();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final roleColor = RoleColors.of(widget.role);
+    final compColor = RoleColors.complement(widget.role);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Student Records', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, color: Colors.white)),
+        title: const Text('STUDENT RECORDS', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -86,122 +85,119 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryColor, primaryColor.withAlpha((0.7 * 255).toInt())],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(widget.role, dark: context.isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.group_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.group_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Column(
-          children: [
-            SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-            _buildSearchBox(theme, primaryColor, gemini),
-            const SizedBox(height: 20),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _filteredStudents.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                          itemCount: _filteredStudents.length,
-                          itemBuilder: (context, index) {
-                            final student = _filteredStudents[index];
-                            final content = ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              leading: CircleAvatar(
-                                radius: 25,
-                                backgroundColor: primaryColor.withOpacity(0.1),
-                                child: Text(student.name[0], style: TextStyle(color: primaryColor, fontWeight: FontWeight.w900, fontSize: 18)),
-                              ),
-                              title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                              subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role))),
-                            );
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: gemini?.buildGlowContainer(
-                                borderRadius: 24,
-                                borderThickness: 1,
-                                backgroundColor: theme.cardColor.withOpacity(0.85),
-                                padding: EdgeInsets.zero,
-                                child: content,
-                              ) ?? Card(child: content),
-                            );
-                          },
-                        ),
-            ),
-          ],
+      body: theme?.buildCreativeBackground(
+        isDark: context.isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: context.isDark,
+          child: Column(
+            children: [
+              SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+              _buildSearchBox(dt, roleColor, theme),
+              const SizedBox(height: 20),
+              Expanded(
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator(color: roleColor))
+                    : _filteredStudents.isEmpty
+                        ? _buildEmptyState(dt)
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            itemCount: _filteredStudents.length,
+                            itemBuilder: (context, index) {
+                              final student = _filteredStudents[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: theme?.buildGlowContainer(
+                                  accentColor: roleColor,
+                                  borderRadius: 24,
+                                  padding: EdgeInsets.zero,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: roleColor.withValues(alpha: 0.4), width: 1.5),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: dt.roleSoftBg(roleColor),
+                                        child: Text(student.name[0].toUpperCase(), 
+                                          style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 18)
+                                        ),
+                                      ),
+                                    ),
+                                    title: Text(student.name.toUpperCase(), 
+                                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)
+                                    ),
+                                    subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', 
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)
+                                    ),
+                                    trailing: Icon(Icons.chevron_right_rounded, color: dt.iconInactive),
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentDetailScreen(student: student, userRole: widget.role))),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildSearchBox(ThemeData theme, Color color, GeminiThemeExtension? gemini) {
-    final content = TextField(
-      onChanged: (v) => setState(() => _searchQuery = v),
-      style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: InputDecoration(
-        hintText: 'Search by name or ADM...',
-        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
-        prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
-      ),
-    );
-
+  Widget _buildSearchBox(DT dt, Color color, GeminiThemeExtension? theme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: gemini?.buildGlowContainer(
-        borderRadius: 20,
-        borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.9),
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: content,
-      ) ?? Container(
-        decoration: BoxDecoration(
-          color: theme.cardColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.2)),
+      child: theme?.buildGlowContainer(
+        accentColor: color,
+        borderRadius: 22,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: TextField(
+          onChanged: (v) => setState(() => _searchQuery = v),
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'SEARCH BY NAME OR ADMISSION...',
+            hintStyle: TextStyle(color: dt.hint, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+            prefixIcon: Icon(Icons.search_rounded, color: color, size: 22),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            filled: false,
+          ),
         ),
-        child: content,
       ),
     );
   }
 
-  Color _getRoleColor() {
-    switch (widget.role.toLowerCase()) {
-      case 'admin': return const Color(0xFF1A237E);
-      case 'teacher': return const Color(0xFF00695C);
-      case 'secretary': return const Color(0xFF4A148C);
-      default: return const Color(0xFFD84315);
-    }
-  }
-
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(DT dt) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.cloud_off_rounded, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('No student records found in the system.', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          Icon(Icons.person_off_rounded, size: 80, color: dt.iconInactive),
+          const SizedBox(height: 24),
+          Text('NO STUDENT RECORDS FOUND', 
+            style: TextStyle(color: dt.textMuted, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 12)
+          ),
         ],
       ),
     );

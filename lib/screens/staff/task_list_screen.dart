@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
-import 'package:intl/intl.dart';
 
 class TaskListScreen extends StatefulWidget {
   final String staffId;
@@ -15,6 +14,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   late TabController _tabController;
   List<Map<String, dynamic>> _tasks = [];
   bool _isLoading = true;
+  final String _roleId = 'staff';
 
   @override
   void initState() {
@@ -27,30 +27,42 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getTasks(widget.staffId);
-      setState(() {
-        _tasks = data;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _tasks = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Task Intelligence', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('TASK INTELLIGENCE', 
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 3, fontSize: 16)
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.orange.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
         ),
@@ -58,52 +70,88 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
           controller: _tabController,
           indicatorColor: Colors.white,
           indicatorWeight: 4,
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 20),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           tabs: const [Tab(text: 'ACTIVE'), Tab(text: 'ARCHIVED')],
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
-          child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
-            : TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildTaskGrid(theme, gemini, false),
-                  _buildTaskGrid(theme, gemini, true),
-                ],
-              ),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Padding(
+            padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 48),
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: roleColor))
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTaskGrid(dt, theme, false, roleColor),
+                    _buildTaskGrid(dt, theme, true, roleColor),
+                  ],
+                ),
+          ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildTaskGrid(ThemeData theme, GeminiThemeExtension? gemini, bool showCompleted) {
+  Widget _buildTaskGrid(DT dt, GeminiThemeExtension? theme, bool showCompleted, Color roleColor) {
     final filtered = _tasks.where((t) => (t['status'] == 'Completed') == showCompleted).toList();
-    if (filtered.isEmpty) return _buildEmptyState(showCompleted);
+    if (filtered.isEmpty) return _buildEmptyState(dt, showCompleted);
 
     return ListView.builder(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(20),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final t = filtered[index];
-        final content = ListTile(
-          leading: Icon(showCompleted ? Icons.check_circle : Icons.pending_actions, color: showCompleted ? Colors.green : Colors.orange),
-          title: Text(t['title'] ?? 'Neural Duty', style: const TextStyle(fontWeight: FontWeight.w900)),
-          subtitle: Text('Due: ${t['due_date']}'),
-          trailing: showCompleted ? null : IconButton(
-            icon: const Icon(Icons.done_all_rounded, color: Colors.green),
-            onPressed: () async {
-              await SupabaseService.instance.updateTaskStatus(t['task_id'].toString(), 'Completed');
-              _loadTasks();
-            },
-          ),
+        final priority = t['priority']?.toString() ?? 'Medium';
+        final priorityColor = priority == 'High' ? dt.error : (priority == 'Low' ? dt.success : dt.warning);
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: theme?.buildGlowContainer(
+            accentColor: priorityColor,
+            borderRadius: 24,
+            padding: EdgeInsets.zero,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: dt.roleSoftBg(priorityColor), shape: BoxShape.circle),
+                child: Icon(showCompleted ? Icons.check_circle_rounded : Icons.pending_actions_rounded, color: priorityColor, size: 24),
+              ),
+              title: Text(t['title']?.toString().toUpperCase() ?? 'NEURAL DUTY', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textPrimary, fontSize: 14, letterSpacing: 0.5)),
+              subtitle: Text('Due: ${t['due_date']}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dt.textSecondary)),
+              trailing: showCompleted ? null : IconButton(
+                icon: Icon(Icons.done_all_rounded, color: dt.success),
+                onPressed: () async {
+                  await SupabaseService.instance.updateTaskStatus(t['task_id'].toString(), 'Completed');
+                  _loadTasks();
+                },
+              ),
+            ),
+          ) ?? const SizedBox.shrink(),
         );
-        return Padding(padding: const EdgeInsets.only(bottom: 12), child: gemini?.buildGlowContainer(borderRadius: 24, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, child: content) ?? Card(child: content));
       },
     );
   }
 
-  Widget _buildEmptyState(bool archived) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(archived ? Icons.archive_outlined : Icons.task_alt, size: 80, color: Colors.grey.withOpacity(0.3)), const SizedBox(height: 16), Text(archived ? 'ARCHIVE EMPTY' : 'ALL TASKS SYNCED', style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2))]));
+  Widget _buildEmptyState(DT dt, bool archived) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(archived ? Icons.archive_outlined : Icons.task_alt, size: 80, color: dt.iconInactive),
+          const SizedBox(height: 16),
+          Text(archived ? 'ARCHIVE EMPTY' : 'ALL TASKS SYNCED', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+        ],
+      ),
+    );
+  }
 }

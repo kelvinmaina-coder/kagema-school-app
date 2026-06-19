@@ -14,6 +14,7 @@ class ChildDisciplineScreen extends StatefulWidget {
 class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
   List<Map<String, dynamic>> _incidents = [];
   bool _isLoading = true;
+  final String _roleId = 'parent';
 
   @override
   void initState() {
@@ -39,14 +40,18 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text('${widget.student.name}\'s Conduct', 
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: Text('${widget.student.name.toUpperCase()}\'S CONDUCT', 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -57,79 +62,78 @@ class _ChildDisciplineScreenState extends State<ChildDisciplineScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.red.shade900, Colors.red.shade500],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.gavel_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.gavel_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-          child: _isLoading 
-            ? const Center(child: CircularProgressIndicator(color: Colors.red))
-            : _incidents.isEmpty 
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  itemCount: _incidents.length,
-                  itemBuilder: (context, index) {
-                    final item = _incidents[index];
-                    final content = ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      leading: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
-                        child: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
-                      ),
-                      title: Text(item['title'] ?? 'Incident Entry', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(item['description'] ?? 'No details provided.', 
-                          style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Padding(
+            padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 10),
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: roleColor))
+              : _incidents.isEmpty 
+                ? _buildEmptyState(dt)
+                : ListView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    itemCount: _incidents.length,
+                    itemBuilder: (context, index) {
+                      final item = _incidents[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: theme.buildGlowContainer(
+                          accentColor: dt.error,
+                          borderRadius: 28,
+                          padding: EdgeInsets.zero,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            leading: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: dt.roleSoftBg(dt.error), shape: BoxShape.circle),
+                              child: Icon(Icons.warning_amber_rounded, color: dt.error, size: 24),
+                            ),
+                            title: Text(item['title']?.toString().toUpperCase() ?? 'INCIDENT ENTRY', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(item['description'] ?? 'No details provided.', 
+                                style: TextStyle(fontSize: 12, height: 1.4, fontWeight: FontWeight.w600, color: dt.textSecondary)
+                              ),
+                            ),
+                            trailing: Text(item['date'] ?? '', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: dt.textMuted)),
+                          ),
                         ),
-                      ),
-                      trailing: Text(item['date'] ?? '', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    );
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: gemini?.buildGlowContainer(
-                        borderRadius: 28,
-                        borderThickness: 1,
-                        backgroundColor: theme.cardColor.withOpacity(0.85),
-                        padding: EdgeInsets.zero,
-                        child: content,
-                      ) ?? Card(child: content),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(DT dt) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.verified_user_rounded, size: 80, color: Colors.green),
+          Icon(Icons.verified_user_rounded, size: 80, color: dt.success),
           const SizedBox(height: 16),
-          const Text('DISCIPLINE RECORD CLEAR', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('DISCIPLINE RECORD CLEAR', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2, fontSize: 12)),
         ],
       ),
     );

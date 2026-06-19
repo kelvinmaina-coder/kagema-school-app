@@ -57,91 +57,186 @@ class _StudentDetailScreenState extends State<StudentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(widget.userRole);
+    final compColor = RoleColors.complement(widget.userRole);
     final bool canEdit = ['admin', 'secretary'].contains(widget.userRole.toLowerCase());
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text(currentStudent.name, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: Text(currentStudent.name.toUpperCase(), 
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: Colors.white)
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        actions: canEdit ? [
-          IconButton(icon: const Icon(Icons.edit_note_rounded, color: Colors.white), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentRegistrationScreen(studentToEdit: currentStudent))))
-        ] : null,
-      ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, left: 20, right: 20, bottom: 40),
-          child: Column(
-            children: [
-              _buildProfileHeader(theme, gemini),
-              const SizedBox(height: 32),
-              _buildVitalsRow(theme, gemini),
-              const SizedBox(height: 32),
-              _buildInfoSection(theme, gemini, 'ACADEMIC IDENTITY', [
-                _infoRow(Icons.badge_outlined, 'Admission No', currentStudent.admissionNumber),
-                _infoRow(Icons.school_outlined, 'Current Grade', currentStudent.grade),
-                _infoRow(Icons.grid_view_rounded, 'Class Stream', currentStudent.stream),
-              ]),
-              const SizedBox(height: 24),
-              _buildInfoSection(theme, gemini, 'BIOMETRIC DATA', [
-                _infoRow(Icons.person_outline, 'Gender', currentStudent.gender),
-                _infoRow(Icons.cake_outlined, 'Date of Birth', currentStudent.dateOfBirth),
-                _infoRow(Icons.history_rounded, 'Calculated Age', '${currentStudent.age} Years'),
-              ]),
-            ],
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: RoleColors.gradient(widget.userRole, dark: isDark),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
         ),
+        actions: canEdit ? [
+          IconButton(
+            icon: const Icon(Icons.edit_note_rounded, color: Colors.white), 
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentRegistrationScreen(studentToEdit: currentStudent)))
+          )
+        ] : null,
       ),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, 
+              left: 20, right: 20, bottom: 40
+            ),
+            child: Column(
+              children: [
+                _buildProfileHeader(dt, theme, roleColor),
+                const SizedBox(height: 32),
+                _buildVitalsRow(dt, theme),
+                const SizedBox(height: 48),
+                _buildInfoSection(dt, theme, 'ACADEMIC IDENTITY', roleColor, [
+                  _infoRow(dt, Icons.badge_outlined, 'Admission No', currentStudent.admissionNumber),
+                  _infoRow(dt, Icons.school_outlined, 'Current Grade', currentStudent.grade),
+                  _infoRow(dt, Icons.grid_view_rounded, 'Class Stream', currentStudent.stream),
+                ]),
+                const SizedBox(height: 32),
+                _buildInfoSection(dt, theme, 'BIOMETRIC DATA', roleColor, [
+                  _infoRow(dt, Icons.person_outline, 'Gender', currentStudent.gender),
+                  _infoRow(dt, Icons.cake_outlined, 'Date of Birth', currentStudent.dateOfBirth),
+                  _infoRow(dt, Icons.history_rounded, 'Calculated Age', '${currentStudent.age} Years'),
+                ]),
+                const SizedBox(height: 140),
+              ],
+            ),
+          ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildVitalsRow(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildVitalsRow(DT dt, GeminiThemeExtension? theme) {
     return Row(
       children: [
-        _vitalItem('Presence', '${_attendance.toInt()}%', Colors.teal, gemini),
+        _vitalItem(dt, theme, 'Presence', '${_attendance.toInt()}%', KagemaColors.azure),
         const SizedBox(width: 12),
-        _vitalItem('Arrears', 'Ksh ${_balance.toInt()}', _balance > 0 ? Colors.red : Colors.green, gemini),
+        _vitalItem(dt, theme, 'Arrears', 'Ksh ${_balance.toInt()}', _balance > 0 ? KagemaColors.parentRed : KagemaColors.teacherGreen),
         const SizedBox(width: 12),
-        _vitalItem('Proficiency', '${_avgGrade.toInt()}%', Colors.orange, gemini),
+        _vitalItem(dt, theme, 'Proficiency', '${_avgGrade.toInt()}%', KagemaColors.accountantAmber),
       ],
     );
   }
 
-  Widget _vitalItem(String l, String v, Color c, GeminiThemeExtension? gemini) {
-    final content = Column(children: [
-      Text(v, style: TextStyle(fontWeight: FontWeight.w900, color: c, fontSize: 16)),
-      Text(l, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1))
-    ]);
-    return Expanded(child: gemini?.buildGlowContainer(borderRadius: 20, borderThickness: 1, backgroundColor: Theme.of(context).cardColor.withOpacity(0.9), padding: const EdgeInsets.symmetric(vertical: 16), child: content) ?? Card(child: content));
-  }
-
-  Widget _buildProfileHeader(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Column(
-      children: [
-        CircleAvatar(radius: 50, backgroundColor: Colors.white24, child: Text(currentStudent.name[0], style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.w900))),
-        const SizedBox(height: 16),
-        Text(currentStudent.name.toUpperCase(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1), textAlign: TextAlign.center),
-        Text('NEURAL NODE: ${currentStudent.studentId.substring(0, 8)}', style: const TextStyle(fontSize: 9, color: Colors.white70, fontWeight: FontWeight.bold, letterSpacing: 2)),
-      ],
+  Widget _vitalItem(DT dt, GeminiThemeExtension? theme, String l, String v, Color c) {
+    return Expanded(
+      child: theme?.buildGlowContainer(
+        accentColor: c,
+        borderRadius: 22,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+        child: Column(
+          children: [
+            Text(v, style: TextStyle(fontWeight: FontWeight.w900, color: c, fontSize: 16, letterSpacing: -0.5)),
+            const SizedBox(height: 4),
+            Text(l.toUpperCase(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1))
+          ]
+        ),
+      ) ?? const SizedBox.shrink(),
     );
-    return gemini?.buildGlowContainer(borderRadius: 35, borderThickness: 2, backgroundColor: theme.primaryColor.withOpacity(0.8), padding: const EdgeInsets.all(32), useAIBorder: true, child: content) ?? Container();
   }
 
-  Widget _buildInfoSection(ThemeData theme, GeminiThemeExtension? gemini, String title, List<Widget> rows) {
+  Widget _buildProfileHeader(DT dt, GeminiThemeExtension? theme, Color roleColor) {
+    return theme?.buildGlowContainer(
+      accentColor: roleColor,
+      borderRadius: 40,
+      padding: const EdgeInsets.all(32),
+      useAIBorder: true,
+      child: Column(
+        children: [
+          RolePlasma(
+            color: roleColor,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2)),
+              child: CircleAvatar(
+                radius: 46, 
+                backgroundColor: Colors.white.withValues(alpha: 0.15), 
+                child: Text(currentStudent.name[0].toUpperCase(), style: const TextStyle(fontSize: 42, color: Colors.white, fontWeight: FontWeight.w900))
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(currentStudent.name.toUpperCase(), 
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1), 
+            textAlign: TextAlign.center
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+            child: Text('NEURAL NODE: ${currentStudent.studentId.substring(0, 8).toUpperCase()}', 
+              style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 2)
+            ),
+          ),
+        ],
+      ),
+    ) ?? const SizedBox.shrink();
+  }
+
+  Widget _buildInfoSection(DT dt, GeminiThemeExtension? theme, String title, Color roleColor, List<Widget> rows) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(left: 8, bottom: 12), child: Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5))),
-        gemini?.buildGlowContainer(borderRadius: 28, borderThickness: 1, backgroundColor: theme.cardColor.withOpacity(0.85), padding: const EdgeInsets.all(24), child: Column(children: rows)) ?? Card(child: Column(children: rows)),
+        Padding(
+          padding: const EdgeInsets.only(left: 8, bottom: 16), 
+          child: Row(
+            children: [
+              Container(width: 4, height: 14, decoration: BoxDecoration(color: roleColor, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 10),
+              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textSecondary, letterSpacing: 2.5)),
+            ],
+          )
+        ),
+        theme?.buildGlowContainer(
+          accentColor: roleColor,
+          borderRadius: 32,
+          padding: const EdgeInsets.all(12),
+          child: Column(children: rows),
+        ) ?? const SizedBox.shrink(),
       ],
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: Row(children: [Icon(icon, size: 18, color: Colors.blueGrey), const SizedBox(width: 16), Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w600)), const Spacer(), Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))]));
+  Widget _infoRow(DT dt, IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), 
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: dt.surfaceBg, shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: dt.iconInactive),
+          ),
+          const SizedBox(width: 16),
+          Text(label, style: TextStyle(color: dt.textMuted, fontSize: 13, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          Text(value.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: dt.textPrimary, letterSpacing: 0.5)),
+        ],
+      ),
+    );
   }
 }

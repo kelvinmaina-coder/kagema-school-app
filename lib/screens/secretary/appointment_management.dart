@@ -14,6 +14,7 @@ class AppointmentManagementScreen extends StatefulWidget {
 class _AppointmentManagementScreenState extends State<AppointmentManagementScreen> {
   List<Map<String, dynamic>> _appointments = [];
   bool _isLoading = true;
+  final String _roleId = 'secretary';
 
   @override
   void initState() {
@@ -22,29 +23,27 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
   }
 
   Future<void> _loadAppointments() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await SupabaseService.instance.getAppointments();
-      setState(() {
-        _appointments = List<Map<String, dynamic>>.from(data);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _appointments = List<Map<String, dynamic>>.from(data);
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sync Error: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _showAddDialog([Map<String, dynamic>? appointment]) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final roleColor = RoleColors.of(_roleId);
     final bool isEditing = appointment != null;
+    
     final titleController = TextEditingController(text: appointment?['title']);
     final descController = TextEditingController(text: appointment?['description']);
     final visitorController = TextEditingController(text: appointment?['visitor_name']);
@@ -55,142 +54,126 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        ),
-        child: gemini?.buildCreativeBackground(
-          isDark: theme.brightness == Brightness.dark,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-                  const SizedBox(height: 24),
-                  Text(isEditing ? 'EDIT APPOINTMENT' : 'NEW APPOINTMENT', 
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
-                  ),
-                  const SizedBox(height: 8),
-                  Text(isEditing ? 'Update Details' : 'Add to Schedule', 
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
-                  ),
-                  const SizedBox(height: 32),
-                  _buildInputField('Purpose / Subject', Icons.title_rounded, titleController, theme),
-                  const SizedBox(height: 16),
-                  _buildInputField('Visitor Name', Icons.person_pin_rounded, visitorController, theme),
-                  const SizedBox(height: 16),
-                  _buildInputField('Additional Details', Icons.notes_rounded, descController, theme, maxLines: 2),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: selectedDate,
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (date != null) setState(() => selectedDate = date);
-                          },
-                          child: _buildDateTimePickerBox('Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}', Icons.calendar_today_rounded, theme),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () async {
-                            final time = await showTimePicker(context: context, initialTime: selectedTime);
-                            if (time != null) setState(() => selectedTime = time);
-                          },
-                          child: _buildDateTimePickerBox('Time: ${selectedTime.format(context)}', Icons.access_time_rounded, theme),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 60,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final DateTime fullDateTime = DateTime(
-                            selectedDate.year, selectedDate.month, selectedDate.day,
-                            selectedTime.hour, selectedTime.minute
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: theme?.buildGlowContainer(
+          accentColor: roleColor,
+          borderRadius: 35,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                Text(isEditing ? 'EDIT APPOINTMENT' : 'NEW APPOINTMENT', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)
+                ),
+                const SizedBox(height: 8),
+                Text(isEditing ? 'Update Details' : 'Add to Schedule', 
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1, color: dt.textPrimary)
+                ),
+                const SizedBox(height: 32),
+                _buildInputField(dt, 'Purpose / Subject', Icons.title_rounded, titleController, roleColor),
+                const SizedBox(height: 16),
+                _buildInputField(dt, 'Visitor Name', Icons.person_pin_rounded, visitorController, roleColor),
+                const SizedBox(height: 16),
+                _buildInputField(dt, 'Additional Details', Icons.notes_rounded, descController, roleColor, maxLines: 2),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
                           );
-                          
-                          final data = {
-                            'appointment_id': isEditing ? appointment['appointment_id'] : const Uuid().v4(),
-                            'title': titleController.text.trim(),
-                            'visitor_name': visitorController.text.trim(),
-                            'description': descController.text.trim(),
-                            'appointment_date': fullDateTime.toIso8601String(),
-                            'status': appointment?['status'] ?? 'Scheduled',
-                          };
-
-                          await SupabaseService.instance.upsertAppointment(data);
-                          if (mounted) {
-                            Navigator.pop(context);
-                            _loadAppointments();
-                          }
+                          if (date != null) setState(() => selectedDate = date);
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade800,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          elevation: 8,
-                        ),
-                        child: Text(isEditing ? 'UPDATE APPOINTMENT' : 'SAVE APPOINTMENT', 
-                          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 12)
-                        ),
+                        child: _buildDateTimePickerBox(dt, 'Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}', Icons.calendar_today_rounded, roleColor),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          final time = await showTimePicker(context: context, initialTime: selectedTime);
+                          if (time != null) setState(() => selectedTime = time);
+                        },
+                        child: _buildDateTimePickerBox(dt, 'Time: ${selectedTime.format(context)}', Icons.access_time_rounded, roleColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final DateTime fullDateTime = DateTime(
+                        selectedDate.year, selectedDate.month, selectedDate.day,
+                        selectedTime.hour, selectedTime.minute
+                      );
+                      
+                      final data = {
+                        'appointment_id': isEditing ? appointment['appointment_id'] : const Uuid().v4(),
+                        'title': titleController.text.trim(),
+                        'visitor_name': visitorController.text.trim(),
+                        'description': descController.text.trim(),
+                        'appointment_date': fullDateTime.toIso8601String(),
+                        'status': appointment?['status'] ?? 'Scheduled',
+                      };
+
+                      await SupabaseService.instance.upsertAppointment(data);
+                      if (mounted) {
+                        Navigator.pop(context);
+                        _loadAppointments();
+                      }
+                    },
+                    child: Text(isEditing ? 'UPDATE APPOINTMENT' : 'SAVE APPOINTMENT', 
+                      style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)
+                    ),
                   ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
           ),
-        ) ?? const SizedBox(),
+        ) ?? const SizedBox.shrink(),
       ),
     );
   }
 
-  Widget _buildInputField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {int maxLines = 1}) {
+  Widget _buildInputField(DT dt, String label, IconData icon, TextEditingController ctrl, Color roleColor, {int maxLines = 1}) {
     return TextField(
       controller: ctrl,
       maxLines: maxLines,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.orange.shade800, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(icon, color: roleColor, size: 20),
       ),
     );
   }
 
-  Widget _buildDateTimePickerBox(String text, IconData icon, ThemeData theme) {
+  Widget _buildDateTimePickerBox(DT dt, String text, IconData icon, Color roleColor) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
+        color: dt.inputBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: dt.cardBorder),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.orange.shade800),
+          Icon(icon, size: 18, color: roleColor),
           const SizedBox(width: 10),
-          FittedBox(child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+          FittedBox(child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: dt.textPrimary))),
         ],
       ),
     );
@@ -198,14 +181,18 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Appointments', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: const Text('APPOINTMENTS', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -216,115 +203,109 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.orange.shade900, Colors.orange.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.event_available_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.event_available_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
         actions: [IconButton(icon: const Icon(Icons.refresh_rounded, color: Colors.white), onPressed: _loadAppointments)],
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-            : _appointments.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 160, 20, 100),
-                    itemCount: _appointments.length,
-                    itemBuilder: (context, index) {
-                      final appt = _appointments[index];
-                      final dt = DateTime.parse(appt['appointment_date']);
-                      final status = appt['status'] ?? 'Scheduled';
-                      final color = status == 'Completed' ? Colors.green : (status == 'Cancelled' ? Colors.red : Colors.orange);
-                      
-                      final content = ListTile(
-                        onTap: () => _showAddDialog(appt),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                          child: Icon(Icons.event_note_rounded, color: color, size: 24),
-                        ),
-                        title: Text(appt['title'] ?? 'Appointment', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text('${appt['visitor_name']} \n${DateFormat('MMM dd • hh:mm a').format(dt)}', 
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4)
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: _isLoading
+              ? Center(child: CircularProgressIndicator(color: roleColor))
+              : _appointments.isEmpty
+                  ? _buildEmptyState(dt)
+                  : ListView.builder(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.fromLTRB(20, AppBar().preferredSize.height + context.pt + 20, 20, 100),
+                      itemCount: _appointments.length,
+                      itemBuilder: (context, index) {
+                        final appt = _appointments[index];
+                        final appointmentDate = DateTime.parse(appt['appointment_date']);
+                        final status = appt['status'] ?? 'Scheduled';
+                        final color = status == 'Completed' ? dt.success : (status == 'Cancelled' ? dt.error : dt.warning);
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: theme.buildGlowContainer(
+                            accentColor: color,
+                            borderRadius: 28,
+                            padding: EdgeInsets.zero,
+                            child: ListTile(
+                              onTap: () => _showAddDialog(appt),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: dt.roleSoftBg(color), shape: BoxShape.circle),
+                                child: Icon(Icons.event_note_rounded, color: color, size: 24),
+                              ),
+                              title: Text(appt['title']?.toString().toUpperCase() ?? 'APPOINTMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('${appt['visitor_name']} \n${DateFormat('MMM dd • hh:mm a').format(appointmentDate)}', 
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4, color: dt.textSecondary)
+                                ),
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                icon: Icon(Icons.more_vert_rounded, color: dt.iconInactive),
+                                color: dt.cardBg,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                onSelected: (val) async {
+                                  if (val == 'delete') {
+                                    await SupabaseService.instance.deleteAppointment(appt['appointment_id']);
+                                    _loadAppointments();
+                                  } else if (val == 'completed' || val == 'cancel') {
+                                    final updated = Map<String, dynamic>.from(appt);
+                                    updated['status'] = val == 'completed' ? 'Completed' : 'Cancelled';
+                                    await SupabaseService.instance.upsertAppointment(updated);
+                                    _loadAppointments();
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(value: 'completed', child: ListTile(leading: Icon(Icons.check_circle_rounded, color: dt.success, size: 20), title: Text('Completed', style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary)), dense: true)),
+                                  PopupMenuItem(value: 'cancel', child: ListTile(leading: Icon(Icons.cancel_rounded, color: dt.warning, size: 20), title: Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary)), dense: true)),
+                                  PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: dt.error, size: 20), title: Text('Delete', style: TextStyle(color: dt.error, fontWeight: FontWeight.bold)), dense: true)),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                        trailing: PopupMenuButton(
-                          icon: const Icon(Icons.more_vert_rounded, color: Colors.grey),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'completed', child: ListTile(leading: Icon(Icons.check_circle_rounded, color: Colors.green), title: Text('Completed'), dense: true)),
-                            const PopupMenuItem(value: 'cancel', child: ListTile(leading: Icon(Icons.cancel_rounded, color: Colors.orange), title: Text('Cancel'), dense: true)),
-                            const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red), title: Text('Delete'), dense: true)),
-                          ],
-                          onSelected: (val) async {
-                            if (val == 'delete') {
-                              await SupabaseService.instance.deleteAppointment(appt['appointment_id']);
-                              _loadAppointments();
-                            } else if (val == 'completed' || val == 'cancel') {
-                              final updated = Map<String, dynamic>.from(appt);
-                              updated['status'] = val == 'completed' ? 'Completed' : 'Cancelled';
-                              await SupabaseService.instance.upsertAppointment(updated);
-                              _loadAppointments();
-                            }
-                          },
-                        ),
-                      );
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: gemini?.buildGlowContainer(
-                          borderRadius: 28,
-                          borderThickness: 1,
-                          backgroundColor: theme.cardColor.withOpacity(0.85),
-                          padding: EdgeInsets.zero,
-                          child: content,
-                        ) ?? Card(child: content),
-                      );
-                    },
-                  ),
-      ),
-      floatingActionButton: gemini?.buildGlowContainer(
-        borderRadius: 30,
-        borderThickness: 2,
-        backgroundColor: Colors.orange.shade800,
-        padding: EdgeInsets.zero,
+                        );
+                      },
+                    ),
+        ),
+      ) ?? const SizedBox.shrink(),
+      floatingActionButton: RolePlasma(
+        color: roleColor,
         child: FloatingActionButton.extended(
           onPressed: () => _showAddDialog(),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          foregroundColor: Colors.white,
           icon: const Icon(Icons.add_task_rounded),
-          label: const Text('Schedule Appointment', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('SCHEDULE APPOINTMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(DT dt) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.calendar_today_rounded, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('NO APPOINTMENTS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Icon(Icons.calendar_today_rounded, size: 80, color: dt.iconInactive),
+          const SizedBox(height: 16),
+          Text('NO APPOINTMENTS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
         ],
       ),
     );

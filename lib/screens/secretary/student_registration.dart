@@ -25,6 +25,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   String _selectedStream = 'North';
   String _selectedGender = 'Male';
   bool _isSaving = false;
+  final String _roleId = 'secretary';
 
   @override
   void initState() {
@@ -48,8 +49,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
 
   Future<void> _enrollStudent() async {
     if (!_formKey.currentState!.validate()) return;
+    final dt = context.dt;
     if (_selectedDob == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select Date of Birth')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Text('Please select Date of Birth'), backgroundColor: dt.error));
       return;
     }
 
@@ -79,8 +81,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Student details updated successfully!' : 'Student registered successfully!'), 
-            backgroundColor: Colors.green.shade800,
+            content: Text(isEditing ? 'Student details updated successfully!' : 'Student registered successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.success,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -90,12 +92,12 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (e == "OFFLINE_QUEUED") {
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Working Offline: Record saved locally.'), backgroundColor: Colors.orange, behavior: SnackBarBehavior.floating),
+            SnackBar(content: const Text('Working Offline: Record saved locally.', style: TextStyle(fontWeight: FontWeight.w700)), backgroundColor: dt.warning, behavior: SnackBarBehavior.floating),
           );
           Navigator.pop(context, true);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: dt.error));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -103,26 +105,43 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   }
 
   Future<void> _pickDob() async {
+    final dt = context.dt;
+    final roleColor = RoleColors.of(_roleId);
     final date = await showDatePicker(
       context: context,
       initialDate: _selectedDob ?? DateTime.now().subtract(const Duration(days: 365 * 6)),
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.dark(
+            primary: roleColor,
+            onPrimary: Colors.white,
+            surface: dt.cardBg,
+            onSurface: dt.textPrimary,
+          ),
+        ),
+        child: child!,
+      ),
     );
     if (date != null) setState(() => _selectedDob = date);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
     final isEditing = widget.studentToEdit != null;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         title: Text(isEditing ? 'EDIT STUDENT' : 'STUDENT REGISTRATION', 
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -133,177 +152,167 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [theme.primaryColor, Colors.indigo.shade900],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.person_add_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.person_add_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  _buildFormContainer(theme, gemini),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _enrollStudent,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                        shadowColor: theme.primaryColor.withOpacity(0.5),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _buildFormContainer(dt, theme, roleColor),
+                    const SizedBox(height: 40),
+                    Container(
+                      width: double.infinity,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
                       ),
-                      child: _isSaving 
-                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
-                        : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION', 
-                            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _enrollStudent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: roleColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: _isSaving 
+                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                          : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION', 
+                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('STUDENT INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-        const SizedBox(height: 24),
-        _buildField(theme, _nameController, 'Full Name', Icons.person_outline),
-        const SizedBox(height: 20),
-        _buildField(theme, _admController, 'Admission Number', Icons.badge_outlined),
-        const SizedBox(height: 20),
-        
-        InkWell(
-          onTap: _pickDob,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.cake_outlined, color: theme.primaryColor, size: 20),
-                const SizedBox(width: 12),
-                Text(_selectedDob == null ? 'Select Birth Date' : DateFormat('MMM dd, yyyy').format(_selectedDob!),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Spacer(),
-                if (_selectedDob != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Text('${DateTime.now().year - _selectedDob!.year} YRS', 
-                      style: TextStyle(fontWeight: FontWeight.w900, color: theme.primaryColor, fontSize: 10)),
-                  ),
-              ],
+  Widget _buildFormContainer(DT dt, GeminiThemeExtension? theme, Color roleColor) {
+    return theme?.buildGlowContainer(
+      accentColor: KagemaColors.staffSky,
+      borderRadius: 30,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('STUDENT INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          const SizedBox(height: 24),
+          _buildField(dt, _nameController, 'Full Name', Icons.person_outline),
+          const SizedBox(height: 20),
+          _buildField(dt, _admController, 'Admission Number', Icons.badge_outlined),
+          const SizedBox(height: 20),
+          
+          InkWell(
+            onTap: _pickDob,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: dt.inputBg,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: dt.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.cake_outlined, color: roleColor, size: 20),
+                  const SizedBox(width: 12),
+                  Text(_selectedDob == null ? 'Select Birth Date' : DateFormat('MMM dd, yyyy').format(_selectedDob!),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary)),
+                  const Spacer(),
+                  if (_selectedDob != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), borderRadius: BorderRadius.circular(8)),
+                      child: Text('${DateTime.now().year - _selectedDob!.year} YRS', 
+                        style: TextStyle(fontWeight: FontWeight.w900, color: roleColor, fontSize: 10)),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        
-        const SizedBox(height: 32),
-        Text('GUARDIAN INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
-        const SizedBox(height: 24),
-        _buildField(theme, _parentNameController, 'Guardian Name', Icons.family_restroom_outlined),
-        const SizedBox(height: 20),
-        _buildField(theme, _parentPhoneController, 'Contact Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
+          
+          const SizedBox(height: 32),
+          Text('GUARDIAN INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          const SizedBox(height: 24),
+          _buildField(dt, _parentNameController, 'Guardian Name', Icons.family_restroom_outlined),
+          const SizedBox(height: 20),
+          _buildField(dt, _parentPhoneController, 'Contact Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
 
-        const SizedBox(height: 32),
-        const Divider(color: Colors.white10),
-        const SizedBox(height: 24),
-        _buildDropdowns(theme),
-      ],
-    );
-
-    return gemini?.buildGlowContainer(
-      borderRadius: 30,
-      borderThickness: 1.5,
-      backgroundColor: theme.cardColor.withOpacity(0.9),
-      padding: const EdgeInsets.all(24),
-      child: content,
-    ) ?? Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
-      child: content,
-    );
+          const SizedBox(height: 32),
+          Divider(color: dt.divider),
+          const SizedBox(height: 24),
+          _buildDropdowns(dt, roleColor),
+        ],
+      ),
+    ) ?? const SizedBox.shrink();
   }
 
-  Widget _buildField(ThemeData theme, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildField(DT dt, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
-  Widget _buildDropdowns(ThemeData theme) {
+  Widget _buildDropdowns(DT dt, Color roleColor) {
     return Column(
       children: [
         DropdownButtonFormField<String>(
           value: _selectedGrade,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+          dropdownColor: dt.cardBg,
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
           items: ['Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6', 'JSS 1', 'JSS 2', 'JSS 3']
               .map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
           onChanged: (v) => setState(() => _selectedGrade = v!),
-          decoration: _inputDecoration('Grade', Icons.school_outlined, theme),
+          decoration: _inputDecoration('Grade', Icons.school_outlined, dt),
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
           value: _selectedStream,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
+          dropdownColor: dt.cardBg,
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
           items: ['North', 'South', 'East', 'West'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (v) => setState(() => _selectedStream = v!),
-          decoration: _inputDecoration('Stream', Icons.grid_view_rounded, theme),
+          decoration: _inputDecoration('Stream', Icons.grid_view_rounded, dt),
         ),
       ],
     );
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon, ThemeData theme) {
+  InputDecoration _inputDecoration(String label, IconData icon, DT dt) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-      prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
-      filled: true,
-      fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+      prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
     );
   }
 }

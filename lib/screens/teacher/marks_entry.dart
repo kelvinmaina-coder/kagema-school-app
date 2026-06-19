@@ -3,6 +3,7 @@ import 'dart:ui';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
 import '../../app_theme.dart';
+import 'package:intl/intl.dart';
 
 class MarksEntryScreen extends StatefulWidget {
   final String grade;
@@ -28,6 +29,8 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   int selectedYear = DateTime.now().year;
   bool isLoading = true;
   bool isSaving = false;
+
+  final String _roleId = 'teacher';
 
   @override
   void initState() {
@@ -88,7 +91,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('ACADEMIC DATA SYNCED', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 11)),
-            backgroundColor: const Color(0xFF00E676),
+            backgroundColor: KagemaColors.teacherGreen,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -97,7 +100,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DATA UPLOAD FAILED'), backgroundColor: Color(0xFFFF3D00)));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('DATA UPLOAD FAILED'), backgroundColor: KagemaColors.parentRed));
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
@@ -105,15 +108,17 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
-    final isDark = theme.brightness == Brightness.dark;
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         title: Text('${widget.subject.toUpperCase()} ENTRY', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 4, color: Colors.white, shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)])
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 4, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -122,120 +127,126 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        flexibleSpace: ClipRRect(
-          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
+          ),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              Container(decoration: BoxDecoration(gradient: gemini?.primaryGradient)),
               Positioned(
                 right: -30, top: -10,
-                child: Icon(Icons.auto_graph_rounded, size: 180, color: Colors.white.withOpacity(0.12)),
+                child: Icon(Icons.auto_graph_rounded, size: 180, color: Colors.white.withValues(alpha: 0.12)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
+      body: theme?.buildCreativeBackground(
         isDark: isDark,
-        child: isLoading 
-          ? Center(child: CircularProgressIndicator(color: theme.primaryColor, strokeWidth: 3))
-          : students.isEmpty 
-            ? _buildEmptyState(isDark)
-            : Column(
-                children: [
-                  SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-                  _buildHeaderPanel(theme, gemini),
-                  Expanded(
-                    child: ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                      itemCount: students.length,
-                      itemBuilder: (context, index) {
-                        final s = students[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: gemini?.buildGlowContainer(
-                            borderRadius: 28,
-                            borderThickness: 1.5,
-                            backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFFAB40).withOpacity(0.4), width: 2)),
-                                  child: CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: const Color(0xFFFFAB40).withOpacity(0.1), 
-                                    child: Text(s.name[0], style: const TextStyle(color: Color(0xFFFFAB40), fontWeight: FontWeight.w900, fontSize: 18))
+        primaryBlob: roleColor,
+        secondaryBlob: RoleColors.complement(_roleId),
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: isLoading 
+            ? Center(child: CircularProgressIndicator(color: roleColor, strokeWidth: 3))
+            : students.isEmpty 
+              ? _buildEmptyState(dt)
+              : Column(
+                  children: [
+                    SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+                    _buildHeaderPanel(dt, theme),
+                    Expanded(
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                        itemCount: students.length,
+                        itemBuilder: (context, index) {
+                          final s = students[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: theme?.buildGlowContainer(
+                              accentColor: KagemaColors.accountantAmber,
+                              borderRadius: 28,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: KagemaColors.accountantAmber.withValues(alpha: 0.4), width: 2)),
+                                    child: CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: dt.roleSoftBg(KagemaColors.accountantAmber), 
+                                      child: Text(s.name[0].toUpperCase(), style: const TextStyle(color: KagemaColors.accountantAmber, fontWeight: FontWeight.w900, fontSize: 18))
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(s.name.toUpperCase(), 
-                                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5, color: isDark ? Colors.white : Colors.black87)
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text('ADM: ${s.admissionNumber}', 
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black38, letterSpacing: 1)
-                                      ),
-                                    ],
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(s.name.toUpperCase(), 
+                                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5, color: dt.textPrimary)
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text('ADM: ${s.admissionNumber}', 
+                                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                _buildElectricScoreInput(markControllers[s.studentId]!, isDark),
-                              ],
+                                  _buildElectricScoreInput(markControllers[s.studentId]!, dt),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  _buildSaveButton(theme, gemini),
-                ],
-              ),
-      ),
+                    _buildSaveButton(dt),
+                  ],
+                ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildElectricScoreInput(TextEditingController controller, bool isDark) {
+  Widget _buildElectricScoreInput(TextEditingController controller, DT dt) {
     return Container(
       width: 80,
       height: 50,
       decoration: BoxDecoration(
         boxShadow: [
-          BoxShadow(color: const Color(0xFFFF3D00).withOpacity(0.05), blurRadius: 10, spreadRadius: -2)
+          BoxShadow(color: KagemaColors.parentRed.withValues(alpha: 0.05), blurRadius: 10, spreadRadius: -2)
         ],
       ),
       child: TextField(
         controller: controller,
         keyboardType: TextInputType.number,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFFFF3D00)),
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: KagemaColors.parentRed),
         decoration: InputDecoration(
           hintText: '--',
-          hintStyle: TextStyle(color: isDark ? Colors.white10 : Colors.black12),
+          hintStyle: TextStyle(color: dt.hint),
           filled: true,
-          fillColor: isDark ? Colors.black26 : Colors.black.withOpacity(0.03),
+          fillColor: dt.inputBg,
           contentPadding: EdgeInsets.zero,
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.black12)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFFF3D00), width: 2.5)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: dt.cardBorder)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: KagemaColors.parentRed, width: 2.5)),
         ),
       ),
     );
   }
 
-  Widget _buildHeaderPanel(ThemeData theme, GeminiThemeExtension? gemini) {
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildHeaderPanel(DT dt, GeminiThemeExtension? theme) {
+    final roleColor = RoleColors.of(_roleId);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: gemini?.buildGlowContainer(
+      child: theme?.buildGlowContainer(
+        accentColor: roleColor,
         borderRadius: 24,
-        borderThickness: 1.5,
-        backgroundColor: isDark ? const Color(0xF21A1C22) : const Color(0xF2FFFFFF),
         padding: const EdgeInsets.all(20),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -243,18 +254,18 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(selectedExamType, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1, color: isDark ? Colors.white : Colors.black87)),
+                Text(selectedExamType, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1, color: dt.textPrimary)),
                 const SizedBox(height: 4),
-                Text(selectedTerm.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: theme.primaryColor, letterSpacing: 2.5)),
+                Text(selectedTerm.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: roleColor, letterSpacing: 2.5)),
               ],
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                color: dt.surfaceBg,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text('$selectedYear', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2, color: isDark ? Colors.white60 : Colors.black45)),
+              child: Text('$selectedYear', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2, color: dt.textSecondary)),
             ),
           ],
         ),
@@ -262,7 +273,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     );
   }
 
-  Widget _buildSaveButton(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildSaveButton(DT dt) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
       child: Container(
@@ -270,7 +281,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         height: 65,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: const Color(0xFFFF3D00).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 8))],
+          boxShadow: [BoxShadow(color: KagemaColors.parentRed.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 8))],
         ),
         child: ElevatedButton(
           onPressed: isSaving ? null : _saveMarks,
@@ -283,7 +294,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
           child: Ink(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFFF3D00), Color(0xFFD50000)],
+                colors: [KagemaColors.parentRed, Color(0xFFD50000)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -303,14 +314,14 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person_off_rounded, size: 80, color: isDark ? Colors.white12 : Colors.black12),
+          Icon(Icons.person_off_rounded, size: 80, color: dt.iconInactive),
           const SizedBox(height: 24),
-          const Text('NO PUPIL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.blueGrey, letterSpacing: 3, fontSize: 13)),
+          Text('NO PUPIL RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 3, fontSize: 13)),
         ],
       ),
     );

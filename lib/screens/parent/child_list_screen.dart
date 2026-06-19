@@ -14,6 +14,7 @@ class ChildListScreen extends StatefulWidget {
 class _ChildListScreenState extends State<ChildListScreen> {
   List<Student> _children = [];
   bool _isLoading = true;
+  final String _roleId = 'parent';
 
   @override
   void initState() {
@@ -40,76 +41,90 @@ class _ChildListScreenState extends State<ChildListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dt = DT.of(context);
+    final roleColor = RoleColors.of(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Family Matrix', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('FAMILY MATRIX', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 3, fontSize: 16)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
+        elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade500], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
-          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.people_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
+          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.people_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)))]),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.indigo))
-              : _children.isEmpty 
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: _children.length,
-                      itemBuilder: (context, index) {
-                        final s = _children[index];
-                        final content = Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              CircleAvatar(radius: 40, backgroundColor: Colors.indigo.withOpacity(0.1), child: Text(s.name[0], style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.indigo))),
-                              const SizedBox(width: 20),
-                              Expanded(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(s.name.toUpperCase(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                                  const SizedBox(height: 6),
-                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Text('ADM: ${s.admissionNumber}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: theme.primaryColor, letterSpacing: 1))),
-                                  const SizedBox(height: 8),
-                                  Text('${s.grade} • ${s.stream}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.blueGrey)),
-                                  const SizedBox(height: 12),
-                                  _infoRow(Icons.cake_outlined, s.dateOfBirth),
-                                  _infoRow(Icons.wc_rounded, s.gender),
-                                ]),
+      body: NeuralBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: RoleColors.complement(_roleId),
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Padding(
+            padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: roleColor))
+                : _children.isEmpty 
+                    ? _buildEmptyState(dt)
+                    : ListView.builder(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.all(20),
+                        itemCount: _children.length,
+                        itemBuilder: (context, index) {
+                          final s = _children[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 20), 
+                            child: LiquidGlassCard(
+                              accentColor: KagemaColors.azure,
+                              borderRadius: 30,
+                              padding: const EdgeInsets.all(20),
+                              child: Row(
+                                children: [
+                                  CircleAvatar(radius: 40, backgroundColor: dt.roleSoftBg(KagemaColors.azure), child: Text(s.name[0], style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: KagemaColors.azure))),
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(s.name.toUpperCase(), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5, color: dt.textPrimary)),
+                                      const SizedBox(height: 6),
+                                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), borderRadius: BorderRadius.circular(8)), child: Text('ADM: ${s.admissionNumber}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: roleColor, letterSpacing: 1))),
+                                      const SizedBox(height: 8),
+                                      Text('${s.grade} • ${s.stream}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: dt.textSecondary)),
+                                      const SizedBox(height: 12),
+                                      _infoRow(dt, Icons.cake_outlined, s.dateOfBirth),
+                                      _infoRow(dt, Icons.wc_rounded, s.gender),
+                                    ]),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                        return Padding(padding: const EdgeInsets.only(bottom: 20), child: gemini?.buildGlowContainer(borderRadius: 30, borderThickness: 1.5, backgroundColor: theme.cardColor.withOpacity(0.85), padding: EdgeInsets.zero, useAIBorder: true, child: content) ?? Card(child: content));
-                      },
-                    ),
+                            )
+                          );
+                        },
+                      ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _infoRow(IconData icon, String text) => Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [Icon(icon, size: 14, color: Colors.grey.shade500), const SizedBox(width: 8), Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600))]));
+  Widget _infoRow(DT dt, IconData icon, String text) => Padding(padding: const EdgeInsets.only(top: 4), child: Row(children: [Icon(icon, size: 14, color: dt.textMuted), const SizedBox(width: 8), Text(text, style: TextStyle(fontSize: 12, color: dt.textMuted, fontWeight: FontWeight.w600))]));
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.hub_rounded, size: 80, color: Colors.grey.withOpacity(0.3)),
+          Icon(Icons.hub_rounded, size: 80, color: dt.iconInactive),
           const SizedBox(height: 16),
-          const Text('NO NEURAL NODES LINKED', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
-          const Text('Please visit the school registry to link your child.', style: TextStyle(color: Colors.grey, fontSize: 11)),
+          Text('NO NEURAL NODES LINKED', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          Text('Please visit the school registry to link your child.', style: TextStyle(color: dt.textMuted, fontSize: 11)),
         ],
       ),
     );

@@ -24,6 +24,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
   List<Student> _selectedChildren = [];
   bool _isLoadingStudents = true;
   bool _isSaving = false;
+  final String _roleId = 'admin';
 
   @override
   void initState() {
@@ -41,16 +42,18 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
   Future<void> _fetchStudents() async {
     try {
       final data = await SupabaseService.instance.getAllStudents();
-      setState(() {
-        _allStudents = data.map((m) => Student.fromMap(m)).toList();
-        if (widget.parentToEdit != null) {
-          final parentId = widget.parentToEdit!['parent_id'] ?? widget.parentToEdit!['parentId'];
-          _selectedChildren = _allStudents.where((s) => s.parentId == parentId).toList();
-        }
-        _isLoadingStudents = false;
-      });
+      if (mounted) {
+        setState(() {
+          _allStudents = data.map((m) => Student.fromMap(m)).toList();
+          if (widget.parentToEdit != null) {
+            final parentId = widget.parentToEdit!['parent_id'] ?? widget.parentToEdit!['parentId'];
+            _selectedChildren = _allStudents.where((s) => s.parentId == parentId).toList();
+          }
+          _isLoadingStudents = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoadingStudents = false);
+      if (mounted) setState(() => _isLoadingStudents = false);
     }
   }
 
@@ -58,9 +61,9 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedChildren.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Selection Required: Link at least one student', style: TextStyle(fontWeight: FontWeight.bold)), 
-          backgroundColor: Colors.orange.shade800,
+        const SnackBar(
+          content: Text('Selection Required: Link at least one student', style: TextStyle(fontWeight: FontWeight.bold)), 
+          backgroundColor: KagemaColors.accountantAmber,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -108,15 +111,15 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Parent Profile ${widget.parentToEdit != null ? 'Updated' : 'Created'} and Linked Successfully!'), 
-            backgroundColor: Colors.green.shade800,
+            content: Text('Parent Profile ${widget.parentToEdit != null ? 'Updated' : 'Created'} and Linked Successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: KagemaColors.teacherGreen,
             behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: KagemaColors.parentRed));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -124,14 +127,16 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dt = DT.of(context);
+    final roleColor = RoleColors.of(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         title: Text(widget.parentToEdit != null ? 'EDIT PARENT' : 'PARENT REGISTRATION', 
-          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white, fontSize: 16)
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -142,46 +147,46 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.orange.shade900, Colors.deepOrange.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.family_restroom_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.family_restroom_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFormContainer(theme, gemini),
-                  const SizedBox(height: 40),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 12),
-                    child: Text('ASSIGN CHILDREN', 
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
+      body: NeuralBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: RoleColors.complement(_roleId),
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFormContainer(dt),
+                    const SizedBox(height: 40),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 12),
+                      child: Text('ASSIGN CHILDREN', 
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)
+                      ),
                     ),
-                  ),
-                  _buildChildrenSelector(theme, gemini),
-                  const SizedBox(height: 48),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
+                    _buildChildrenSelector(dt),
+                    const SizedBox(height: 40),
+                    SizedBox(
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton.icon(
@@ -192,16 +197,13 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
                           : Text(widget.parentToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
                               style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade800,
+                          backgroundColor: KagemaColors.accountantAmber,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          elevation: 8,
-                          shadowColor: Colors.orange.withOpacity(0.5),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -210,96 +212,76 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
     );
   }
 
-  Widget _buildFormContainer(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Column(
-      children: [
-        _buildField(theme, _nameController, 'Parent Full Name', Icons.person_outline),
-        const SizedBox(height: 20),
-        _buildField(theme, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-        const SizedBox(height: 20),
-        _buildField(theme, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
-        const SizedBox(height: 20),
-        _buildField(theme, _occupationController, 'Occupation', Icons.work_outline_rounded),
-        const SizedBox(height: 20),
-        _buildField(theme, _addressController, 'Home Address', Icons.home_rounded),
-      ],
-    );
-
-    return gemini?.buildGlowContainer(
+  Widget _buildFormContainer(DT dt) {
+    return LiquidGlassCard(
+      accentColor: KagemaColors.accountantAmber,
       borderRadius: 30,
-      borderThickness: 1.5,
-      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(24),
-      child: content,
-    ) ?? Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
-      child: content,
+      child: Column(
+        children: [
+          _buildField(dt, _nameController, 'Parent Full Name', Icons.person_outline),
+          const SizedBox(height: 20),
+          _buildField(dt, _phoneController, 'Phone Number', Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+          const SizedBox(height: 20),
+          _buildField(dt, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 20),
+          _buildField(dt, _occupationController, 'Occupation', Icons.work_outline_rounded),
+          const SizedBox(height: 20),
+          _buildField(dt, _addressController, 'Home Address', Icons.home_rounded),
+        ],
+      ),
     );
   }
 
-  Widget _buildField(ThemeData theme, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildField(DT dt, TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.orange.shade800, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(icon, color: KagemaColors.accountantAmber, size: 20),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
   }
 
-  Widget _buildChildrenSelector(ThemeData theme, GeminiThemeExtension? gemini) {
-    if (_isLoadingStudents) return const Center(child: CircularProgressIndicator(color: Colors.orange));
+  Widget _buildChildrenSelector(DT dt) {
+    if (_isLoadingStudents) return const Center(child: CircularProgressIndicator(color: KagemaColors.accountantAmber));
     
-    final content = SizedBox(
-      height: 250,
-      child: _allStudents.isEmpty 
-        ? const Center(child: Text('NO STUDENTS FOUND', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)))
-        : ListView.builder(
-            itemCount: _allStudents.length,
-            itemBuilder: (context, index) {
-              final student = _allStudents[index];
-              final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
-              return CheckboxListTile(
-                title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
-                subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                value: isSelected,
-                activeColor: Colors.orange.shade800,
-                checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                onChanged: (val) {
-                  setState(() {
-                    if (val!) {
-                      _selectedChildren.add(student);
-                    } else {
-                      _selectedChildren.removeWhere((s) => s.studentId == student.studentId);
-                    }
-                  });
-                },
-              );
-            },
-          ),
-    );
-
-    return gemini?.buildGlowContainer(
+    return LiquidGlassCard(
+      accentColor: KagemaColors.accountantAmber,
       borderRadius: 24,
-      borderThickness: 1,
-      backgroundColor: theme.cardColor.withOpacity(0.85),
       padding: EdgeInsets.zero,
-      child: content,
-    ) ?? Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.orange.shade100.withOpacity(0.2)),
+      child: SizedBox(
+        height: 250,
+        child: _allStudents.isEmpty 
+          ? Center(child: Text('NO STUDENTS FOUND', style: TextStyle(fontWeight: FontWeight.bold, color: dt.textMuted)))
+          : ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              itemCount: _allStudents.length,
+              itemBuilder: (context, index) {
+                final student = _allStudents[index];
+                final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
+                return CheckboxListTile(
+                  title: Text(student.name, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary)),
+                  subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)),
+                  value: isSelected,
+                  activeColor: KagemaColors.accountantAmber,
+                  checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  onChanged: (val) {
+                    setState(() {
+                      if (val!) {
+                        _selectedChildren.add(student);
+                      } else {
+                        _selectedChildren.removeWhere((s) => s.studentId == student.studentId);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
       ),
-      child: content,
     );
   }
 }

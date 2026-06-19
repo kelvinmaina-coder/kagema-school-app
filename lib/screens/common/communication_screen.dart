@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
-import '../../models/school_models.dart';
 import '../../app_theme.dart';
 
 class CommunicationScreen extends StatefulWidget {
@@ -42,14 +41,18 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(widget.senderRole);
+    final compColor = RoleColors.complement(widget.senderRole);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('School Communications', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: const Text('SCHOOL COMMUNICATIONS', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -60,69 +63,71 @@ class _CommunicationScreenState extends State<CommunicationScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [theme.primaryColor, Colors.indigo.shade900],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(widget.senderRole, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.forum_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.forum_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: EdgeInsets.fromLTRB(20, AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, 20, 40),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final msg = _messages[index];
-                final content = ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  leading: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-                    child: const Icon(Icons.campaign_rounded, color: Colors.indigo, size: 24),
-                  ),
-                  title: Text(msg['title'] ?? 'Notice', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(msg['message'] ?? 'No message content.',
-                      style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: _isLoading 
+            ? Center(child: CircularProgressIndicator(color: roleColor))
+            : ListView.builder(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(20, AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, 20, 40),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final msg = _messages[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: theme.buildGlowContainer(
+                      accentColor: roleColor,
+                      borderRadius: 28,
+                      padding: EdgeInsets.zero,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        leading: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), shape: BoxShape.circle),
+                          child: Icon(Icons.campaign_rounded, color: roleColor, size: 24),
+                        ),
+                        title: Text(msg['title']?.toString().toUpperCase() ?? 'NOTICE', 
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(msg['message'] ?? 'No message content.',
+                            style: TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500, color: dt.textSecondary)
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete_sweep_rounded, color: dt.error, size: 22),
+                          onPressed: () async {
+                            // Assuming deleteNotification exists or using generic delete
+                            await SupabaseService.instance.client.from('notifications').delete().eq('notification_id', msg['notification_id']);
+                            _loadMessages();
+                          },
+                        ),
+                      ),
                     ),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
-                    onPressed: () async {
-                      await SupabaseService.instance.deleteNotification(msg['notification_id']);
-                      _loadMessages();
-                    },
-                  ),
-                );
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: gemini?.buildGlowContainer(
-                    borderRadius: 28,
-                    borderThickness: 1,
-                    backgroundColor: theme.cardColor.withOpacity(0.85),
-                    padding: EdgeInsets.zero,
-                    child: content,
-                  ) ?? Card(child: content),
-                );
-              },
-            ),
-      ),
+                  );
+                },
+              ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 }

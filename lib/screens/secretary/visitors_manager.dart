@@ -13,6 +13,7 @@ class VisitorsManagerScreen extends StatefulWidget {
 class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
   List<Map<String, dynamic>> _visitors = [];
   bool _isLoading = true;
+  final String _roleId = 'secretary';
 
   @override
   void initState() {
@@ -38,8 +39,10 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
   }
 
   void _showLogVisitorDialog({Map<String, dynamic>? visitorToEdit}) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
     final isEditing = visitorToEdit != null;
     final nameController = TextEditingController(text: visitorToEdit?['name']);
     final phoneController = TextEditingController(text: visitorToEdit?['phone']);
@@ -49,114 +52,99 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        ),
-        child: gemini?.buildCreativeBackground(
-          isDark: theme.brightness == Brightness.dark,
-          child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
-                  const SizedBox(height: 24),
-                  Text(isEditing ? 'MODIFY LOG' : 'VISITOR ENTRY', 
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)
-                  ),
-                  const SizedBox(height: 8),
-                  Text(isEditing ? 'Change Profile' : 'Identity Verification', 
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)
-                  ),
-                  const SizedBox(height: 32),
-                  _buildFormField('Legal Full Name', Icons.person_outline_rounded, nameController, theme),
-                  const SizedBox(height: 16),
-                  _buildFormField('Contact Number', Icons.phone_android_rounded, phoneController, theme, keyboardType: TextInputType.phone),
-                  const SizedBox(height: 16),
-                  _buildFormField('Visit Purpose', Icons.info_outline_rounded, purposeController, theme),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (nameController.text.isNotEmpty) {
-                          final data = {
-                            'visitor_id': visitorToEdit?['visitor_id'],
-                            'name': nameController.text.trim(),
-                            'phone': phoneController.text.trim(),
-                            'purpose': purposeController.text.trim(),
-                            'date': visitorToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                            'time_in': visitorToEdit?['time_in'] ?? DateTime.now().toIso8601String(),
-                          };
-                          
-                          try {
-                            await SupabaseService.instance.insertVisitor(data);
-                            if (mounted) {
-                              Navigator.pop(context);
-                              _loadVisitors();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text('System Synced: Visitor Logged', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  backgroundColor: Colors.teal.shade800,
-                                  behavior: SnackBarBehavior.floating,
-                                )
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) _loadVisitors();
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: theme?.buildGlowContainer(
+          accentColor: roleColor,
+          borderRadius: 35,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(2)))),
+                const SizedBox(height: 24),
+                Text(isEditing ? 'MODIFY LOG' : 'VISITOR ENTRY', 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)
+                ),
+                const SizedBox(height: 8),
+                Text(isEditing ? 'Change Profile' : 'Identity Verification', 
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1, color: dt.textPrimary)
+                ),
+                const SizedBox(height: 32),
+                _buildFormField(dt, 'Legal Full Name', Icons.person_outline_rounded, nameController, roleColor),
+                const SizedBox(height: 16),
+                _buildFormField(dt, 'Contact Number', Icons.phone_android_rounded, phoneController, roleColor, keyboardType: TextInputType.phone),
+                const SizedBox(height: 16),
+                _buildFormField(dt, 'Visit Purpose', Icons.info_outline_rounded, purposeController, roleColor),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (nameController.text.isNotEmpty) {
+                        final data = {
+                          'visitor_id': visitorToEdit?['visitor_id'],
+                          'name': nameController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                          'purpose': purposeController.text.trim(),
+                          'date': visitorToEdit?['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                          'time_in': visitorToEdit?['time_in'] ?? DateTime.now().toIso8601String(),
+                        };
+                        
+                        try {
+                          await SupabaseService.instance.insertVisitor(data);
+                          if (mounted) {
+                            Navigator.pop(context);
+                            _loadVisitors();
                           }
+                        } catch (e) {
+                          if (mounted) _loadVisitors();
                         }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade700, 
-                        foregroundColor: Colors.white, 
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 8,
-                      ),
-                      child: Text(isEditing ? 'COMMIT SYNC' : 'AUTHORIZE ENTRY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: roleColor, 
+                      foregroundColor: Colors.white, 
                     ),
+                    child: Text(isEditing ? 'COMMIT SYNC' : 'AUTHORIZE ENTRY', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
                   ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
           ),
-        ) ?? const SizedBox(),
+        ) ?? const SizedBox.shrink(),
       ),
     );
   }
 
-  Widget _buildFormField(String label, IconData icon, TextEditingController ctrl, ThemeData theme, {TextInputType? keyboardType}) {
+  Widget _buildFormField(DT dt, String label, IconData icon, TextEditingController ctrl, Color roleColor, {TextInputType? keyboardType}) {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
-      style: const TextStyle(fontWeight: FontWeight.bold),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-        prefixIcon: Icon(icon, color: Colors.teal, size: 20),
-        filled: true,
-        fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        prefixIcon: Icon(icon, color: roleColor, size: 20),
       ),
     );
   }
 
   Future<void> _deleteVisitor(Map<String, dynamic> v) async {
+    final dt = context.dt;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: const Text('Delete Log?', style: TextStyle(fontWeight: FontWeight.w900)),
-        content: Text('Are you sure you want to erase the log for "${v['name']}"?'),
+        title: Text('Delete Log?', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textPrimary)),
+        content: Text('Are you sure you want to erase the log for "${v['name']}"?', style: TextStyle(color: dt.textSecondary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ABORT')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('DELETE', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('ABORT', style: TextStyle(color: dt.textMuted))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('DELETE', style: TextStyle(color: dt.error, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -169,13 +157,17 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Visitor Logs', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.5)),
+        title: const Text('VISITOR LOGS', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 3, fontSize: 16)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -185,114 +177,111 @@ class _VisitorsManagerScreenState extends State<VisitorsManagerScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.teal.shade900, Colors.teal.shade500],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.shield_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.shield_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
-          child: _isLoading 
-            ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-            : _visitors.isEmpty
-                ? _buildEmptyState()
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                    itemCount: _visitors.length,
-                    itemBuilder: (context, index) {
-                      final v = _visitors[index];
-                      final content = ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.teal.withOpacity(0.1), shape: BoxShape.circle),
-                          child: const Icon(Icons.badge_rounded, color: Colors.teal, size: 24),
-                        ),
-                        title: Text(v['name'] ?? 'Visitor', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text('${v['purpose']} \nTimestamp: ${v['date']}', 
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4)
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                              child: const Text('VERIFIED', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1)),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Padding(
+            padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 20),
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: roleColor))
+              : _visitors.isEmpty
+                  ? _buildEmptyState(dt)
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: _visitors.length,
+                      itemBuilder: (context, index) {
+                        final v = _visitors[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: theme.buildGlowContainer(
+                            accentColor: dt.info,
+                            borderRadius: 28,
+                            padding: EdgeInsets.zero,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              leading: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: dt.roleSoftBg(dt.info), shape: BoxShape.circle),
+                                child: Icon(Icons.badge_rounded, color: dt.info, size: 24),
+                              ),
+                              title: Text(v['name']?.toString().toUpperCase() ?? 'VISITOR', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text('${v['purpose']} \nTimestamp: ${v['date']}', 
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4, color: dt.textSecondary)
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(color: dt.roleSoftBg(dt.success), borderRadius: BorderRadius.circular(8)),
+                                    child: Text('VERIFIED', style: TextStyle(color: dt.success, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1)),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert_rounded, size: 20, color: dt.iconInactive),
+                                    color: dt.cardBg,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                    onSelected: (val) {
+                                      if (val == 'edit') _showLogVisitorDialog(visitorToEdit: v);
+                                      if (val == 'delete') _deleteVisitor(v);
+                                    },
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20, color: dt.textPrimary), title: Text('Edit Info', style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary)), dense: true)),
+                                      PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: dt.error, size: 20), title: Text('Remove', style: TextStyle(color: dt.error, fontWeight: FontWeight.bold)), dense: true)),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert_rounded, size: 20, color: Colors.grey),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              onSelected: (val) {
-                                if (val == 'edit') _showLogVisitorDialog(visitorToEdit: v);
-                                if (val == 'delete') _deleteVisitor(v);
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_note_rounded, size: 20), title: Text('Edit Info', style: TextStyle(fontWeight: FontWeight.bold)), dense: true)),
-                                const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20), title: Text('Remove', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), dense: true)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: gemini?.buildGlowContainer(
-                          borderRadius: 28,
-                          borderThickness: 1,
-                          backgroundColor: theme.cardColor.withOpacity(0.85),
-                          padding: EdgeInsets.zero,
-                          child: content,
-                        ) ?? Card(child: content),
-                      );
-                    },
-                  ),
+                          ) ?? const SizedBox.shrink(),
+                        );
+                      },
+                    ),
+          ),
         ),
-      ),
-      floatingActionButton: gemini?.buildGlowContainer(
-        borderRadius: 30,
-        borderThickness: 2,
-        backgroundColor: Colors.teal.shade700,
-        padding: EdgeInsets.zero,
+      ) ?? const SizedBox.shrink(),
+      floatingActionButton: RolePlasma(
+        color: roleColor,
         child: FloatingActionButton.extended(
           onPressed: () => _showLogVisitorDialog(),
-          backgroundColor: Colors.transparent,
+          backgroundColor: roleColor,
           elevation: 0,
           foregroundColor: Colors.white,
           icon: const Icon(Icons.person_add_rounded),
-          label: const Text('Log New Visitor', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+          label: const Text('LOG NEW VISITOR', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(DT dt) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shield_outlined, size: 80, color: Colors.grey.withOpacity(0.3)),
+          Icon(Icons.shield_outlined, size: 80, color: dt.iconInactive),
           const SizedBox(height: 16),
-          const Text('VISITOR LOGS EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Text('VISITOR LOGS EMPTY', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1.5)),
         ],
       ),
     );

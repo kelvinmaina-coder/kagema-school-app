@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../app_theme.dart';
 
-// Assuming these are defined elsewhere or need to be imported
-// If they are missing, the user might have other errors, but I'll focus on the reported one.
-
 class AttendanceModule extends StatefulWidget {
   final String initialGrade;
   final String initialStream;
@@ -26,8 +23,7 @@ class _AttendanceModuleState extends State<AttendanceModule> {
   bool isLoading = false;
   List<Map<String, dynamic>> students = [];
 
-  final Color primaryAccent = const Color(0xFF6366F1);
-  final Color slateDark = const Color(0xFF0F172A);
+  final String _roleId = 'teacher';
 
   @override
   void initState() {
@@ -53,56 +49,66 @@ class _AttendanceModuleState extends State<AttendanceModule> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final gemini = Theme.of(context).extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F111A) : const Color(0xFFF8FAFC),
+      extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: isDark ? Colors.white : slateDark, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('ROLL CALL', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 2, color: isDark ? Colors.white : slateDark)
+        title: const Text('ROLL CALL', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 3, color: Colors.white)
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.history_rounded, color: primaryAccent),
-            onPressed: () {},
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
-          const SizedBox(width: 8),
-        ],
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.how_to_reg_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          _buildHeader(isDark),
-          _buildAttendanceList(isDark, gemini),
-          _buildSubmitButton(isDark),
-        ],
-      ),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: Column(
+            children: [
+              SizedBox(height: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 10),
+              _buildHeader(dt, theme, roleColor),
+              _buildAttendanceList(dt, theme, roleColor),
+              _buildSubmitButton(dt, roleColor),
+            ],
+          ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          colors: isDark 
-            ? [Colors.white.withOpacity(0.1), Colors.white.withOpacity(0.02)]
-            : [primaryAccent.withOpacity(0.2), Colors.transparent],
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
+  Widget _buildHeader(DT dt, GeminiThemeExtension? theme, Color roleColor) {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: theme?.buildGlowContainer(
+        accentColor: roleColor,
+        borderRadius: 24,
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
@@ -110,9 +116,9 @@ class _AttendanceModuleState extends State<AttendanceModule> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(DateFormat('EEEE, MMM d, yyyy').format(selectedDate).toUpperCase(), 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5, color: isDark ? Colors.white70 : const Color(0xFF334155))
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5, color: dt.textPrimary)
                 ),
-                Icon(Icons.calendar_today_rounded, size: 16, color: isDark ? Colors.white30 : Colors.black26),
+                Icon(Icons.calendar_today_rounded, size: 16, color: dt.iconInactive),
               ],
             ),
             const SizedBox(height: 20),
@@ -124,7 +130,8 @@ class _AttendanceModuleState extends State<AttendanceModule> {
                     value: selectedGrade,
                     items: ['GRADE 1', 'GRADE 2', 'GRADE 3', 'GRADE 4', 'GRADE 5', 'GRADE 6'],
                     onChanged: (v) => setState(() => selectedGrade = v!),
-                    isDark: isDark,
+                    dt: dt,
+                    roleColor: roleColor,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -134,14 +141,15 @@ class _AttendanceModuleState extends State<AttendanceModule> {
                     value: selectedStream,
                     items: ['NORTH', 'SOUTH', 'EAST', 'WEST'],
                     onChanged: (v) => setState(() => selectedStream = v!),
-                    isDark: isDark,
+                    dt: dt,
+                    roleColor: roleColor,
                   ),
                 ),
               ],
             ),
           ],
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
@@ -150,26 +158,27 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     required String? value,
     required List<String> items,
     required ValueChanged<String?>? onChanged,
-    required bool isDark,
+    required DT dt,
+    required Color roleColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+        color: dt.inputBg,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
+        border: Border.all(color: dt.cardBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          hint: Text(hint, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26, letterSpacing: 1)),
+          hint: Text(hint, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.hint, letterSpacing: 1)),
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: onChanged == null ? Colors.transparent : (isDark ? Colors.white30 : Colors.black26)),
-          dropdownColor: isDark ? const Color(0xFF1A1C2E) : Colors.white,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: dt.iconInactive),
+          dropdownColor: dt.cardBg,
           items: items.map((String val) {
             return DropdownMenuItem<String>(
               value: val,
-              child: Text(val, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isDark ? Colors.white : Colors.black87)),
+              child: Text(val, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: dt.textPrimary)),
             );
           }).toList(),
           onChanged: onChanged,
@@ -178,78 +187,87 @@ class _AttendanceModuleState extends State<AttendanceModule> {
     );
   }
 
-  Widget _buildAttendanceList(bool isDark, GeminiThemeExtension? gemini) {
+  Widget _buildAttendanceList(DT dt, GeminiThemeExtension? theme, Color roleColor) {
     if (isLoading) return const Expanded(child: Center(child: CircularProgressIndicator()));
 
     return Expanded(
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 20),
+        physics: const BouncingScrollPhysics(),
         itemCount: students.length,
         itemBuilder: (context, index) {
           final student = students[index];
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1C2E) : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isDark ? Colors.white10 : const Color(0xFFF1F5F9)),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              leading: CircleAvatar(
-                backgroundColor: primaryAccent.withOpacity(0.1),
-                child: Text(student['name'][0], style: TextStyle(color: primaryAccent, fontWeight: FontWeight.bold)),
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: theme?.buildGlowContainer(
+              accentColor: roleColor,
+              borderRadius: 20,
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: dt.roleSoftBg(roleColor),
+                  child: Text(student['name'][0].toUpperCase(), style: TextStyle(color: roleColor, fontWeight: FontWeight.bold)),
+                ),
+                title: Text(student['name'].toUpperCase(), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: dt.textPrimary, letterSpacing: 0.5)),
+                subtitle: Text(student['id'], style: TextStyle(fontSize: 10, color: dt.textMuted)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _statusButton('P', 'present', student['status'] == 'present', KagemaColors.teacherGreen, dt, () {
+                      setState(() => student['status'] = 'present');
+                    }),
+                    const SizedBox(width: 8),
+                    _statusButton('A', 'absent', student['status'] == 'absent', KagemaColors.parentRed, dt, () {
+                      setState(() => student['status'] = 'absent');
+                    }),
+                  ],
+                ),
               ),
-              title: Text(student['name'], style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: isDark ? Colors.white : slateDark)),
-              subtitle: Text(student['id'], style: const TextStyle(fontSize: 10, color: Colors.grey)),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _statusButton('P', 'present', student['status'] == 'present', Colors.green, isDark, () {
-                    setState(() => student['status'] = 'present');
-                  }),
-                  const SizedBox(width: 8),
-                  _statusButton('A', 'absent', student['status'] == 'absent', Colors.red, isDark, () {
-                    setState(() => student['status'] = 'absent');
-                  }),
-                ],
-              ),
-            ),
+            ) ?? const SizedBox.shrink(),
           );
         },
       ),
     );
   }
 
-  Widget _statusButton(String label, String status, bool isSelected, Color color, bool isDark, VoidCallback onTap) {
+  Widget _statusButton(String label, String status, bool isSelected, Color color, DT dt, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: isSelected ? color : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+          color: isSelected ? color : dt.surfaceBg,
           shape: BoxShape.circle,
+          border: isSelected ? null : Border.all(color: dt.cardBorder),
         ),
         child: Center(
-          child: Text(label, style: TextStyle(color: isSelected ? Colors.white : (isDark ? Colors.white24 : Colors.black26), fontWeight: FontWeight.w900, fontSize: 12)),
+          child: Text(label, style: TextStyle(color: isSelected ? Colors.white : dt.textMuted, fontWeight: FontWeight.w900, fontSize: 12)),
         ),
       ),
     );
   }
 
-  Widget _buildSubmitButton(bool isDark) {
-    return Container(
+  Widget _buildSubmitButton(DT dt, Color roleColor) {
+    return Padding(
       padding: const EdgeInsets.all(20),
-      child: ElevatedButton(
-        onPressed: () {},
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryAccent,
-          minimumSize: const Size(double.infinity, 56),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 0,
+      child: Container(
+        width: double.infinity,
+        height: 60,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
         ),
-        child: const Text('SUBMIT ATTENDANCE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1, color: Colors.white)),
+        child: ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: roleColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
+          child: const Text('SUBMIT ATTENDANCE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2, color: Colors.white)),
+        ),
       ),
     );
   }

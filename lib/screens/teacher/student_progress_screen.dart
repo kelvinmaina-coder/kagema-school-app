@@ -12,6 +12,7 @@ class StudentProgressScreen extends StatefulWidget {
 class _StudentProgressScreenState extends State<StudentProgressScreen> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _progressData = [];
+  final String _roleId = 'teacher';
 
   @override
   void initState() {
@@ -37,14 +38,18 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Student Analytics', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 2, color: Colors.white)
+        title: const Text('STUDENT ANALYTICS', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -55,109 +60,105 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [theme.primaryColor, Colors.cyan.shade900],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: theme.primaryColor.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.query_stats_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.query_stats_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
-          : ListView(
-              padding: EdgeInsets.only(
-                top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20,
-                left: 20, right: 20, bottom: 40
-              ),
-              children: [
-                _buildAnalyticsHero(theme, gemini),
-                const SizedBox(height: 48),
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Text('PERFORMANCE INSIGHTS', 
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2.5)
-                  ),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: _isLoading 
+            ? Center(child: CircularProgressIndicator(color: roleColor))
+            : ListView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(
+                  top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20,
+                  left: 20, right: 20, bottom: 40
                 ),
-                const SizedBox(height: 16),
-                ..._progressData.map((item) => _buildInsightCard(theme, gemini, item)),
-              ],
-            ),
-      ),
+                children: [
+                  _buildAnalyticsHero(dt, theme, roleColor),
+                  const SizedBox(height: 48),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text('PERFORMANCE INSIGHTS', 
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2.5)
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ..._progressData.map((item) => _buildInsightCard(dt, theme, item, roleColor)),
+                ],
+              ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildAnalyticsHero(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.cyan.withOpacity(0.1), shape: BoxShape.circle),
-          child: const Icon(Icons.auto_graph_rounded, size: 40, color: Colors.cyan),
-        ),
-        const SizedBox(height: 20),
-        const Text('AVERAGE PERFORMANCE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
-        const SizedBox(height: 12),
-        const Text('88.4%', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: -1)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-          child: const Text('IMPROVEMENT: +4.2%', style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 1)),
-        ),
-      ],
-    );
-
-    return gemini?.buildGlowContainer(
+  Widget _buildAnalyticsHero(DT dt, GeminiThemeExtension? theme, Color roleColor) {
+    return theme?.buildGlowContainer(
+      accentColor: KagemaColors.staffSky,
       borderRadius: 35,
-      borderThickness: 2,
-      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(32),
-      child: content,
-    ) ?? Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(30)),
-      child: content,
-    );
+      child: Column(
+        children: [
+          RolePlasma(
+            color: KagemaColors.staffSky,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.staffSky), shape: BoxShape.circle),
+              child: const Icon(Icons.auto_graph_rounded, size: 40, color: KagemaColors.staffSky),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text('AVERAGE PERFORMANCE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
+          const SizedBox(height: 12),
+          Text('88.4%', style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900, letterSpacing: -1, color: dt.textPrimary)),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.teacherGreen), borderRadius: BorderRadius.circular(10)),
+            child: const Text('IMPROVEMENT: +4.2%', style: TextStyle(fontSize: 10, color: KagemaColors.teacherGreen, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          ),
+        ],
+      ),
+    ) ?? const SizedBox.shrink();
   }
 
-  Widget _buildInsightCard(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> item) {
-    final content = ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      leading: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle),
-        child: const Icon(Icons.tips_and_updates_rounded, color: Colors.orange, size: 24),
-      ),
-      title: Text(item['title'] ?? 'Insight', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: Text(item['subtitle'] ?? '', style: const TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500)),
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
-    );
-
+  Widget _buildInsightCard(DT dt, GeminiThemeExtension? theme, Map<String, dynamic> item, Color roleColor) {
+    final accent = item['type'] == 'success' ? KagemaColors.teacherGreen : KagemaColors.accountantAmber;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: gemini?.buildGlowContainer(
+      child: theme?.buildGlowContainer(
+        accentColor: accent,
         borderRadius: 28,
-        borderThickness: 1,
-        backgroundColor: theme.cardColor.withOpacity(0.85),
         padding: EdgeInsets.zero,
-        child: content,
-      ) ?? Card(child: content),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          leading: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: dt.roleSoftBg(accent), shape: BoxShape.circle),
+            child: Icon(Icons.tips_and_updates_rounded, color: accent, size: 24),
+          ),
+          title: Text(item['title'] ?? 'Insight', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(item['subtitle'] ?? '', style: TextStyle(fontSize: 13, height: 1.4, fontWeight: FontWeight.w500, color: dt.textSecondary)),
+          ),
+          trailing: Icon(Icons.chevron_right_rounded, size: 24, color: dt.iconInactive),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 }

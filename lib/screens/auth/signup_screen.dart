@@ -16,11 +16,12 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _isLoading = false;
 
   Future<void> _handleSignup() async {
+    final dt = context.dt;
     if (_phoneController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Phone Number and Password Required', style: TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: Colors.orange.shade800,
+          backgroundColor: dt.warning,
           behavior: SnackBarBehavior.floating,
         )
       );
@@ -38,14 +39,14 @@ class _SignupScreenState extends State<SignupScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['message']), 
-              backgroundColor: Colors.green.shade800,
+              backgroundColor: dt.success,
               behavior: SnackBarBehavior.floating,
             ),
           );
           Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message']), backgroundColor: Colors.red.shade800, behavior: SnackBarBehavior.floating),
+            SnackBar(content: Text(result['message']), backgroundColor: dt.error, behavior: SnackBarBehavior.floating),
           );
         }
       }
@@ -56,8 +57,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -73,23 +75,24 @@ class _SignupScreenState extends State<SignupScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        maxWidth: 500, // Stay professional on desktop
-        useAIBorder: true, // IMPORTANT: AI Spectrum Visuals Applied
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        maxWidth: 500,
+        useAIBorder: true,
         child: SafeArea(
           child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                _buildBranding(theme, gemini),
+                _buildBranding(dt, theme),
                 const SizedBox(height: 48),
-                _buildRegistrationForm(theme, gemini),
+                _buildRegistrationForm(dt, theme),
                 const SizedBox(height: 48),
-                const Text(
+                Text(
                   'SYSTEM SECURITY: SHA-256 ENCRYPTION ACTIVE',
-                  style: TextStyle(fontSize: 8, color: Colors.green, fontWeight: FontWeight.w900, letterSpacing: 2),
+                  style: TextStyle(fontSize: 8, color: dt.success, fontWeight: FontWeight.w900, letterSpacing: 2),
                 ),
               ],
             ),
@@ -99,22 +102,23 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildBranding(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildBranding(DT dt, GeminiThemeExtension? theme) {
+    final primaryColor = RoleColors.of('parent');
     return Column(
       children: [
-        gemini?.buildGlowContainer(
+        theme?.buildGlowContainer(
+          accentColor: primaryColor,
           borderRadius: 50,
-          borderThickness: 2,
-          backgroundColor: theme.primaryColor.withOpacity(0.05),
           padding: const EdgeInsets.all(20),
-          child: Icon(Icons.family_restroom_rounded, size: 50, color: theme.primaryColor),
+          useAIBorder: true,
+          child: const Icon(Icons.family_restroom_rounded, size: 50, color: Colors.white),
         ) ?? Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: theme.primaryColor.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(Icons.family_restroom_rounded, size: 50, color: theme.primaryColor),
+          decoration: BoxDecoration(color: primaryColor.withValues(alpha: 0.1), shape: BoxShape.circle),
+          child: Icon(Icons.family_restroom_rounded, size: 50, color: primaryColor),
         ),
         const SizedBox(height: 24),
-        const Text('Join the Portal', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
+        Text('Join the Portal', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1, color: dt.textPrimary)),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
           child: Text(
@@ -127,20 +131,18 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildRegistrationForm(ThemeData theme, GeminiThemeExtension? gemini) {
+  Widget _buildRegistrationForm(DT dt, GeminiThemeExtension? theme) {
+    final primaryColor = RoleColors.of('parent');
     final content = Column(
       children: [
         TextField(
           controller: _phoneController,
           keyboardType: TextInputType.phone,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
           decoration: InputDecoration(
             labelText: 'Phone Number',
             labelStyle: const TextStyle(fontSize: 13),
-            prefixIcon: Icon(Icons.phone_android_rounded, color: theme.primaryColor),
-            filled: true,
-            fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.phone_android_rounded, color: primaryColor),
             hintText: 'e.g. 0712345678',
           ),
         ),
@@ -148,14 +150,11 @@ class _SignupScreenState extends State<SignupScreen> {
         TextField(
           controller: _passwordController,
           obscureText: true,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
           decoration: InputDecoration(
             labelText: 'Set Password',
             labelStyle: const TextStyle(fontSize: 13),
-            prefixIcon: Icon(Icons.lock_person_rounded, color: theme.primaryColor),
-            filled: true,
-            fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.lock_person_rounded, color: primaryColor),
           ),
         ),
         const SizedBox(height: 32),
@@ -165,11 +164,7 @@ class _SignupScreenState extends State<SignupScreen> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleSignup,
             style: ElevatedButton.styleFrom(
-              backgroundColor: theme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              elevation: 8,
-              shadowColor: theme.primaryColor.withOpacity(0.4),
+              backgroundColor: primaryColor,
             ),
             child: _isLoading 
               ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
@@ -179,15 +174,14 @@ class _SignupScreenState extends State<SignupScreen> {
       ],
     );
 
-    return gemini?.buildGlowContainer(
+    return theme?.buildGlowContainer(
+      accentColor: primaryColor,
       borderRadius: 30,
-      borderThickness: 2,
-      backgroundColor: theme.cardColor.withOpacity(0.9),
       padding: const EdgeInsets.all(24),
       child: content,
     ) ?? Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(30)),
+      decoration: BoxDecoration(color: dt.cardBg, borderRadius: BorderRadius.circular(30)),
       child: content,
     );
   }

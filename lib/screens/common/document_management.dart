@@ -18,9 +18,7 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
     {'title': 'Annual School Calendar', 'type': 'PDF', 'size': '2.1 MB', 'date': '2024-01-01', 'category': 'Archive'},
   ];
 
-  void _showUploadSheet() {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+  void _showUploadSheet(DT dt, GeminiThemeExtension? theme, Color roleColor) {
     final titleController = TextEditingController();
     String category = 'Forms';
 
@@ -28,30 +26,30 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        ),
-        child: gemini?.buildCreativeBackground(
-          isDark: theme.brightness == Brightness.dark,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: theme?.buildGlowContainer(
+          accentColor: roleColor,
+          borderRadius: 35,
           child: Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 24, right: 24, top: 20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 24),
-                Text('SYSTEM REPOSITORY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 2)),
+                Text('SYSTEM REPOSITORY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
                 const SizedBox(height: 8),
-                const Text('Upload New Document', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text('Upload New Document', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1, color: dt.textPrimary)),
                 const SizedBox(height: 32),
-                _buildFormField('Document Name', Icons.title_rounded, titleController, theme),
+                _buildInputField(dt, 'Document Name', Icons.title_rounded, titleController, roleColor),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
                   value: category,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey),
-                  decoration: _formInputDecoration('Document Category', Icons.category_rounded, theme),
+                  dropdownColor: dt.cardBg,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
+                  decoration: InputDecoration(labelText: 'Document Category', prefixIcon: Icon(Icons.category_rounded, color: roleColor)),
                   items: ['Forms', 'Letters', 'Certificates', 'Archive'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => category = v!,
                 ),
@@ -75,10 +73,8 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primaryColor,
+                      backgroundColor: roleColor,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      elevation: 8,
                     ),
                     icon: const Icon(Icons.cloud_upload_rounded),
                     label: const Text('AUTHORIZE UPLOAD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
@@ -88,40 +84,36 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
               ],
             ),
           ),
-        ),
+        ) ?? const SizedBox.shrink(),
       ),
     );
   }
 
-  InputDecoration _formInputDecoration(String label, IconData icon, ThemeData theme) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-      prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
-      filled: true,
-      fillColor: theme.brightness == Brightness.dark ? Colors.black26 : Colors.white54,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-    );
-  }
-
-  Widget _buildFormField(String label, IconData icon, TextEditingController ctrl, ThemeData theme) {
+  Widget _buildInputField(DT dt, String label, IconData icon, TextEditingController ctrl, Color color) {
     return TextField(
       controller: ctrl,
-      style: const TextStyle(fontWeight: FontWeight.bold),
-      decoration: _formInputDecoration(label, icon, theme),
+      style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: color, size: 20),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(widget.role);
+    final compColor = RoleColors.complement(widget.role);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('School Vault', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: const Text('SCHOOL VAULT', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -132,92 +124,86 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueGrey.shade900, Colors.blueGrey.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(widget.role, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.blueGrey.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.inventory_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.inventory_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: ListView.builder(
-          padding: EdgeInsets.fromLTRB(20, AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, 20, 100),
-          itemCount: _documents.length,
-          itemBuilder: (context, index) {
-            final doc = _documents[index];
-            final color = _getCatColor(doc['category']);
-            final content = ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              leading: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(Icons.description_rounded, color: color, size: 24),
-              ),
-              title: Text(doc['title'], style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('${doc['category']} • ${doc['date']} • ${doc['size']}', 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(icon: const Icon(Icons.print_rounded, size: 20), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.cloud_download_rounded, color: Colors.blue, size: 20), onPressed: () {}),
-                ],
-              ),
-            );
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: gemini?.buildGlowContainer(
-                borderRadius: 28,
-                borderThickness: 1,
-                backgroundColor: theme.cardColor.withOpacity(0.85),
-                padding: EdgeInsets.zero,
-                child: content,
-              ) ?? Card(child: content),
-            );
-          },
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(20, AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20, 20, 100),
+            itemCount: _documents.length,
+            itemBuilder: (context, index) {
+              final doc = _documents[index];
+              final color = _getCatColor(doc['category'], dt);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: theme.buildGlowContainer(
+                  accentColor: color,
+                  borderRadius: 28,
+                  padding: EdgeInsets.zero,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    leading: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: dt.roleSoftBg(color), shape: BoxShape.circle),
+                      child: Icon(Icons.description_rounded, color: color, size: 24),
+                    ),
+                    title: Text(doc['title']?.toString().toUpperCase() ?? 'DOCUMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text('${doc['category']} • ${doc['date']} • ${doc['size']}', 
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(icon: Icon(Icons.print_rounded, size: 20, color: dt.iconInactive), onPressed: () {}),
+                        IconButton(icon: Icon(Icons.cloud_download_rounded, color: dt.info, size: 20), onPressed: () {}),
+                      ],
+                    ),
+                  ),
+                ) ?? const SizedBox.shrink(),
+              );
+            },
+          ),
         ),
-      ),
-      floatingActionButton: (widget.role == 'Admin' || widget.role == 'Secretary')
-          ? gemini?.buildGlowContainer(
-              borderRadius: 30,
-              borderThickness: 2,
-              backgroundColor: Colors.blueGrey.shade800,
-              padding: EdgeInsets.zero,
+      ) ?? const SizedBox.shrink(),
+      floatingActionButton: (widget.role.toLowerCase() == 'admin' || widget.role.toLowerCase() == 'secretary')
+          ? RolePlasma(
+              color: roleColor,
               child: FloatingActionButton.extended(
-                onPressed: _showUploadSheet,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
+                onPressed: () => _showUploadSheet(dt, theme, roleColor),
                 icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const Text('SYNC NEW DOCUMENT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                label: const Text('SYNC NEW DOCUMENT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
               ),
             )
           : null,
     );
   }
 
-  Color _getCatColor(String cat) {
+  Color _getCatColor(String cat, DT dt) {
     switch (cat) {
-      case 'Forms': return Colors.blue;
-      case 'Letters': return Colors.orange;
-      case 'Certificates': return Colors.purple;
-      default: return Colors.teal;
+      case 'Forms': return dt.info;
+      case 'Letters': return KagemaColors.accountantAmber;
+      case 'Certificates': return KagemaColors.secretaryViolet;
+      default: return KagemaColors.teacherGreen;
     }
   }
 }

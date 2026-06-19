@@ -11,7 +11,7 @@
 //  ▸ ChromaticBorderPainter— animated 3-tone sweeping border
 //  ▸ AISpectrumBorder      — drop-in widget using ChromaticBorderPainter
 //  ▸ LiquidGlassCard       — premium glassmorphism card with sweep + shimmer
-//  ▸ NeuralBackground      — full-screen living background (particles + blobs + grid)
+//  ▸ NeuralBackground      — full-screen living canvas (particles + blobs + grid)
 //  ▸ RoleAuraLayer         — breathing radial glow wrapper
 //  ▸ ShimmerBox            — skeleton loading block
 //  ▸ GeminiThemeExtension  — ThemeExtension with gradient helpers
@@ -197,6 +197,12 @@ class DT {
   Color get cardBorder    => dark ? KagemaColors.darkBorder   : KagemaColors.lightBorder;
   Color get cardBorderHi  => dark ? KagemaColors.darkBorderHi : KagemaColors.lightBorderHi;
   Color get divider       => dark ? const Color(0xFF161D2E)   : const Color(0xFFE8EDF5);
+
+  // Utility Status Colors
+  Color get success       => KagemaColors.teacherGreen;
+  Color get warning       => KagemaColors.accountantAmber;
+  Color get error         => KagemaColors.parentRed;
+  Color get info          => KagemaColors.staffSky;
 
   // Utility
   Color get footerPillBg  => dark ? KagemaColors.darkCard     : KagemaColors.lightCard;
@@ -607,7 +613,7 @@ class _AISpectrumBorderState extends State<AISpectrumBorder>
 }
 
 // ───────────────────────────────────────────────────────────────────────────────
-// LIQUID GLASS CARD
+// LIQUID GLASS CARD - FIXED
 // Premium card: sweep gradient border + blur + inner shimmer line
 // ───────────────────────────────────────────────────────────────────────────────
 class LiquidGlassCard extends StatefulWidget {
@@ -701,21 +707,37 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
                       (isDark ? KagemaColors.darkCard.withValues(alpha: 0.94)
                           : Colors.white.withValues(alpha: 0.96)),
                   borderRadius: BorderRadius.circular(widget.borderRadius - widget.borderThickness),
-                  // Subtle inner top shimmer line
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.60),
-                      width: 1.0,
-                    ),
-                    left: BorderSide(
-                      color: Colors.white.withValues(alpha: isDark ? 0.04 : 0.35),
-                      width: 0.6,
-                    ),
-                    right: BorderSide(color: dt.cardBorder, width: 0.6),
-                    bottom: BorderSide(color: dt.cardBorder, width: 0.8),
+                  // FIX: Use uniform border instead of non-uniform to avoid crash
+                  border: Border.all(
+                    color: dt.cardBorder,
+                    width: 0.8,
                   ),
                 ),
-                child: widget.child,
+                child: Stack(
+                  children: [
+                    widget.child,
+                    // Top shimmer line - moved from border to separate widget
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 1.0,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(widget.borderRadius - widget.borderThickness),
+                            topRight: Radius.circular(widget.borderRadius - widget.borderThickness),
+                          ),
+                          gradient: LinearGradient(colors: [
+                            Colors.transparent,
+                            Colors.white.withValues(alpha: isDark ? 0.12 : 0.70),
+                            Colors.transparent,
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1671,4 +1693,8 @@ extension KagemaThemeX on BuildContext {
   DT get dt => DT.of(this);
 
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
+
+  // Screen metrics helpers
+  double get pt => MediaQuery.of(this).padding.top;
+  double get pb => MediaQuery.of(this).padding.bottom;
 }

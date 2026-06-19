@@ -14,6 +14,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
   DateTime _selectedDate = DateTime.now();
   List<Map<String, dynamic>> _attendanceRecords = [];
   bool _isLoading = true;
+  final String _roleId = 'secretary';
 
   @override
   void initState() {
@@ -42,14 +43,18 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Attendance Monitor', 
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.5, color: Colors.white)
+        title: const Text('ATTENDANCE MONITOR', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 3, color: Colors.white)
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -60,19 +65,14 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
         ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.amber.shade900, Colors.amber.shade500],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
-            boxShadow: [BoxShadow(color: Colors.amber.withOpacity(0.3), blurRadius: 20, spreadRadius: 2)],
           ),
           child: Stack(
             children: [
               Positioned(
                 right: -20, top: -10,
-                child: Icon(Icons.verified_user_rounded, size: 140, color: Colors.white.withOpacity(0.1)),
+                child: Icon(Icons.verified_user_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
               ),
             ],
           ),
@@ -95,137 +95,142 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
           ),
         ],
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: Padding(
-          padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 20),
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
           child: Column(
             children: [
-              _buildDateHeader(theme, gemini),
+              SizedBox(height: AppBar().preferredSize.height + context.pt + 20),
+              _buildDateHeader(dt, theme, roleColor),
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+                    ? Center(child: CircularProgressIndicator(color: roleColor))
                     : _attendanceRecords.isEmpty
-                        ? _buildEmptyState()
+                        ? _buildEmptyState(dt)
                         : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                             itemCount: _attendanceRecords.length,
                             itemBuilder: (context, index) {
                               final r = _attendanceRecords[index];
                               final isPresent = r['status'] == 'Present';
-                              final color = isPresent ? Colors.green : Colors.red;
+                              final color = isPresent ? dt.success : dt.error;
                               
-                              final content = ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                leading: CircleAvatar(
-                                  radius: 25,
-                                  backgroundColor: color.withOpacity(0.1),
-                                  child: Icon(isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 24),
-                                ),
-                                title: Text(r['target_name'] ?? 'Student Name', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                                subtitle: Text('Grade: ${r['grade'] ?? "N/A"} • ${r['stream'] ?? "General"}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                                trailing: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                                  child: Text(r['status'].toString().toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
-                                ),
-                              );
-
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
-                                child: gemini?.buildGlowContainer(
+                                child: theme.buildGlowContainer(
+                                  accentColor: color,
                                   borderRadius: 24,
-                                  borderThickness: 1,
-                                  backgroundColor: theme.cardColor.withOpacity(0.85),
                                   padding: EdgeInsets.zero,
-                                  child: content,
-                                ) ?? Card(child: content),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5)),
+                                      child: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: dt.roleSoftBg(color),
+                                        child: Icon(isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded, color: color, size: 24),
+                                      ),
+                                    ),
+                                    title: Text(r['target_name']?.toString().toUpperCase() ?? 'PUPIL NAME', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
+                                    subtitle: Text('Grade: ${r['grade'] ?? "N/A"} • ${r['stream'] ?? "General"}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(color: dt.roleSoftBg(color), borderRadius: BorderRadius.circular(8)),
+                                      child: Text(r['status'].toString().toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1)),
+                                    ),
+                                  ),
+                                ),
                               );
                             },
                           ),
               ),
-              _buildStats(theme, gemini),
+              _buildStats(dt, theme),
             ],
           ),
         ),
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildDateHeader(ThemeData theme, GeminiThemeExtension? gemini) {
-    final content = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
+  Widget _buildDateHeader(DT dt, GeminiThemeExtension? theme, Color roleColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: theme?.buildGlowContainer(
+        accentColor: roleColor,
+        borderRadius: 20,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(Icons.event_note_rounded, color: Colors.blueGrey.shade400, size: 20),
-            const SizedBox(width: 12),
-            Text(DateFormat('EEEE, MMM d, yyyy').format(_selectedDate).toUpperCase(), 
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)
+            Row(
+              children: [
+                Icon(Icons.event_note_rounded, color: roleColor, size: 20),
+                const SizedBox(width: 12),
+                Text(DateFormat('EEEE, MMM d, yyyy').format(_selectedDate).toUpperCase(), 
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5, color: dt.textPrimary)
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), borderRadius: BorderRadius.circular(8)),
+              child: Text('LOGS: ${_attendanceRecords.length}', 
+                style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 1)
+              ),
             ),
           ],
         ),
-        Text('TOTAL: ${_attendanceRecords.length}', 
-          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)
-        ),
-      ],
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: gemini?.buildGlowContainer(
-        borderRadius: 20,
-        borderThickness: 1.5,
-        backgroundColor: theme.cardColor.withOpacity(0.9),
-        padding: const EdgeInsets.all(16),
-        child: content,
-      ) ?? Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(20)),
-        child: content,
-      ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildStats(ThemeData theme, GeminiThemeExtension? gemini) {
-    int present = _attendanceRecords.where((r) => r['status'] == 'Present').length;
-    final content = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _statBit('PRESENT', '$present', Colors.green),
-        _statBit('ABSENT', '${_attendanceRecords.length - present}', Colors.red),
-      ],
-    );
+  Widget _buildStats(DT dt, GeminiThemeExtension? theme) {
+    int presentCount = _attendanceRecords.where((r) => r['status'] == 'Present').length;
+    int absentCount = _attendanceRecords.length - presentCount;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
       decoration: BoxDecoration(
-        color: theme.cardColor.withOpacity(0.98),
+        color: dt.cardBg.withValues(alpha: 0.98),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, offset: const Offset(0, -10))],
-        border: Border.all(color: theme.dividerColor.withOpacity(0.05)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 30, offset: const Offset(0, -10))],
+        border: Border.all(color: dt.cardBorder),
       ),
-      child: content,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _statBit(dt, 'PRESENT', '$presentCount', dt.success),
+          Container(width: 1, height: 30, color: dt.divider),
+          _statBit(dt, 'ABSENT', '$absentCount', dt.error),
+        ],
+      ),
     );
   }
 
-  Widget _statBit(String l, String v, Color c) {
+  Widget _statBit(DT dt, String l, String v, Color c) {
     return Column(
       children: [
-        Text(v, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: c, letterSpacing: -1)),
-        Text(l, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blueGrey.shade400, letterSpacing: 1.5)),
+        Text(v, style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: c, letterSpacing: -1)),
+        const SizedBox(height: 2),
+        Text(l, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1.5)),
       ],
     );
   }
 
-  Widget _buildEmptyState() {
-    return const Center(
+  Widget _buildEmptyState(DT dt) {
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.layers_clear_rounded, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text('NO ATTENDANCE RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          Icon(Icons.layers_clear_rounded, size: 80, color: dt.iconInactive),
+          const SizedBox(height: 16),
+          Text('NO ATTENDANCE RECORDS FOUND', style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1.5, fontSize: 12)),
         ],
       ),
     );

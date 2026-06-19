@@ -14,6 +14,7 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
   Map<String, dynamic> _studentStats = {'present': 0, 'total': 0};
   Map<String, dynamic> _staffStats = {'present': 0, 'total': 0};
   bool _isLoading = true;
+  final String _roleId = 'admin';
 
   @override
   void initState() {
@@ -47,79 +48,134 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final gemini = theme.extension<GeminiThemeExtension>();
+    final dt = context.dt;
+    final theme = context.kagemaTheme;
+    final isDark = context.isDark;
+    final roleColor = RoleColors.of(_roleId);
+    final compColor = RoleColors.complement(_roleId);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: const Text('Attendance Intelligence', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+        title: const Text('ATTENDANCE INTEL', 
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 3, color: Colors.white)
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [theme.primaryColor, Colors.purple.shade900], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            gradient: RoleColors.gradient(_roleId, dark: isDark),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
           ),
-          child: Stack(children: [Positioned(right: -20, top: -10, child: Icon(Icons.verified_user_rounded, size: 140, color: Colors.white.withOpacity(0.1)))]),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20, top: -10,
+                child: Icon(Icons.verified_user_rounded, size: 140, color: Colors.white.withValues(alpha: 0.1)),
+              ),
+            ],
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicator: BoxDecoration(borderRadius: BorderRadius.circular(50), color: Colors.white.withOpacity(0.2)),
-          indicatorPadding: const EdgeInsets.all(8),
+          indicator: BoxDecoration(
+            borderRadius: BorderRadius.circular(50), 
+            color: Colors.white.withValues(alpha: 0.2),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3))
+          ),
+          indicatorPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.5),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
           tabs: const [Tab(text: 'STUDENTS'), Tab(text: 'FACULTY')],
         ),
       ),
-      body: gemini?.buildCreativeBackground(
-        isDark: theme.brightness == Brightness.dark,
-        child: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.purple))
-          : Padding(
-              padding: EdgeInsets.only(top: AppBar().preferredSize.height + MediaQuery.of(context).padding.top + 48),
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildStatsPage(theme, gemini, _studentStats, 'Pupil Quota'),
-                  _buildStatsPage(theme, gemini, _staffStats, 'Staff Quota'),
-                ],
+      body: theme?.buildCreativeBackground(
+        isDark: isDark,
+        primaryBlob: roleColor,
+        secondaryBlob: compColor,
+        child: RoleAuraLayer(
+          roleColor: roleColor,
+          isDark: isDark,
+          child: _isLoading 
+            ? Center(child: CircularProgressIndicator(color: roleColor))
+            : Padding(
+                padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 48),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildStatsPage(dt, theme, roleColor, _studentStats, 'Pupil Quota', KagemaColors.staffSky),
+                    _buildStatsPage(dt, theme, roleColor, _staffStats, 'Staff Quota', KagemaColors.teacherGreen),
+                  ],
+                ),
               ),
-            ),
-      ),
+        ),
+      ) ?? const SizedBox.shrink(),
     );
   }
 
-  Widget _buildStatsPage(ThemeData theme, GeminiThemeExtension? gemini, Map<String, dynamic> stats, String label) {
+  Widget _buildStatsPage(DT dt, GeminiThemeExtension? theme, Color roleColor, Map<String, dynamic> stats, String label, Color accentColor) {
     double rate = stats['total'] == 0 ? 0 : (stats['present'] / stats['total']) * 100;
+    
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          gemini?.buildGlowContainer(
-            borderRadius: 35, borderThickness: 2, backgroundColor: theme.cardColor.withOpacity(0.9), padding: const EdgeInsets.all(40),
-            child: Column(children: [
-              Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 2)),
-              const SizedBox(height: 32),
-              Stack(alignment: Alignment.center, children: [
-                SizedBox(width: 160, height: 160, child: CircularProgressIndicator(value: rate/100, strokeWidth: 16, backgroundColor: theme.primaryColor.withOpacity(0.1), color: theme.primaryColor, strokeCap: StrokeCap.round)),
-                Text('${rate.toInt()}%', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
-              ]),
-            ]),
-          ) ?? const SizedBox(),
+          theme?.buildGlowContainer(
+            accentColor: accentColor,
+            borderRadius: 35,
+            padding: const EdgeInsets.all(40),
+            useAIBorder: true,
+            child: Column(
+              children: [
+                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 2.5)),
+                const SizedBox(height: 32),
+                Stack(
+                  alignment: Alignment.center, 
+                  children: [
+                    SizedBox(
+                      width: 160, height: 160, 
+                      child: CircularProgressIndicator(
+                        value: rate/100, 
+                        strokeWidth: 16, 
+                        backgroundColor: Colors.white.withValues(alpha: 0.1), 
+                        color: Colors.white, 
+                        strokeCap: StrokeCap.round
+                      )
+                    ),
+                    Text('${rate.toInt()}%', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+                  ]
+                ),
+              ]
+            ),
+          ) ?? const SizedBox.shrink(),
           const SizedBox(height: 48),
-          _miniCard(theme, 'Active Nodes Present', '${stats['present']}', Colors.green),
-          const SizedBox(height: 12),
-          _miniCard(theme, 'Total Registry Count', '${stats['total']}', Colors.blue),
+          _miniCard(dt, theme, 'ACTIVE NODES PRESENT', '${stats['present']}', dt.success),
+          const SizedBox(height: 16),
+          _miniCard(dt, theme, 'TOTAL REGISTRY COUNT', '${stats['total']}', dt.info),
         ],
       ),
     );
   }
 
-  Widget _miniCard(ThemeData theme, String l, String v, Color c) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: theme.cardColor.withOpacity(0.9), borderRadius: BorderRadius.circular(24), border: Border.all(color: c.withOpacity(0.1))),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(fontWeight: FontWeight.bold)), Text(v, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: c))]),
-    );
+  Widget _miniCard(DT dt, GeminiThemeExtension? theme, String label, String value, Color color) {
+    return theme?.buildGlowContainer(
+      accentColor: color,
+      borderRadius: 24,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+        children: [
+          Text(label, style: TextStyle(fontWeight: FontWeight.w900, color: dt.textMuted, fontSize: 9, letterSpacing: 1.5)), 
+          Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: color, letterSpacing: -0.5))
+        ]
+      ),
+    ) ?? const SizedBox.shrink();
   }
 }
