@@ -27,13 +27,11 @@ extension LayoutHelper on BuildContext {
 
 // ─────────────────────────────────────────────────────────────────
 // FEATURE #7 — TIME-AWARE GREETING HELPER
-// Returns greeting + emoji + subtitle based on current hour
 // ─────────────────────────────────────────────────────────────────
 class _TimeGreeting {
-  final String prefix;   // e.g. "Good Morning,"
-  final String emoji;    // e.g. "🌅"
-  final String timeLabel; // e.g. "morning"
-
+  final String prefix;
+  final String emoji;
+  final String timeLabel;
   const _TimeGreeting({
     required this.prefix,
     required this.emoji,
@@ -72,17 +70,9 @@ class _TimeGreeting {
 
 // ─────────────────────────────────────────────────────────────────
 // FEATURE #1 — PARTICLE DATA MODEL
-// Each particle has a position, velocity, size and opacity.
-// The painter draws them and constellation lines between close ones.
 // ─────────────────────────────────────────────────────────────────
 class _Particle {
-  double x;   // 0.0 – 1.0 (fraction of width)
-  double y;   // 0.0 – 1.0 (fraction of height)
-  double vx;  // velocity x per tick
-  double vy;  // velocity y per tick
-  double radius;
-  double opacity;
-
+  double x, y, vx, vy, radius, opacity;
   _Particle({
     required this.x,
     required this.y,
@@ -95,7 +85,6 @@ class _Particle {
   void tick() {
     x += vx;
     y += vy;
-    // Wrap edges softly
     if (x < 0) x = 1.0;
     if (x > 1) x = 0.0;
     if (y < 0) y = 1.0;
@@ -106,7 +95,7 @@ class _Particle {
 class _ParticlePainter extends CustomPainter {
   final List<_Particle> particles;
   final Color color;
-  final double connectionDistance; // fraction of width
+  final double connectionDistance;
   final bool isDark;
 
   _ParticlePainter({
@@ -126,11 +115,9 @@ class _ParticlePainter extends CustomPainter {
       final px = p.x * size.width;
       final py = p.y * size.height;
 
-      // Draw dot
       dotPaint.color = color.withValues(alpha: p.opacity * (isDark ? 0.6 : 0.5));
       canvas.drawCircle(Offset(px, py), p.radius, dotPaint);
 
-      // Draw constellation lines to nearby particles
       for (int j = i + 1; j < particles.length; j++) {
         final q = particles[j];
         final qx = q.x * size.width;
@@ -156,74 +143,39 @@ class _ParticlePainter extends CustomPainter {
 
 // ─────────────────────────────────────────────────────────────────
 // DARK-MODE TOKEN HELPER
-// One place to derive all theme-sensitive colours from context
 // ─────────────────────────────────────────────────────────────────
 class _DT {
   final bool dark;
   const _DT(this.dark);
 
-  // Scaffold / page background
   Color get pageBg => dark ? const Color(0xFF0F172A) : const Color(0xFFF0F4F8);
-
-  // Card / surface
   Color get cardBg => dark ? const Color(0xFF1E293B) : Colors.white;
-
-  // Input field background
   Color get inputBg => dark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
-
-  // Input field background when focused
   Color get inputFocusBg =>
       dark ? const Color(0xFF243347) : const Color(0xFFF8FAFC);
-
-  // Heavy text (headings)
   Color get textPrimary =>
       dark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B);
-
-  // Secondary / muted text
   Color get textMuted =>
       dark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
-
-  // Hint text inside inputs
   Color get hint => dark ? const Color(0xFF475569) : const Color(0xFFCDD5DE);
-
-  // Input icon inactive
   Color get iconInactive =>
       dark ? const Color(0xFF475569) : const Color(0xFFB0BFCF);
-
-  // Role card border when not selected
   Color get cardBorder =>
       dark ? const Color(0xFF334155) : const Color(0xFFE8EDF2);
-
-  // Role label text when not selected
   Color get roleLabelMuted =>
       dark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
-
-  // Role card icon bg when not selected
   Color get roleIconBg =>
       dark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
-
-  // Footer pill bg
   Color get footerPillBg =>
       dark ? const Color(0xFF1E293B) : Colors.white;
-
-  // Footer pill border
   Color get footerPillBorder =>
       dark ? const Color(0xFF334155) : const Color(0xFFE8EDF2);
-
-  // Footer pill text
   Color get footerText =>
       dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
-
-  // Role section label
   Color get sectionLabel =>
       dark ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B);
-
-  // FEATURE #5 — aura tint for the page background
-  // Very subtle wash of the active role colour over the entire screen
   Color aura(Color roleColor) =>
       roleColor.withValues(alpha: dark ? 0.07 : 0.045);
-
-  // Desktop right panel background
   Color get desktopRightBg =>
       dark ? const Color(0xFF0F172A) : const Color(0xFFF0F4F8);
 }
@@ -382,17 +334,15 @@ class _LoginScreenState extends State<LoginScreen>
       ? activeRole['darkLightColor'] as Color
       : activeRole['lightColor'] as Color;
 
-  // ── FEATURE #7 — cached time greeting (stable per session) ───────
+  // ── FEATURE #7 — cached time greeting ──────────────────────────
   final _TimeGreeting _timeGreeting = _TimeGreeting.now;
 
-  // Compose the full greeting: "Good Morning, Admin! 🌅"
   String _buildGreeting() {
     return '${_timeGreeting.prefix} ${activeRole['roleName']}!';
   }
 
   String _buildGreetingEmoji() => _timeGreeting.emoji;
 
-  // FEATURE #5 — time-of-day subtitle suffix
   String _buildSub() {
     final hour = DateTime.now().hour;
     String timeSuffix = '';
@@ -479,7 +429,7 @@ class _LoginScreenState extends State<LoginScreen>
     })
       ..repeat();
 
-    // FEATURE #5 — aura pulse (breathes in and out every 3 s)
+    // FEATURE #5 — aura pulse
     _auraController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 3000))
       ..repeat(reverse: true);
@@ -525,25 +475,19 @@ class _LoginScreenState extends State<LoginScreen>
     final dt = _DT(isDark);
 
     return Scaffold(
-      // FEATURE #5 — the aura tint is painted as a Stack behind everything
       backgroundColor: Colors.transparent,
       body: AnimatedBuilder(
         animation: _auraAnim,
         builder: (context, child) {
           return Stack(
             children: [
-              // ── FEATURE #5: full-screen animated aura ──────────
               AnimatedContainer(
                 duration: const Duration(milliseconds: 600),
                 curve: Curves.easeInOut,
                 decoration: BoxDecoration(
-                  // Base page colour
                   color: dt.pageBg,
                 ),
               ),
-              // Radial aura centred at bottom-left for mobile/tablet,
-              // or centred on the right panel for desktop — always
-              // colour-matched to the active role.
               Positioned.fill(
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 600),
@@ -563,8 +507,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-              // ── FEATURE #1: Particle layer (behind content) ────
-              // Only visible outside the hero gradient panel
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
@@ -577,7 +519,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
               ),
-              // ── Main content ───────────────────────────────────
               SafeArea(
                 child: layout == ScreenLayout.desktop
                     ? _buildDesktopLayout(dt)
@@ -762,8 +703,6 @@ class _LoginScreenState extends State<LoginScreen>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // FEATURE #1 — particles ALSO render inside the hero panel
-          // at higher opacity for a premium layered look
           Positioned.fill(
             child: IgnorePointer(
               child: ClipRect(
@@ -869,7 +808,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
                 const Spacer(),
-                // Badge
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Container(
@@ -894,7 +832,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                 ),
                 const SizedBox(height: 20),
-                // FEATURE #7 — time-aware greeting in the desktop panel
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 350),
                   transitionBuilder: (child, anim) => FadeTransition(
@@ -926,7 +863,6 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(width: 8),
                           ScaleTransition(
                             scale: _pulseAnim,
-                            // FEATURE #7 — shows time-of-day emoji
                             child: Text(
                               _buildGreetingEmoji(),
                               style: const TextStyle(fontSize: 28),
@@ -941,7 +877,6 @@ class _LoginScreenState extends State<LoginScreen>
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Text(
-                    // FEATURE #7 — sub also has time-of-day context
                     _buildSub(),
                     key: ValueKey('sub_${activeRole['id']}_${_timeGreeting.timeLabel}'),
                     style: TextStyle(
@@ -1019,7 +954,6 @@ class _LoginScreenState extends State<LoginScreen>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // FEATURE #1 — particles inside the hero header too
           Positioned.fill(
             child: IgnorePointer(
               child: ClipRRect(
@@ -1081,7 +1015,6 @@ class _LoginScreenState extends State<LoginScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Top bar
                 Row(
                   children: [
                     Container(
@@ -1154,7 +1087,6 @@ class _LoginScreenState extends State<LoginScreen>
                   ],
                 ),
                 SizedBox(height: compact ? 16 : 28),
-                // FEATURE #7 — time-aware greeting
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 350),
                   transitionBuilder: (child, anim) => FadeTransition(
@@ -1184,7 +1116,6 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(width: 8),
                       ScaleTransition(
                         scale: _pulseAnim,
-                        // FEATURE #7 — time emoji replaces role emoji here
                         child: Text(
                           _buildGreetingEmoji(),
                           style: TextStyle(fontSize: compact ? 20 : 26),
@@ -1295,7 +1226,6 @@ class _LoginScreenState extends State<LoginScreen>
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          // FEATURE #5 — selected card tint works in both light + dark
           color: isSelected ? roleLightColor : dt.cardBg,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
@@ -1358,36 +1288,41 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // AUTH FORM SECTION
+  // AUTH FORM SECTION — with role‑color animated border on the outer card
   // ─────────────────────────────────────────────────────────────────
   Widget _buildAuthSection({bool padded = true, required _DT dt}) {
     Widget content = AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
         color: dt.cardBg,
         borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: activeColor,
+          width: 2.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: activeColor.withValues(alpha: dt.dark ? 0.12 : 0.08),
-            blurRadius: 30,
-            offset: const Offset(0, 8),
+            color: activeColor.withValues(alpha: dt.dark ? 0.2 : 0.12),
+            blurRadius: 36,
+            spreadRadius: 2,
+            offset: const Offset(0, 12),
           ),
           BoxShadow(
             color: Colors.black.withValues(alpha: dt.dark ? 0.3 : 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildFormHeader(dt),
-            const SizedBox(height: 22),
-            _buildSmartInput(
+            const SizedBox(height: 26),
+            _buildBorderlessInput(
               focus: _idFocus,
               isFocused: _idFocused,
               icon: Icons.fingerprint_rounded,
@@ -1396,8 +1331,8 @@ class _LoginScreenState extends State<LoginScreen>
               controller: identifierController,
               dt: dt,
             ),
-            const SizedBox(height: 14),
-            _buildSmartInput(
+            const SizedBox(height: 18),
+            _buildBorderlessInput(
               focus: _passFocus,
               isFocused: _passFocused,
               icon: Icons.lock_person_rounded,
@@ -1407,7 +1342,7 @@ class _LoginScreenState extends State<LoginScreen>
               isPass: true,
               dt: dt,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             Align(
               alignment: Alignment.centerRight,
               child: GestureDetector(
@@ -1415,14 +1350,14 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Text(
                   'Forgot password?',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: activeColor,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 26),
             _buildLoginButton(),
           ],
         ),
@@ -1443,14 +1378,14 @@ class _LoginScreenState extends State<LoginScreen>
       children: [
         AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: activeColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
+            color: activeColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(Icons.lock_open_rounded, color: activeColor, size: 20),
+          child: Icon(Icons.lock_open_rounded, color: activeColor, size: 22),
         ),
-        const SizedBox(width: 14),
+        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1458,19 +1393,19 @@ class _LoginScreenState extends State<LoginScreen>
               Text(
                 'LOGIN TO YOUR ACCOUNT',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: dt.textPrimary,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.6,
                 ),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 4),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: Text(
                   'Sign in to access ${activeRole['accountLabel']}',
                   key: ValueKey('formSub_${activeRole['id']}'),
-                  style: TextStyle(fontSize: 11, color: dt.textMuted),
+                  style: TextStyle(fontSize: 12, color: dt.textMuted),
                 ),
               ),
             ],
@@ -1480,7 +1415,8 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildSmartInput({
+  // ─── ✅ COMPLETELY BORDERLESS INPUT – NO RED BOX ──────────────
+  Widget _buildBorderlessInput({
     required FocusNode focus,
     required bool isFocused,
     required IconData icon,
@@ -1490,91 +1426,98 @@ class _LoginScreenState extends State<LoginScreen>
     bool isPass = false,
     required _DT dt,
   }) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-      decoration: BoxDecoration(
-        color: isFocused ? dt.inputFocusBg : dt.inputBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isFocused ? activeColor : activeColor.withValues(alpha: 0.25),
-          width: isFocused ? 2 : 1.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: isFocused ? activeColor : dt.textMuted,
+              letterSpacing: 1.4,
+            ),
+            child: Text(label),
+          ),
         ),
-        boxShadow: isFocused
-            ? [
-          BoxShadow(
-            color: activeColor.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            color: isFocused ? dt.inputFocusBg : dt.inputBg,
+            borderRadius: BorderRadius.circular(18),
+            // ─── NO BORDER AT ALL ───
+            border: Border.all(
+              color: Colors.transparent,
+              width: 0,
+            ),
+            boxShadow: isFocused
+                ? [
+              BoxShadow(
+                color: activeColor.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ]
+                : null,
           ),
-        ]
-            : [],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: isFocused ? activeColor : dt.iconInactive,
-            size: 22,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedDefaultTextStyle(
-                  duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontSize: 8.5,
-                    fontWeight: FontWeight.w900,
-                    color: isFocused ? activeColor : dt.iconInactive,
-                    letterSpacing: 1.8,
-                  ),
-                  child: Text(label),
-                ),
-                const SizedBox(height: 3),
-                TextField(
+          child: Row(
+            children: [
+              const SizedBox(width: 18),
+              Icon(
+                icon,
+                color: isFocused ? activeColor : dt.iconInactive,
+                size: 24,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: TextField(
                   controller: controller,
                   focusNode: focus,
                   obscureText: isPass && !isPasswordVisible,
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
                     color: dt.textPrimary,
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
                     hintStyle: TextStyle(
-                      fontSize: 13.5,
+                      fontSize: 15,
                       color: dt.hint,
                       fontWeight: FontWeight.w400,
                     ),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
                   ),
                 ),
-              ],
-            ),
-          ),
-          if (isPass)
-            GestureDetector(
-              onTap: () =>
-                  setState(() => isPasswordVisible = !isPasswordVisible),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  isPasswordVisible
-                      ? Icons.visibility_rounded
-                      : Icons.visibility_off_rounded,
-                  key: ValueKey(isPasswordVisible),
-                  size: 20,
-                  color: dt.iconInactive,
-                ),
               ),
-            ),
-        ],
-      ),
+              if (isPass)
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => isPasswordVisible = !isPasswordVisible),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 18),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility_rounded
+                            : Icons.visibility_off_rounded,
+                        key: ValueKey(isPasswordVisible),
+                        size: 22,
+                        color: dt.iconInactive,
+                      ),
+                    ),
+                  ),
+                ),
+              if (!isPass) const SizedBox(width: 18),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1582,9 +1525,9 @@ class _LoginScreenState extends State<LoginScreen>
     return AnimatedContainer(
       duration: const Duration(milliseconds: 350),
       width: double.infinity,
-      height: 60,
+      height: 64,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
           colors: [
             activeColor,
@@ -1599,21 +1542,21 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: activeColor.withValues(alpha: 0.4),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: activeColor.withValues(alpha: 0.45),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
           BoxShadow(
-            color: activeColor.withValues(alpha: 0.15),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: activeColor.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: isLoading ? null : _handleLogin,
           splashColor: Colors.white.withValues(alpha: 0.2),
           child: Center(
@@ -1622,18 +1565,18 @@ class _LoginScreenState extends State<LoginScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(
-                  width: 20,
-                  height: 20,
+                  width: 24,
+                  height: 24,
                   child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2.5),
+                      color: Colors.white, strokeWidth: 3),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Text(
                   'Authenticating...',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
+                    fontSize: 15,
                   ),
                 ),
               ],
@@ -1642,15 +1585,15 @@ class _LoginScreenState extends State<LoginScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.lock_open_rounded,
-                    color: Colors.white, size: 20),
-                SizedBox(width: 10),
+                    color: Colors.white, size: 22),
+                SizedBox(width: 12),
                 Text(
                   'Secure Sign In',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
-                    fontSize: 16,
-                    letterSpacing: 0.4,
+                    fontSize: 17,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],

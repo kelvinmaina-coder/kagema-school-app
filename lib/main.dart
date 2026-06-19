@@ -1,4 +1,4 @@
-﻿import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -75,7 +75,7 @@ class KagemaSchoolApp extends StatelessWidget {
 
       routes: {
         '/': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
         '/admin_dashboard': (context) => const AdminDashboard(), 
@@ -83,7 +83,7 @@ class KagemaSchoolApp extends StatelessWidget {
         '/parent_dashboard': (context) => ParentDashboard(parentPhone: auth.currentUserPhone ?? ''), 
         '/accountant_dashboard': (context) => const AccountantDashboard(),
         '/secretary_dashboard': (context) => const SecretaryDashboard(),
-        '/staff_dashboard': (context) => const StaffDashboard(),
+        '/staff_dashboard': (context) => StaffDashboard(),
       },
     );
   }
@@ -141,3 +141,5 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
+
