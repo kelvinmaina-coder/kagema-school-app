@@ -209,3 +209,4 @@ class OfflineDbService {
     await db.insert('user_profile', profile, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }
+

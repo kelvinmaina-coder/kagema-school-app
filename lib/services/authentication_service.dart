@@ -17,6 +17,9 @@ class AuthenticationService extends ChangeNotifier {
   bool _isOffline = false;
   bool _isFirstTimeParent = false;
 
+  // Realtime subscription to listen for database changes
+  StreamSubscription? _userSubscription;
+
   String? get currentUserRole => _currentUserRole;
   String? get currentUserPhone => _currentUserPhone;
   String get currentUserName => _currentUserName ?? "Authorized User";
@@ -35,6 +38,7 @@ class AuthenticationService extends ChangeNotifier {
     try {
       final session = _supabase.auth.currentSession;
       if (session != null) {
+        _startUserRealtimeListener(session.user.id); // Start listening to live changes
         // Attempt to refresh user data from network, but timeout if connection is poor
         try {
           await _loadUserData(session.user.id).timeout(const Duration(seconds: 4));
@@ -66,6 +70,35 @@ class AuthenticationService extends ChangeNotifier {
       debugPrint("Auth Session Error: $e");
     }
     return false;
+  }
+
+  // --- NEW: THE LIVE DATABASE LISTENER ---
+  void _startUserRealtimeListener(String userId) {
+    _userSubscription?.cancel();
+    _userSubscription = _supabase
+        .from('users')
+        .stream(primaryKey: ['user_id'])
+        .eq('user_id', userId)
+        .listen((List<Map<String, dynamic>> data) {
+          if (data.isNotEmpty) {
+            final updatedUser = data.first;
+            _currentUserRole = updatedUser['role'];
+            _currentUserPhone = updatedUser['identifier'];
+            _currentUserName = updatedUser['name'];
+            
+            // Sync to local storage as data changes live
+            OfflineDbService.instance.saveUserProfile({
+              'id': userId,
+              'name': _currentUserName,
+              'role': _currentUserRole,
+              'phone': _currentUserPhone,
+              'last_login': _lastLogin
+            });
+            
+            debugPrint("LIVE SYNC: Profile updated from Supabase");
+            notifyListeners(); // This triggers the UI to refresh instantly
+          }
+        });
   }
 
   Future<void> _loadUserData(String userId) async {
@@ -109,6 +142,7 @@ class AuthenticationService extends ChangeNotifier {
       ).timeout(const Duration(seconds: 10));
 
       if (response.user != null) {
+        _startUserRealtimeListener(response.user!.id); // Start live sync on login
         await _loadUserData(response.user!.id);
         _isOffline = false;
         return true;
@@ -156,6 +190,7 @@ class AuthenticationService extends ChangeNotifier {
       );
 
       if (response.user != null) {
+        _startUserRealtimeListener(response.user!.id); // Start live sync for parents
         await _loadUserData(response.user!.id);
         _isOffline = false;
 
@@ -190,6 +225,7 @@ class AuthenticationService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _userSubscription?.cancel(); // Stop live listening on logout
     try { await _supabase.auth.signOut(); } catch (_) {}
     _currentUserRole = null; _currentUserPhone = null; _currentUserName = null; _isOffline = false;
     _isFirstTimeParent = false; _lastLogin = null;
@@ -220,9 +256,8 @@ class AuthenticationService extends ChangeNotifier {
     try {
       final user = _supabase.auth.currentUser;
       if (user != null) {
+        // This update will trigger the realtime listener above automatically
         await _supabase.from('users').update({'name': newName}).eq('user_id', user.id);
-        _currentUserName = newName;
-        notifyListeners();
       }
     } catch (_) {}
   }
