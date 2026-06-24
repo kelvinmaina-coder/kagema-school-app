@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/school_models.dart';
 import '../../services/supabase_service.dart';
+import '../../services/pesapal_service.dart';
 import '../../app_theme.dart';
 
 class FeesPaymentScreen extends StatefulWidget {
@@ -47,6 +49,110 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showPaymentModal() {
+    final dt = DT.of(context);
+    final theme = context.kagemaTheme;
+    final amountController = TextEditingController(
+      text: _balance > 0 ? _balance.toStringAsFixed(0) : ''
+    );
+    bool isProcessing = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final content = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(10))),
+              const SizedBox(height: 32),
+              Text('M-PESA STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 13, color: dt.textPrimary)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: dt.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'AMOUNT TO PAY',
+                  prefixText: 'Ksh ',
+                  prefixStyle: TextStyle(fontWeight: FontWeight.w900, color: dt.textPrimary),
+                ),
+              ),
+              const SizedBox(height: 32),
+              if (isProcessing)
+                const CircularProgressIndicator(color: KagemaColors.teacherGreen)
+              else
+                SizedBox(
+                  width: double.infinity, height: 65,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (amountController.text.isEmpty) return;
+                      setModalState(() => isProcessing = true);
+                      
+                      try {
+                        final response = await PesapalService.instance.initiatePayment(
+                          phoneNumber: widget.student.parentPhone,
+                          amount: double.parse(amountController.text),
+                          email: widget.student.parentEmail ?? 'finance@kagema.edu',
+                          reference: "FEES-${widget.student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
+                          studentName: widget.student.name,
+                        );
+
+                        if (mounted) {
+                          setModalState(() => isProcessing = false);
+                          if (response['success']) {
+                            final url = Uri.parse(response['redirect_url']);
+                            if (await canLaunchUrl(url)) {
+                              await launchUrl(url, mode: LaunchMode.externalApplication);
+                              Navigator.pop(context);
+                            } else {
+                              throw 'Could not launch payment gateway';
+                            }
+                          } else {
+                            throw response['message'] ?? 'Gateway Error';
+                          }
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setModalState(() => isProcessing = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Payment failed: $e'), backgroundColor: KagemaColors.parentRed)
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: KagemaColors.teacherGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('AUTHORIZE PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  ),
+                ),
+            ],
+          );
+
+          return theme?.buildGlowContainer(
+            borderRadius: 40,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+              left: 32, right: 32, top: 24
+            ),
+            child: content,
+          ) ?? Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+              left: 32, right: 32, top: 24
+            ),
+            decoration: BoxDecoration(color: dt.cardBg, borderRadius: const BorderRadius.vertical(top: Radius.circular(40))),
+            child: content,
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -113,7 +219,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
       floatingActionButton: RolePlasma(
         color: KagemaColors.teacherGreen,
         child: FloatingActionButton.extended(
-          onPressed: () {}, // Trigger Payment Gateway
+          onPressed: _showPaymentModal,
           backgroundColor: KagemaColors.teacherGreen,
           icon: const Icon(Icons.account_balance_wallet_rounded),
           label: const Text('INITIATE STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),

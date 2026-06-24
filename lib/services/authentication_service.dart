@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'offline_db_service.dart';
+import 'dart:async';
 
 class AuthenticationService extends ChangeNotifier {
   static final AuthenticationService _instance = AuthenticationService._internal();
@@ -12,28 +13,50 @@ class AuthenticationService extends ChangeNotifier {
   String? _currentUserRole;
   String? _currentUserPhone;
   String? _currentUserName;
+  String? _lastLogin;
   bool _isOffline = false;
   bool _isFirstTimeParent = false;
 
   String? get currentUserRole => _currentUserRole;
   String? get currentUserPhone => _currentUserPhone;
   String get currentUserName => _currentUserName ?? "Authorized User";
+  String? get currentUserId => _supabase.auth.currentUser?.id;
+  String? get currentUserEmail => _supabase.auth.currentUser?.email;
+  String? get lastLogin => _lastLogin;
   bool get isOffline => _isOffline;
   bool get isFirstTimeParent => _isFirstTimeParent;
+
+  // Helper to check if a profile exists locally for "Welcome Back" feature
+  Future<Map<String, dynamic>?> getCachedProfile() async {
+    return await OfflineDbService.instance.getUserProfile();
+  }
 
   Future<bool> isAuthenticated() async {
     try {
       final session = _supabase.auth.currentSession;
       if (session != null) {
-        await _loadUserData(session.user.id);
-        _isOffline = false;
+        // Attempt to refresh user data from network, but timeout if connection is poor
+        try {
+          await _loadUserData(session.user.id).timeout(const Duration(seconds: 4));
+          _isOffline = false;
+        } catch (_) {
+          // If network refresh fails, we use the cached data
+          final offlineProfile = await OfflineDbService.instance.getUserProfile();
+          if (offlineProfile != null) {
+            _currentUserRole = offlineProfile['role'] as String?;
+            _currentUserPhone = offlineProfile['phone'] as String?;
+            _currentUserName = offlineProfile['name'] as String?;
+            _isOffline = true;
+          }
+        }
         return true;
       } else {
         final offlineProfile = await OfflineDbService.instance.getUserProfile();
         if (offlineProfile != null) {
-          _currentUserRole = offlineProfile['role'];
-          _currentUserPhone = offlineProfile['phone'];
-          _currentUserName = offlineProfile['name'];
+          _currentUserRole = offlineProfile['role'] as String?;
+          _currentUserPhone = offlineProfile['phone'] as String?;
+          _currentUserName = offlineProfile['name'] as String?;
+          _lastLogin = offlineProfile['last_login'] as String?;
           _isOffline = true;
           notifyListeners();
           return true;
@@ -52,24 +75,27 @@ class AuthenticationService extends ChangeNotifier {
         _currentUserRole = data['role'];
         _currentUserPhone = data['identifier'];
         _currentUserName = data['name'];
+        _lastLogin = DateTime.now().toIso8601String();
+        
         await OfflineDbService.instance.saveUserProfile({
           'id': userId,
           'name': _currentUserName,
           'role': _currentUserRole,
           'phone': _currentUserPhone,
-          'last_login': DateTime.now().toIso8601String()
+          'last_login': _lastLogin
         });
         notifyListeners();
       }
     } catch (e) {
       debugPrint("Error loading user data: $e");
+      rethrow;
     }
   }
 
   Future<bool> login(String role, String identifier, String password) async {
     try {
       if (role == 'parent') {
-        return await _handleParentSecureAuth(identifier, password);
+        return await _handleParentSecureAuth(identifier, password).timeout(const Duration(seconds: 10));
       }
 
       String finalEmail = identifier.trim();
@@ -77,7 +103,11 @@ class AuthenticationService extends ChangeNotifier {
         finalEmail = "${finalEmail.toLowerCase()}@kagema.com";
       }
 
-      final response = await _supabase.auth.signInWithPassword(email: finalEmail, password: password.trim());
+      final response = await _supabase.auth.signInWithPassword(
+        email: finalEmail, 
+        password: password.trim()
+      ).timeout(const Duration(seconds: 10));
+
       if (response.user != null) {
         await _loadUserData(response.user!.id);
         _isOffline = false;
@@ -85,18 +115,30 @@ class AuthenticationService extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      debugPrint("Login Error: $e");
+      debugPrint("Login failed/timed out, checking offline availability: $e");
+      // OFFLINE LOGIN FALLBACK
+      final offlineProfile = await OfflineDbService.instance.getUserProfile();
+      if (offlineProfile != null && 
+          (offlineProfile['phone'] == identifier || offlineProfile['id'] == identifier || 
+           (offlineProfile['email'] != null && offlineProfile['email'] == identifier))) {
+        
+        // Ensure the role matches for security
+        if (offlineProfile['role'] == role) {
+          _currentUserRole = offlineProfile['role'] as String?;
+          _currentUserPhone = offlineProfile['phone'] as String?;
+          _currentUserName = offlineProfile['name'] as String?;
+          _lastLogin = offlineProfile['last_login'] as String?;
+          _isOffline = true;
+          notifyListeners();
+          return true;
+        }
+      }
       return false;
     }
   }
 
-  /// FEATURE 4: SECURE PARENT AUTHENTICATION WORKFLOW
-  /// - Database Cross-Check for student link
-  /// - Fast Login with mobile token
-  /// - First-time password prompt logic
   Future<bool> _handleParentSecureAuth(String identifier, String password) async {
     try {
-      // 1. Database Cross-Check: Verify if parent is explicitly linked to an active student
       final studentLink = await _supabase
           .from('students')
           .select('parent_phone, parent_email, student_status')
@@ -104,13 +146,8 @@ class AuthenticationService extends ChangeNotifier {
           .eq('student_status', 'active')
           .maybeSingle();
 
-      if (studentLink == null) {
-        debugPrint("Auth Denied: No active student record linked to this identifier.");
-        return false;
-      }
+      if (studentLink == null) throw "NO_STUDENT_LINK";
 
-      // 2. Fast Login: Map identifier to email and attempt authentication.
-      // We allow the registered Mobile Number to act as a fast verification token.
       String email = studentLink['parent_email'] ?? "${studentLink['parent_phone']}@kagema.com";
       
       final response = await _supabase.auth.signInWithPassword(
@@ -122,7 +159,6 @@ class AuthenticationService extends ChangeNotifier {
         await _loadUserData(response.user!.id);
         _isOffline = false;
 
-        // 3. First-Time Password Control: Identify if metadata or flag needs a secure setup
         final userProfile = await _supabase.from('users').select('first_login').eq('user_id', response.user!.id).maybeSingle();
         if (userProfile != null && userProfile['first_login'] == true) {
           _isFirstTimeParent = true;
@@ -130,10 +166,22 @@ class AuthenticationService extends ChangeNotifier {
         }
         return true;
       }
+      return false;
     } catch (e) {
-      debugPrint("Parent Secure Auth Error: $e");
+      debugPrint("Parent login failed, checking offline availability: $e");
+      final offlineProfile = await OfflineDbService.instance.getUserProfile();
+      if (offlineProfile != null && offlineProfile['role'] == 'parent' && 
+          (offlineProfile['phone'] == identifier)) {
+        _currentUserRole = offlineProfile['role'] as String?;
+        _currentUserPhone = offlineProfile['phone'] as String?;
+        _currentUserName = offlineProfile['name'] as String?;
+        _lastLogin = offlineProfile['last_login'] as String?;
+        _isOffline = true;
+        notifyListeners();
+        return true;
+      }
+      return false;
     }
-    return false;
   }
 
   void clearFirstTimeFlag() {
@@ -144,7 +192,7 @@ class AuthenticationService extends ChangeNotifier {
   Future<void> logout() async {
     try { await _supabase.auth.signOut(); } catch (_) {}
     _currentUserRole = null; _currentUserPhone = null; _currentUserName = null; _isOffline = false;
-    _isFirstTimeParent = false;
+    _isFirstTimeParent = false; _lastLogin = null;
     notifyListeners();
   }
 
@@ -206,3 +254,4 @@ class AuthenticationService extends ChangeNotifier {
     } catch (_) {}
   }
 }
+

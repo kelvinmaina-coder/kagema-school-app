@@ -197,6 +197,7 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController passwordController = TextEditingController();
   bool isPasswordVisible = false;
   bool isLoading = false;
+  Map<String, dynamic>? cachedUser; // Personalized "Welcome Back"
 
   // ── Entry animations ────────────────────────────────────────────
   late AnimationController _headerAnimController;
@@ -338,6 +339,9 @@ class _LoginScreenState extends State<LoginScreen>
   final _TimeGreeting _timeGreeting = _TimeGreeting.now;
 
   String _buildGreeting() {
+    if (cachedUser != null) {
+      return 'Welcome Back, ${cachedUser!['name']}!';
+    }
     return '${_timeGreeting.prefix} ${activeRole['roleName']}!';
   }
 
@@ -373,6 +377,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void initState() {
     super.initState();
+    _checkCachedUser(); // Personalize the experience immediately
 
     // Entry animations
     _headerAnimController = AnimationController(
@@ -440,6 +445,19 @@ class _LoginScreenState extends State<LoginScreen>
     _idFocus.addListener(() => setState(() => _idFocused = _idFocus.hasFocus));
     _passFocus
         .addListener(() => setState(() => _passFocused = _passFocus.hasFocus));
+  }
+
+  Future<void> _checkCachedUser() async {
+    final auth = Provider.of<AuthenticationService>(context, listen: false);
+    final profile = await auth.getCachedProfile();
+    if (profile != null && mounted) {
+      setState(() {
+        cachedUser = profile;
+        // Auto-select the role they used last for flexibility
+        selectedRole = profile['role']?.toString().toUpperCase() ?? 'ADMIN';
+        identifierController.text = profile['phone'] ?? profile['id'] ?? '';
+      });
+    }
   }
 
   @override
@@ -1639,11 +1657,11 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Icon(Icons.security_rounded,
+                  const Icon(Icons.security_update_good_rounded,
                       size: 14, color: Color(0xFF10B981)),
                   const SizedBox(width: 6),
                   Text(
-                    'Your connection is secure & encrypted',
+                    'Offline-Ready Secure System',
                     style: TextStyle(
                       fontSize: 11,
                       color: dt.footerText,
@@ -1700,7 +1718,7 @@ class _LoginScreenState extends State<LoginScreen>
                 const Icon(Icons.error_outline_rounded,
                     color: Colors.white, size: 18),
                 const SizedBox(width: 10),
-                const Text('Invalid credentials. Please try again.',
+                const Text('Invalid credentials or connection. Fallback failed.',
                     style: TextStyle(fontWeight: FontWeight.w600)),
               ],
             ),

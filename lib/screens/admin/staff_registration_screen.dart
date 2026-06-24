@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../services/supabase_service.dart';
+import '../../services/offline_db_service.dart';
 import '../../app_theme.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
@@ -16,8 +17,8 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _idController = TextEditingController();
   final _salaryController = TextEditingController();
+  final _deptController = TextEditingController();
   
   String _selectedRole = 'Teacher';
   bool _isSaving = false;
@@ -32,14 +33,15 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       _nameController.text = widget.staffToEdit!['name'] ?? '';
       _phoneController.text = widget.staffToEdit!['phone'] ?? '';
       _emailController.text = widget.staffToEdit!['email'] ?? '';
-      _idController.text = widget.staffToEdit!['staff_id'] ?? '';
       _salaryController.text = (widget.staffToEdit!['salary'] ?? '').toString();
+      _deptController.text = widget.staffToEdit!['department'] ?? '';
       _selectedRole = widget.staffToEdit!['role'] ?? 'Teacher';
     }
   }
 
   Future<void> _saveStaff() async {
     if (!_formKey.currentState!.validate()) return;
+    final dt = context.dt;
 
     setState(() => _isSaving = true);
     try {
@@ -53,11 +55,15 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         'phone': _phoneController.text.trim(),
         'email': _emailController.text.trim(),
         'role': _selectedRole,
+        'department': _deptController.text.trim().isEmpty ? 'General' : _deptController.text.trim(),
         'salary': double.tryParse(_salaryController.text) ?? 0.0,
         'status': 'Active',
-        'joined_at': widget.staffToEdit?['joined_at'] ?? DateTime.now().toIso8601String(),
       };
 
+      // 1. SAVE LOCALLY (Ensures resilience in bad network)
+      await OfflineDbService.instance.saveStaffLocal(staffData);
+
+      // 2. CLOUD SUBMISSION (Bug fixed: 'joined_at' removed)
       if (widget.staffToEdit != null) {
         await SupabaseService.instance.updateStaff(staffData);
       } else {
@@ -67,15 +73,27 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Staff Profile ${widget.staffToEdit != null ? 'Updated' : 'Created'} Successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
-            backgroundColor: KagemaColors.teacherGreen,
+            content: Text('Staff Profile ${widget.staffToEdit != null ? 'Updated' : 'Created'} Successfully!', 
+              style: const TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.success,
             behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: KagemaColors.parentRed));
+      // FLEXIBILITY: Don't crash if cloud fails, just inform user it's saved on device
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Offline Mode: Saved to device. Will sync later.',
+              style: TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.warning,
+            behavior: SnackBarBehavior.floating,
+          )
+        );
+        Navigator.pop(context, true);
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -133,19 +151,24 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
                   children: [
                     _buildFormContainer(dt, roleColor),
                     const SizedBox(height: 40),
-                    SizedBox(
+                    Container(
                       width: double.infinity,
-                      height: 60,
+                      height: 65,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
+                      ),
                       child: ElevatedButton.icon(
                         onPressed: _isSaving ? null : _saveStaff,
-                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
+                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.verified_user_rounded),
                         label: _isSaving 
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
                           : Text(widget.staffToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
-                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: roleColor,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         ),
                       ),
                     ),
@@ -175,6 +198,8 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
           const SizedBox(height: 20),
           _buildField(dt, _emailController, 'Email Address', Icons.alternate_email_rounded, keyboardType: TextInputType.emailAddress),
           const SizedBox(height: 20),
+          _buildField(dt, _deptController, 'Department (e.g. Science)', Icons.business_center_rounded),
+          const SizedBox(height: 20),
           _buildField(dt, _salaryController, 'Basic Salary (Ksh)', Icons.payments_rounded, keyboardType: TextInputType.number),
           const SizedBox(height: 32),
           Divider(color: dt.divider),
@@ -195,6 +220,9 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: KagemaColors.staffSky)),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
@@ -207,9 +235,12 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       style: TextStyle(fontWeight: FontWeight.bold, color: dt.textPrimary),
       items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
       onChanged: (v) => setState(() => _selectedRole = v!),
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Role',
-        prefixIcon: Icon(Icons.security_rounded, color: KagemaColors.staffSky, size: 20),
+        prefixIcon: const Icon(Icons.security_rounded, color: KagemaColors.staffSky, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: KagemaColors.staffSky)),
       ),
     );
   }

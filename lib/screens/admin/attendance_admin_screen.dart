@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/supabase_service.dart';
+import '../../services/authentication_service.dart';
 import '../../app_theme.dart';
 
 class AttendanceAdminScreen extends StatefulWidget {
@@ -21,6 +23,25 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadAllStats();
+    
+    // EVENT HANDLING: Listen for global authentication/sync changes
+    // If the data syncs in the background, this will trigger a refresh
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthenticationService>(context, listen: false).addListener(_handleSyncEvent);
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clean up event listener
+    Provider.of<AuthenticationService>(context, listen: false).removeListener(_handleSyncEvent);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  // --- THIS IS THE EVENT HANDLER ---
+  void _handleSyncEvent() {
+    if (mounted) _loadAllStats();
   }
 
   Future<void> _loadAllStats() async {
@@ -82,6 +103,12 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
             ],
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            onPressed: _loadAllStats,
+          )
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicator: BoxDecoration(
@@ -106,12 +133,16 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
             ? Center(child: CircularProgressIndicator(color: roleColor))
             : Padding(
                 padding: EdgeInsets.only(top: AppBar().preferredSize.height + context.pt + 48),
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildStatsPage(dt, theme, roleColor, _studentStats, 'Pupil Quota', KagemaColors.staffSky),
-                    _buildStatsPage(dt, theme, roleColor, _staffStats, 'Staff Quota', KagemaColors.teacherGreen),
-                  ],
+                child: RefreshIndicator(
+                  onRefresh: _loadAllStats,
+                  color: roleColor,
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildStatsPage(dt, theme, roleColor, _studentStats, 'Pupil Quota', KagemaColors.staffSky),
+                      _buildStatsPage(dt, theme, roleColor, _staffStats, 'Staff Quota', KagemaColors.teacherGreen),
+                    ],
+                  ),
                 ),
               ),
         ),
@@ -123,7 +154,7 @@ class _AttendanceAdminScreenState extends State<AttendanceAdminScreen> with Sing
     double rate = stats['total'] == 0 ? 0 : (stats['present'] / stats['total']) * 100;
     
     return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [

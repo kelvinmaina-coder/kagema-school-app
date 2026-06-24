@@ -71,11 +71,13 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       'parent_phone': _parentPhoneController.text.trim(),
       'status': widget.studentToEdit?.status ?? 'Active',
       'admission_date': isEditing ? widget.studentToEdit?.admissionDate : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-      if (isEditing) 'parent_id': widget.studentToEdit?.parentId,
     };
 
     try {
+      // INTELLIGENT STEP: Save locally first
       await OfflineDbService.instance.saveStudentLocal(studentData);
+      
+      // Attempt Cloud Sync
       await SupabaseService.instance.saveStudent(studentData);
 
       if (mounted) {
@@ -89,15 +91,16 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (e == "OFFLINE_QUEUED") {
-        if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: const Text('Working Offline: Record saved locally.', style: TextStyle(fontWeight: FontWeight.w700)), backgroundColor: dt.warning, behavior: SnackBarBehavior.floating),
-          );
-          Navigator.pop(context, true);
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync Error: $e'), backgroundColor: dt.error));
+      // FLEXIBILITY: If network fails, the user is not blocked
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Network Weak: Saved to device successfully.', style: TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.warning, 
+            behavior: SnackBarBehavior.floating
+          ),
+        );
+        Navigator.pop(context, true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -114,12 +117,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: ColorScheme.dark(
-            primary: roleColor,
-            onPrimary: Colors.white,
-            surface: dt.cardBg,
-            onSurface: dt.textPrimary,
-          ),
+          colorScheme: context.isDark 
+            ? ColorScheme.dark(primary: roleColor, onPrimary: Colors.white, surface: dt.cardBg, onSurface: dt.textPrimary)
+            : ColorScheme.light(primary: roleColor, onPrimary: Colors.white, surface: dt.cardBg, onSurface: dt.textPrimary),
         ),
         child: child!,
       ),
@@ -184,21 +184,23 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                     const SizedBox(height: 40),
                     Container(
                       width: double.infinity,
-                      height: 60,
+                      height: 65,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: roleColor.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
                       ),
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: _isSaving ? null : _enrollStudent,
+                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.how_to_reg_rounded),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: roleColor,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         ),
-                        child: _isSaving 
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                        label: _isSaving 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
                           : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION', 
-                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 12)),
+                              style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                       ),
                     ),
                   ],
@@ -279,6 +281,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: KagemaColors.staffSky)),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
@@ -313,6 +318,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: KagemaColors.staffSky, size: 20),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: KagemaColors.staffSky)),
     );
   }
 }

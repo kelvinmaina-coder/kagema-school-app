@@ -20,71 +20,91 @@ class OfflineDbService {
 
     return await openDatabase(
       path,
-      version: 2, // Incremented version to add students table
+      version: 4, 
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await _createStudentsTable(db);
-    }
+    if (oldVersion < 2) await _createStudentsTable(db);
+    if (oldVersion < 3) await _createStaffTable(db);
+    if (oldVersion < 4) await _createParentsTable(db);
   }
 
   Future _createDB(Database db, int version) async {
-    // Table for caching data (GET requests)
-    await db.execute('''
-      CREATE TABLE cache (
-        key TEXT PRIMARY KEY,
-        data TEXT,
-        timestamp TEXT
-      )
-    ''');
-
-    // Table for pending sync actions (POST/UPDATE requests)
-    await db.execute('''
-      CREATE TABLE sync_queue (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        action TEXT, -- e.g., 'insert_fee', 'mark_attendance'
-        payload TEXT, -- JSON string of data
-        timestamp TEXT
-      )
-    ''');
-
-    // Table for local user profile (Offline Login)
-    await db.execute('''
-      CREATE TABLE user_profile (
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        role TEXT,
-        phone TEXT,
-        last_login TEXT
-      )
-    ''');
-
+    // Table for Event Handling: Caching GET data
+    await db.execute('CREATE TABLE cache (key TEXT PRIMARY KEY, data TEXT, timestamp TEXT)');
+    
+    // Table for Event Handling: Syncing POST/UPDATE actions (Sync Queue)
+    await db.execute('CREATE TABLE sync_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, payload TEXT, timestamp TEXT)');
+    
+    // User profile for offline login persistence
+    await db.execute('CREATE TABLE user_profile (id TEXT PRIMARY KEY, name TEXT, role TEXT, phone TEXT, last_login TEXT)');
+    
     await _createStudentsTable(db);
+    await _createStaffTable(db);
+    await _createParentsTable(db);
   }
 
   Future _createStudentsTable(Database db) async {
     await db.execute('''
       CREATE TABLE students (
-        student_id TEXT PRIMARY KEY,
-        admission_number TEXT,
-        name TEXT,
-        gender TEXT,
-        grade TEXT,
-        stream TEXT,
-        date_of_birth TEXT,
-        parent_name TEXT,
-        parent_phone TEXT,
-        status TEXT,
-        last_updated TEXT
+        student_id TEXT PRIMARY KEY, admission_number TEXT, name TEXT, gender TEXT, 
+        grade TEXT, stream TEXT, date_of_birth TEXT, parent_name TEXT, 
+        parent_phone TEXT, status TEXT, last_updated TEXT
       )
     ''');
   }
 
-  // --- Student Specific Methods ---
+  Future _createStaffTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE staff (
+        staff_id TEXT PRIMARY KEY, name TEXT, phone TEXT, email TEXT, 
+        role TEXT, department TEXT, salary REAL, status TEXT, last_updated TEXT
+      )
+    ''');
+  }
+
+  Future _createParentsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE parents (
+        parent_id TEXT PRIMARY KEY, name TEXT, phone TEXT, email TEXT, 
+        occupation TEXT, address TEXT, last_updated TEXT
+      )
+    ''');
+  }
+
+  // --- REGISTRY METHODS (LOCAL FIRST) ---
+
+  Future<void> saveStaffLocal(Map<String, dynamic> staff) async {
+    final db = await instance.database;
+    await db.insert('staff', {
+      'staff_id': staff['staff_id'],
+      'name': staff['name'],
+      'phone': staff['phone'],
+      'email': staff['email'],
+      'role': staff['role'],
+      'department': staff['department'] ?? 'General',
+      'salary': staff['salary'],
+      'status': staff['status'],
+      'last_updated': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> saveParentLocal(Map<String, dynamic> parent) async {
+    final db = await instance.database;
+    await db.insert('parents', {
+      'parent_id': parent['parent_id'],
+      'name': parent['name'],
+      'phone': parent['phone'],
+      'email': parent['email'],
+      'occupation': parent['occupation'],
+      'address': parent['address'],
+      'last_updated': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   Future<void> saveStudentLocal(Map<String, dynamic> student) async {
     final db = await instance.database;
     await db.insert('students', {
@@ -137,30 +157,26 @@ class OfflineDbService {
     return await db.query('students', orderBy: 'grade ASC, stream ASC, name ASC');
   }
 
-  // --- Cache Methods ---
+  // --- EVENT HANDLING: CACHE METHODS ---
+
   Future<void> saveCache(String key, dynamic data) async {
     final db = await instance.database;
-    await db.insert(
-      'cache',
-      {
-        'key': key,
-        'data': jsonEncode(data),
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('cache', {
+      'key': key,
+      'data': jsonEncode(data),
+      'timestamp': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<dynamic> getCache(String key) async {
     final db = await instance.database;
     final maps = await db.query('cache', where: 'key = ?', whereArgs: [key]);
-    if (maps.isNotEmpty) {
-      return jsonDecode(maps.first['data'] as String);
-    }
+    if (maps.isNotEmpty) return jsonDecode(maps.first['data'] as String);
     return null;
   }
 
-  // --- Sync Queue Methods ---
+  // --- EVENT HANDLING: SYNC QUEUE METHODS ---
+
   Future<void> addToQueue(String action, Map<String, dynamic> payload) async {
     final db = await instance.database;
     await db.insert('sync_queue', {
@@ -180,15 +196,16 @@ class OfflineDbService {
     await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
   }
 
-  // --- Offline User Profile ---
-  Future<void> saveUserProfile(Map<String, dynamic> profile) async {
-    final db = await instance.database;
-    await db.insert('user_profile', profile, conflictAlgorithm: ConflictAlgorithm.replace);
-  }
+  // --- USER PROFILE METHODS ---
 
   Future<Map<String, dynamic>?> getUserProfile() async {
     final db = await instance.database;
     final maps = await db.query('user_profile', limit: 1);
     return maps.isNotEmpty ? maps.first : null;
+  }
+
+  Future<void> saveUserProfile(Map<String, dynamic> profile) async {
+    final db = await instance.database;
+    await db.insert('user_profile', profile, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }

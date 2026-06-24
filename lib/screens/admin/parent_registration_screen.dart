@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../services/supabase_service.dart';
+import '../../services/offline_db_service.dart';
 import '../../models/school_models.dart';
 import '../../app_theme.dart';
 
@@ -59,6 +60,8 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
 
   Future<void> _saveParent() async {
     if (!_formKey.currentState!.validate()) return;
+    final dt = context.dt;
+
     if (_selectedChildren.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -85,19 +88,11 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
         'address': _addressController.text.trim(),
       };
 
-      await SupabaseService.instance.insertParent(parentData);
+      // 1. SAVE LOCALLY (Zero-Loss Resilience)
+      await OfflineDbService.instance.saveParentLocal(parentData);
 
-      // Unlink removed children
-      if (widget.parentToEdit != null) {
-        final originalChildren = _allStudents.where((s) => s.parentId == parentId).toList();
-        for (var child in originalChildren) {
-          if (!_selectedChildren.any((s) => s.studentId == child.studentId)) {
-            final updatedData = child.toMap();
-            updatedData['parent_id'] = null;
-            await SupabaseService.instance.saveStudent(updatedData);
-          }
-        }
-      }
+      // 2. CLOUD SUBMISSION
+      await SupabaseService.instance.insertParent(parentData);
 
       // Link selected children
       for (var child in _selectedChildren) {
@@ -111,15 +106,25 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Parent Profile ${widget.parentToEdit != null ? 'Updated' : 'Created'} and Linked Successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
-            backgroundColor: KagemaColors.teacherGreen,
+            content: Text('Parent Profile ${widget.parentToEdit != null ? 'Updated' : 'Created'} Successfully!', 
+              style: const TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.success,
             behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: KagemaColors.parentRed));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Saved Locally: Record is safe on device.', style: TextStyle(fontWeight: FontWeight.w700)), 
+            backgroundColor: dt.warning,
+            behavior: SnackBarBehavior.floating,
+          )
+        );
+        Navigator.pop(context, true);
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -135,7 +140,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       extendBodyBehindAppBar: true,
       backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text(widget.parentToEdit != null ? 'EDIT PARENT' : 'PARENT REGISTRATION', 
+        title: Text(widget.parentToEdit != null ? 'EDIT GUARDIAN' : 'PARENT REGISTRATION', 
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -177,28 +182,33 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildFormContainer(dt),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                     Padding(
                       padding: const EdgeInsets.only(left: 4, bottom: 12),
-                      child: Text('ASSIGN CHILDREN', 
+                      child: Text('CHILD LINKING', 
                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)
                       ),
                     ),
                     _buildChildrenSelector(dt),
                     const SizedBox(height: 40),
-                    SizedBox(
+                    Container(
                       width: double.infinity,
-                      height: 60,
+                      height: 65,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: KagemaColors.accountantAmber.withValues(alpha: 0.4), blurRadius: 24, offset: const Offset(0, 10))],
+                      ),
                       child: ElevatedButton.icon(
                         onPressed: _isSaving ? null : _saveParent,
-                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.save_rounded),
+                        icon: _isSaving ? const SizedBox.shrink() : const Icon(Icons.verified_user_rounded),
                         label: _isSaving 
-                          ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) 
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
                           : Text(widget.parentToEdit != null ? 'SAVE CHANGES' : 'COMPLETE REGISTRATION', 
                               style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: KagemaColors.accountantAmber,
                           foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         ),
                       ),
                     ),
@@ -241,6 +251,9 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: KagemaColors.accountantAmber, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: dt.divider)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: KagemaColors.accountantAmber)),
       ),
       validator: (v) => v!.isEmpty ? 'Field required' : null,
     );
@@ -264,8 +277,8 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
                 final student = _allStudents[index];
                 final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
                 return CheckboxListTile(
-                  title: Text(student.name, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary)),
-                  subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)),
+                  title: Text(student.name.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: dt.textPrimary, letterSpacing: 0.5)),
+                  subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: dt.textSecondary)),
                   value: isSelected,
                   activeColor: KagemaColors.accountantAmber,
                   checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
