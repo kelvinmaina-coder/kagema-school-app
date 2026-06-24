@@ -13,10 +13,10 @@ import 'screens/secretary/secretary_dashboard.dart';
 import 'screens/staff/staff_dashboard.dart';
 import 'services/authentication_service.dart';
 import 'services/update_service.dart';
+import 'services/event_handler_service.dart'; // NEW: Event Nervous System
 import 'app_theme.dart';
 import 'app_settings.dart';
 
-// --- CUSTOM SCROLL BEHAVIOR FOR WEB RESPONSIVENESS ---
 class MyCustomScrollBehavior extends MaterialScrollBehavior {
   @override
   Set<PointerDeviceKind> get dragDevices => {
@@ -50,6 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthenticationService()),
         ChangeNotifierProvider.value(value: appSettings),
         ChangeNotifierProvider(create: (_) => UpdateService()),
+        ChangeNotifierProvider(create: (_) => EventHandlerService()), // ENABLE EVENTS
       ],
       child: const KagemaSchoolApp(),
     ),
@@ -66,7 +67,7 @@ class KagemaSchoolApp extends StatelessWidget {
 
     return MaterialApp(
       title: 'Kagema school',
-      scrollBehavior: MyCustomScrollBehavior(), // ENABLE FLUID WEB SCROLLING
+      scrollBehavior: MyCustomScrollBehavior(),
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: settings.themeMode,
@@ -106,7 +107,9 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 2500));
+    if (!mounted) return;
+    
     final auth = Provider.of<AuthenticationService>(context, listen: false);
     bool loggedIn = await auth.isAuthenticated(); 
     if (loggedIn && auth.currentUserRole != null) {
@@ -127,7 +130,14 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+              Hero(
+                tag: 'app_logo',
+                child: Image.asset(
+                  'assets/kagema_logo.png', 
+                  height: 200,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+                ),
+              ),
               const SizedBox(height: 32),
               const Text('Kagema System', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
               const SizedBox(height: 80),
@@ -141,5 +151,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-
-
