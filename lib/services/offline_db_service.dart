@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class OfflineDbService {
   static final OfflineDbService instance = OfflineDbService._init();
@@ -8,13 +9,15 @@ class OfflineDbService {
 
   OfflineDbService._init();
 
-  Future<Database> get database async {
+  Future<Database?> get database async {
+    if (kIsWeb) return null; // sqflite is not supported on web
     if (_database != null) return _database!;
     _database = await _initDB('kagema_offline.db');
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
+  Future<Database?> _initDB(String filePath) async {
+    if (kIsWeb) return null;
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
@@ -78,7 +81,9 @@ class OfflineDbService {
   // --- REGISTRY METHODS (LOCAL FIRST) ---
 
   Future<void> saveStaffLocal(Map<String, dynamic> staff) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('staff', {
       'staff_id': staff['staff_id'],
       'name': staff['name'],
@@ -93,7 +98,9 @@ class OfflineDbService {
   }
 
   Future<void> saveParentLocal(Map<String, dynamic> parent) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('parents', {
       'parent_id': parent['parent_id'],
       'name': parent['name'],
@@ -106,7 +113,9 @@ class OfflineDbService {
   }
 
   Future<void> saveStudentLocal(Map<String, dynamic> student) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('students', {
       'student_id': student['student_id'] ?? student['studentId'],
       'admission_number': student['admission_number'] ?? student['admissionNumber'],
@@ -123,7 +132,9 @@ class OfflineDbService {
   }
 
   Future<void> saveStudentsLocal(List<Map<String, dynamic>> students) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     final batch = db.batch();
     for (var s in students) {
       batch.insert('students', {
@@ -144,7 +155,9 @@ class OfflineDbService {
   }
 
   Future<List<Map<String, dynamic>>> getStudentsByClassLocal(String grade, String stream) async {
-    final db = await instance.database;
+    if (kIsWeb) return [];
+    final db = await database;
+    if (db == null) return [];
     return await db.query('students', 
       where: 'grade = ? AND stream = ?', 
       whereArgs: [grade, stream],
@@ -153,14 +166,18 @@ class OfflineDbService {
   }
 
   Future<List<Map<String, dynamic>>> getAllStudentsLocal() async {
-    final db = await instance.database;
+    if (kIsWeb) return [];
+    final db = await database;
+    if (db == null) return [];
     return await db.query('students', orderBy: 'grade ASC, stream ASC, name ASC');
   }
 
   // --- EVENT HANDLING: CACHE METHODS ---
 
   Future<void> saveCache(String key, dynamic data) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('cache', {
       'key': key,
       'data': jsonEncode(data),
@@ -169,7 +186,9 @@ class OfflineDbService {
   }
 
   Future<dynamic> getCache(String key) async {
-    final db = await instance.database;
+    if (kIsWeb) return null;
+    final db = await database;
+    if (db == null) return null;
     final maps = await db.query('cache', where: 'key = ?', whereArgs: [key]);
     if (maps.isNotEmpty) return jsonDecode(maps.first['data'] as String);
     return null;
@@ -178,7 +197,9 @@ class OfflineDbService {
   // --- EVENT HANDLING: SYNC QUEUE METHODS ---
 
   Future<void> addToQueue(String action, Map<String, dynamic> payload) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('sync_queue', {
       'action': action,
       'payload': jsonEncode(payload),
@@ -187,26 +208,33 @@ class OfflineDbService {
   }
 
   Future<List<Map<String, dynamic>>> getQueue() async {
-    final db = await instance.database;
+    if (kIsWeb) return [];
+    final db = await database;
+    if (db == null) return [];
     return await db.query('sync_queue', orderBy: 'timestamp ASC');
   }
 
   Future<void> removeFromQueue(int id) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
   }
 
   // --- USER PROFILE METHODS ---
 
   Future<Map<String, dynamic>?> getUserProfile() async {
-    final db = await instance.database;
+    if (kIsWeb) return null;
+    final db = await database;
+    if (db == null) return null;
     final maps = await db.query('user_profile', limit: 1);
     return maps.isNotEmpty ? maps.first : null;
   }
 
   Future<void> saveUserProfile(Map<String, dynamic> profile) async {
-    final db = await instance.database;
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
     await db.insert('user_profile', profile, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }
-
