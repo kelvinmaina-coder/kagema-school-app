@@ -11,15 +11,14 @@ fi
 
 # 3. Setup Environment
 export PATH="$PATH:$(pwd)/flutter/bin"
-# Set HOME to current dir to avoid permission issues
 export HOME=$(pwd)
 
 # 4. Build
 echo "Fetching project dependencies..."
 ./flutter/bin/flutter pub get
 
-echo "Building Flutter Web (Release mode)..."
-# Removed --web-renderer to avoid parsing errors from CRLF line endings
-./flutter/bin/flutter build web --release
+echo "Building Flutter Web..."
+# Added --base-href / and explicitly set the renderer to html for compatibility
+./flutter/bin/flutter build web --release --base-href / --web-renderer html
 
 echo "Build complete."
