@@ -44,7 +44,7 @@ class PesapalService {
           'Accept': 'application/json'
         },
         body: jsonEncode({
-          'url': 'https://kagema-school.supabase.co/functions/v1/pesapal-ipn', 
+          'url': 'https://kagema-school.supabase.co/functions/v1/pesapal-ipn',
           'ipn_notification_type': 'GET'
         }),
       ).timeout(const Duration(seconds: 10));

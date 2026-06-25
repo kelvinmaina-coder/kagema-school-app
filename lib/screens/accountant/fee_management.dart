@@ -106,7 +106,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
       extendBodyBehindAppBar: true,
       backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text(widget.mode == 'collection' ? 'COLLECTIONS' : 'STATEMENTS', 
+        title: Text(widget.mode == 'collection' ? 'COLLECTIONS' : 'STATEMENTS',
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 4, color: Colors.white, fontSize: 14)
         ),
         centerTitle: true,
@@ -468,7 +468,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('KSH ${NumberFormat('#,###').format(p['amount_paid'])}', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: dt.textPrimary)),
-                                    Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}', 
+                                    Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}',
                                       style: TextStyle(fontSize: 8, color: dt.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1)
                                     ),
                                   ],
