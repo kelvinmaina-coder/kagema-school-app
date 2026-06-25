@@ -1,7 +1,4 @@
 {
   "name": "kagema-school-app",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "bash deploy-vercel.sh"
-  }
+  "version": "1.0.0"
 }
