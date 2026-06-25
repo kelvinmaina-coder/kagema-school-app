@@ -13,7 +13,7 @@ import 'screens/secretary/secretary_dashboard.dart';
 import 'screens/staff/staff_dashboard.dart';
 import 'services/authentication_service.dart';
 import 'services/update_service.dart';
-import 'services/event_handler_service.dart';
+import 'services/event_handler_service.dart'; // NEW: Event Nervous System
 import 'app_theme.dart';
 import 'app_settings.dart';
 
@@ -39,15 +39,10 @@ void main() async {
     );
   } catch (e) {
     debugPrint('Fatal: Supabase failed to initialize: $e');
-    // We continue so the app doesn't stay white, but services will handle the missing client
   }
 
   final appSettings = AppSettings();
-  try {
-    await appSettings.loadSettings();
-  } catch (e) {
-    debugPrint('Settings failed to load: $e');
-  }
+  await appSettings.loadSettings();
 
   runApp(
     MultiProvider(
@@ -55,7 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthenticationService()),
         ChangeNotifierProvider.value(value: appSettings),
         ChangeNotifierProvider(create: (_) => UpdateService()),
-        ChangeNotifierProvider(create: (_) => EventHandlerService()),
+        ChangeNotifierProvider(create: (_) => EventHandlerService()), // ENABLE EVENTS
       ],
       child: const KagemaSchoolApp(),
     ),
@@ -78,6 +73,7 @@ class KagemaSchoolApp extends StatelessWidget {
       themeMode: settings.themeMode,
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
+
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => LoginScreen(),
@@ -111,21 +107,15 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeApp() async {
-    try {
-      await Future.delayed(const Duration(milliseconds: 2500));
-      if (!mounted) return;
-      
-      final auth = Provider.of<AuthenticationService>(context, listen: false);
-      bool loggedIn = await auth.isAuthenticated().catchError((e) => false); 
-      
-      if (loggedIn && auth.currentUserRole != null) {
-         Navigator.pushReplacementNamed(context, '/${auth.currentUserRole}_dashboard');
-      } else {
-         Navigator.pushReplacementNamed(context, '/login');
-      }
-    } catch (e) {
-      debugPrint("Init Error: $e");
-      if (mounted) Navigator.pushReplacementNamed(context, '/login');
+    await Future.delayed(const Duration(milliseconds: 2500));
+    if (!mounted) return;
+
+    final auth = Provider.of<AuthenticationService>(context, listen: false);
+    bool loggedIn = await auth.isAuthenticated();
+    if (loggedIn && auth.currentUserRole != null) {
+       Navigator.pushReplacementNamed(context, '/${auth.currentUserRole}_dashboard');
+    } else {
+       Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -133,45 +123,31 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
-    
-    // Safety: If Gemini theme isn't ready, show a simple styled container instead of a white screen
-    final innerContent = Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Hero(
-            tag: 'app_logo',
-            child: Image.asset(
-              'assets/kagema_logo.png', 
-              height: 200,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, size: 70, color: Colors.white),
-            ),
-          ),
-          const SizedBox(height: 32),
-          const Text('Kagema System', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
-          const SizedBox(height: 80),
-          const CircularProgressIndicator(color: Colors.white70),
-          const SizedBox(height: 32),
-          Text(statusMessage.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-        ],
-      ),
-    );
-
     return Scaffold(
-      backgroundColor: const Color(0xFF060810), // Ensure it's not white even during loading
       body: gemini?.buildCreativeBackground(
         isDark: true,
-        child: innerContent,
-      ) ?? Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF060810), Color(0xFF0A0E1A)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Hero(
+                tag: 'app_logo',
+                child: Image.asset(
+                  'assets/kagema_logo.png',
+                  height: 200,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 32),
+              const Text('Kagema System', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+              const SizedBox(height: 80),
+              const CircularProgressIndicator(color: Colors.white70),
+              const SizedBox(height: 32),
+              Text(statusMessage.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+            ],
+          ),
         ),
-        child: innerContent,
-      ),
+      ) ?? const SizedBox(),
     );
   }
 }

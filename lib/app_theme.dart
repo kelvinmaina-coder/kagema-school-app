@@ -212,16 +212,16 @@ class DT {
   Color get shimmerBase   => dark ? const Color(0xFF161D2E)   : const Color(0xFFE2E8F0);
   Color get shimmerHigh   => dark ? const Color(0xFF252D42)   : const Color(0xFFF8FAFC);
   Color get scrim         => dark
-      ? Colors.black.withValues(alpha: 0.78)
-      : Colors.black.withValues(alpha: 0.42);
+      ? Colors.black.withOpacity(0.78)
+      : Colors.black.withOpacity(0.42);
 
   // Role-aware helpers
-  Color aura(Color roleColor)         => roleColor.withValues(alpha: dark ? 0.10 : 0.055);
-  Color roleCardBg(Color roleColor)   => roleColor.withValues(alpha: dark ? 0.14 : 0.07);
-  Color roleSoftBg(Color roleColor)   => roleColor.withValues(alpha: dark ? 0.08 : 0.04);
-  Color roleGlow(Color roleColor)     => roleColor.withValues(alpha: dark ? 0.35 : 0.20);
+  Color aura(Color roleColor)         => roleColor.withOpacity(dark ? 0.10 : 0.055);
+  Color roleCardBg(Color roleColor)   => roleColor.withOpacity(dark ? 0.14 : 0.07);
+  Color roleSoftBg(Color roleColor)   => roleColor.withOpacity(dark ? 0.08 : 0.04);
+  Color roleGlow(Color roleColor)     => roleColor.withOpacity(dark ? 0.35 : 0.20);
   Color roleIconBg(Color roleColor, bool selected) {
-    if (selected) return roleColor.withValues(alpha: dark ? 0.22 : 0.14);
+    if (selected) return roleColor.withOpacity(dark ? 0.22 : 0.14);
     return dark ? KagemaColors.darkSurface : const Color(0xFFF1F5F9);
   }
 }
@@ -306,9 +306,9 @@ class RoleColors {
   static LinearGradient shimmerGradient(String roleId) {
     final c = of(roleId);
     return LinearGradient(colors: [
-      c.withValues(alpha: 0.0),
-      c.withValues(alpha: 0.6),
-      c.withValues(alpha: 0.0),
+      c.withOpacity(0.0),
+      c.withOpacity(0.6),
+      c.withOpacity(0.0),
     ]);
   }
 
@@ -373,7 +373,7 @@ class KagemaParticlePainter extends CustomPainter {
       final py = p.y * size.height;
       final c  = (accentColor != null && i.isOdd) ? accentColor! : color;
 
-      dot.color = c.withValues(alpha: p.opacity * (isDark ? 0.58 : 0.42));
+      dot.color = c.withOpacity(p.opacity * (isDark ? 0.58 : 0.42));
       canvas.drawCircle(Offset(px, py), p.radius, dot);
 
       for (int j = i + 1; j < particles.length; j++) {
@@ -386,7 +386,7 @@ class KagemaParticlePainter extends CustomPainter {
           final a = (1.0 - d / max) *
               (isDark ? 0.24 : 0.14) *
               math.min(p.opacity, q.opacity);
-          line.color = c.withValues(alpha: a);
+          line.color = c.withOpacity(a);
           canvas.drawLine(Offset(px, py), Offset(qx, qy), line);
         }
       }
@@ -473,7 +473,7 @@ class _PlasmaPainter extends CustomPainter {
       final paint = Paint()
         ..style       = PaintingStyle.stroke
         ..strokeWidth = 1.5 - ring * 0.4
-        ..color       = c.withValues(alpha: alpha)
+        ..color       = c.withOpacity(alpha)
         ..maskFilter  = const MaskFilter.blur(BlurStyle.normal, 4);
       canvas.drawCircle(center, r.clamp(0, maxR * 1.2), paint);
     }
@@ -526,7 +526,7 @@ class ChromaticBorderPainter extends CustomPainter {
         ..style       = PaintingStyle.stroke
         ..shader      = shader
         ..maskFilter  = const MaskFilter.blur(BlurStyle.normal, 12)
-        ..color       = c1.withValues(alpha: 0.20 * pulse),
+        ..color       = c1.withOpacity(0.20 * pulse),
     );
 
     // Core stroke
@@ -674,22 +674,22 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
             gradient: SweepGradient(
               center: Alignment.center,
               colors: [
-                widget.accentColor.withValues(alpha: 0.18),
-                widget.accentColor2.withValues(alpha: 0.18),
-                (widget.accentColor3 ?? widget.accentColor).withValues(alpha: 0.18),
-                widget.accentColor.withValues(alpha: 0.18),
+                widget.accentColor.withOpacity(0.18),
+                widget.accentColor2.withOpacity(0.18),
+                (widget.accentColor3 ?? widget.accentColor).withOpacity(0.18),
+                widget.accentColor.withOpacity(0.18),
               ],
               transform: GradientRotation(_sweep.value * 2 * math.pi),
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.accentColor.withValues(alpha: isDark ? 0.18 : 0.09),
+                color: widget.accentColor.withOpacity(isDark ? 0.18 : 0.09),
                 blurRadius: 32 * widget.elevation,
                 spreadRadius: -6,
                 offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.06),
+                color: Colors.black.withOpacity(isDark ? 0.40 : 0.06),
                 blurRadius: 24 * widget.elevation,
                 offset: const Offset(0, 6),
               ),
@@ -704,8 +704,8 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
                 padding: widget.padding ?? const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: widget.backgroundColor ??
-                      (isDark ? KagemaColors.darkCard.withValues(alpha: 0.94)
-                          : Colors.white.withValues(alpha: 0.96)),
+                      (isDark ? KagemaColors.darkCard.withOpacity(0.94)
+                          : Colors.white.withOpacity(0.96)),
                   borderRadius: BorderRadius.circular(widget.borderRadius - widget.borderThickness),
                   // FIX: Use uniform border instead of non-uniform to avoid crash
                   border: Border.all(
@@ -730,7 +730,7 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
                           ),
                           gradient: LinearGradient(colors: [
                             Colors.transparent,
-                            Colors.white.withValues(alpha: isDark ? 0.12 : 0.70),
+                            Colors.white.withOpacity(isDark ? 0.12 : 0.70),
                             Colors.transparent,
                           ]),
                         ),
@@ -853,7 +853,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                       center: const Alignment(0.55, -0.4),
                       radius: 1.3 * aura,
                       colors: [
-                        widget.primaryBlob.withValues(alpha: widget.isDark ? 0.11 : 0.06),
+                        widget.primaryBlob.withOpacity(widget.isDark ? 0.11 : 0.06),
                         Colors.transparent,
                       ],
                     ),
@@ -867,7 +867,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                       center: const Alignment(-0.55, 0.55),
                       radius: 1.1 * aura,
                       colors: [
-                        widget.secondaryBlob.withValues(alpha: widget.isDark ? 0.08 : 0.04),
+                        widget.secondaryBlob.withOpacity(widget.isDark ? 0.08 : 0.04),
                         Colors.transparent,
                       ],
                     ),
@@ -880,7 +880,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                 top:   -180 + math.sin(t * 2 * math.pi) * 90,
                 right: -160 + math.cos(t * 2 * math.pi) * 80,
                 child: _Blob(
-                  color: widget.primaryBlob.withValues(alpha: widget.isDark ? 0.08 : 0.04),
+                  color: widget.primaryBlob.withOpacity(widget.isDark ? 0.08 : 0.04),
                   size: 680,
                 ),
               ),
@@ -888,7 +888,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                 bottom: -220 + math.cos(t * 2 * math.pi) * 110,
                 left:   -160 + math.sin(t * 2 * math.pi) * 85,
                 child: _Blob(
-                  color: widget.secondaryBlob.withValues(alpha: widget.isDark ? 0.08 : 0.04),
+                  color: widget.secondaryBlob.withOpacity(widget.isDark ? 0.08 : 0.04),
                   size: 820,
                 ),
               ),
@@ -900,7 +900,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                     math.cos(t * 3 * math.pi) * 80,
                 child: _Blob(
                   color: Color.lerp(widget.primaryBlob, widget.secondaryBlob, 0.5)!
-                      .withValues(alpha: widget.isDark ? 0.06 : 0.03),
+                      .withOpacity(widget.isDark ? 0.06 : 0.03),
                   size: 320,
                 ),
               ),
@@ -963,7 +963,7 @@ class _DriftingGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color    = (isDark ? Colors.white : Colors.indigo)
-          .withValues(alpha: isDark ? 0.016 : 0.012)
+          .withOpacity(isDark ? 0.016 : 0.012)
       ..strokeWidth = 0.5;
     const spacing = 90.0;
     final offset  = t * spacing;
@@ -1032,8 +1032,8 @@ class _RoleAuraLayerState extends State<RoleAuraLayer>
                   center: widget.auraAlignment,
                   radius: 1.15 * _anim.value,
                   colors: [
-                    widget.roleColor.withValues(
-                        alpha: (widget.isDark ? 0.11 : 0.06) * _anim.value),
+                    widget.roleColor.withOpacity(
+                        (widget.isDark ? 0.11 : 0.06) * _anim.value),
                     Colors.transparent,
                   ],
                 ),
@@ -1330,7 +1330,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation:        0,
         color:            dt.cardBg,
-        shadowColor:      Colors.black.withValues(alpha: isDark ? 0.4 : 0.07),
+        shadowColor:      Colors.black.withOpacity(isDark ? 0.4 : 0.07),
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
@@ -1362,7 +1362,7 @@ class AppTheme {
           backgroundColor: KagemaColors.electric,
           foregroundColor: Colors.white,
           elevation:       0,
-          shadowColor:     KagemaColors.electric.withValues(alpha: 0.5),
+          shadowColor:     KagemaColors.electric.withOpacity(0.5),
           padding:         const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
           textStyle: const TextStyle(
               fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.4),
@@ -1393,7 +1393,7 @@ class AppTheme {
       // ── Chips ─────────────────────────────────────────────────────────────────
       chipTheme: ChipThemeData(
         backgroundColor:  dt.cardBg,
-        selectedColor:    KagemaColors.electric.withValues(alpha: 0.15),
+        selectedColor:    KagemaColors.electric.withOpacity(0.15),
         disabledColor:    dt.surfaceBg,
         labelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: dt.textPrimary),
         secondaryLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.white),
@@ -1419,7 +1419,7 @@ class AppTheme {
       // ── NavigationBar (M3) ────────────────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor:  dt.cardBg,
-        indicatorColor:   KagemaColors.electric.withValues(alpha: 0.14),
+        indicatorColor:   KagemaColors.electric.withOpacity(0.14),
         iconTheme: WidgetStateProperty.resolveWith((s) {
           if (s.contains(WidgetState.selected)) {
             return IconThemeData(color: KagemaColors.electric, size: 24);
@@ -1448,7 +1448,7 @@ class AppTheme {
             color: KagemaColors.electric, fontWeight: FontWeight.w800, fontSize: 11),
         unselectedLabelTextStyle: TextStyle(
             color: dt.textMuted, fontWeight: FontWeight.w600, fontSize: 11),
-        indicatorColor: KagemaColors.electric.withValues(alpha: 0.14),
+        indicatorColor: KagemaColors.electric.withOpacity(0.14),
         elevation: 0,
         groupAlignment: -0.8,
       ),
@@ -1457,7 +1457,7 @@ class AppTheme {
       drawerTheme: DrawerThemeData(
         backgroundColor: dt.cardBg,
         elevation: 0,
-        shadowColor: Colors.black.withValues(alpha: 0.3),
+        shadowColor: Colors.black.withOpacity(0.3),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.horizontal(right: Radius.circular(28)),
         ),
@@ -1481,7 +1481,7 @@ class AppTheme {
           fontWeight: FontWeight.w500, fontSize: 14,
           color: dt.textSecondary, height: 1.55,
         ),
-        shadowColor: Colors.black.withValues(alpha: 0.2),
+        shadowColor: Colors.black.withOpacity(0.2),
         surfaceTintColor: Colors.transparent,
       ),
 
@@ -1515,7 +1515,7 @@ class AppTheme {
         s.contains(WidgetState.selected) ? KagemaColors.electric : dt.iconInactive),
         trackColor: WidgetStateProperty.resolveWith((s) =>
         s.contains(WidgetState.selected)
-            ? KagemaColors.electric.withValues(alpha: 0.38)
+            ? KagemaColors.electric.withOpacity(0.38)
             : dt.cardBorder),
         trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
       ),
@@ -1526,13 +1526,13 @@ class AppTheme {
         side: BorderSide(color: dt.cardBorderHi, width: 1.8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         overlayColor: WidgetStateProperty.all(
-            KagemaColors.electric.withValues(alpha: 0.08)),
+            KagemaColors.electric.withOpacity(0.08)),
       ),
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((s) =>
         s.contains(WidgetState.selected) ? KagemaColors.electric : dt.iconInactive),
         overlayColor: WidgetStateProperty.all(
-            KagemaColors.electric.withValues(alpha: 0.08)),
+            KagemaColors.electric.withOpacity(0.08)),
       ),
 
       // ── Slider ────────────────────────────────────────────────────────────────
@@ -1540,7 +1540,7 @@ class AppTheme {
         activeTrackColor:   KagemaColors.electric,
         inactiveTrackColor: dt.cardBorder,
         thumbColor:         KagemaColors.electric,
-        overlayColor:       KagemaColors.electric.withValues(alpha: 0.12),
+        overlayColor:       KagemaColors.electric.withOpacity(0.12),
         valueIndicatorColor: KagemaColors.electric,
         valueIndicatorTextStyle: const TextStyle(
             color: Colors.white, fontWeight: FontWeight.w700),
@@ -1565,13 +1565,13 @@ class AppTheme {
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         dividerColor: Colors.transparent,
         overlayColor: WidgetStateProperty.all(
-            KagemaColors.electric.withValues(alpha: 0.06)),
+            KagemaColors.electric.withOpacity(0.06)),
       ),
 
       // ── ListTile ──────────────────────────────────────────────────────────────
       listTileTheme: ListTileThemeData(
         tileColor:          Colors.transparent,
-        selectedTileColor:  KagemaColors.electric.withValues(alpha: 0.08),
+        selectedTileColor:  KagemaColors.electric.withOpacity(0.08),
         iconColor:          dt.iconInactive,
         selectedColor:      KagemaColors.electric,
         textColor:          dt.textPrimary,
@@ -1607,7 +1607,7 @@ class AppTheme {
           color: isDark ? KagemaColors.darkCardAlt : const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12),
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 12),
           ],
         ),
         textStyle: const TextStyle(
@@ -1629,7 +1629,7 @@ class AppTheme {
       popupMenuTheme: PopupMenuThemeData(
         color: dt.cardBg,
         elevation: 4,
-        shadowColor: Colors.black.withValues(alpha: 0.18),
+        shadowColor: Colors.black.withOpacity(0.18),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: dt.cardBorder, width: 1.0),

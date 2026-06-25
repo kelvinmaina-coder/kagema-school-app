@@ -283,11 +283,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
         width: navWidth,
         height: 75,
         decoration: BoxDecoration(
-          color: dt.cardBg.withValues(alpha: 0.95), 
+          color: dt.cardBg.withOpacity(0.95), 
           borderRadius: BorderRadius.circular(30), 
           border: Border.all(color: dt.cardBorder),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 10))
+            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 10))
           ],
         ),
         child: Row(
@@ -409,7 +409,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             Positioned(
               right: -30, 
               bottom: -20, 
-              child: Icon(Icons.hub_rounded, size: 180, color: Colors.white.withValues(alpha: 0.05))
+              child: Icon(Icons.hub_rounded, size: 180, color: Colors.white.withOpacity(0.05))
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'offline_db_service.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 class AuthenticationService extends ChangeNotifier {
   static final AuthenticationService _instance = AuthenticationService._internal();
@@ -28,6 +29,27 @@ class AuthenticationService extends ChangeNotifier {
   String? get lastLogin => _lastLogin;
   bool get isOffline => _isOffline;
   bool get isFirstTimeParent => _isFirstTimeParent;
+  
+  String get memberSince {
+    final date = _supabase.auth.currentUser?.createdAt;
+    if (date == null) return "Unknown Node";
+    try {
+      final dt = DateTime.parse(date);
+      return DateFormat('MMMM yyyy').format(dt);
+    } catch (_) {
+      return "New Node";
+    }
+  }
+
+  String get lastSync {
+    if (_lastLogin == null) return "Pending Sync";
+    try {
+      final dt = DateTime.parse(_lastLogin!);
+      return DateFormat('HH:mm, dd MMM').format(dt);
+    } catch (_) {
+      return "Sync Unknown";
+    }
+  }
 
   // Helper to check if a profile exists locally for "Welcome Back" feature
   Future<Map<String, dynamic>?> getCachedProfile() async {
@@ -289,4 +311,3 @@ class AuthenticationService extends ChangeNotifier {
     } catch (_) {}
   }
 }
-

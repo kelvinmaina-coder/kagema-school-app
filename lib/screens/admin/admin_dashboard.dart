@@ -108,17 +108,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: context.fluid(20, 32), 
+                horizontal: context.fluid(20, 32),
                 vertical: 24
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_errorMessage != null) _buildErrorBanner(dt),
-                  
+
                   Padding(
                     padding: const EdgeInsets.only(bottom: 24, left: 4),
-                    child: Text(greeter.tailline.toUpperCase(), 
+                    child: Text(greeter.tailline.toUpperCase(),
                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2.5)
                     ),
                   ),
@@ -155,18 +155,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
         title: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text(title, 
+            Text(title,
               style: const TextStyle(
-                fontWeight: FontWeight.w900, 
-                fontSize: 16, 
-                letterSpacing: 4, 
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 4,
                 color: Colors.white,
               )
             ),
             const SizedBox(height: 4),
             Container(
               height: 2, width: 40,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(1)),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(1)),
             )
           ],
         ),
@@ -188,7 +188,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildInsightSlider(DT dt, GeminiThemeExtension? theme) {
     if (_statusInsights.isEmpty) return const SizedBox.shrink();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -203,7 +203,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             itemBuilder: (context, index) {
               final insight = _statusInsights[index];
               final color = insight['type'] == 'critical' ? KagemaColors.parentRed : (insight['type'] == 'success' ? KagemaColors.teacherGreen : RoleColors.of(_roleId));
-              
+
               return SizedBox(
                 width: 300,
                 child: Padding(
@@ -220,13 +220,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           children: [
                             Icon(insight['type'] == 'critical' ? Icons.warning_rounded : Icons.tips_and_updates_rounded, color: color, size: 18),
                             const SizedBox(width: 10),
-                            Text(insight['title'].toString().toUpperCase(), 
+                            Text(insight['title'].toString().toUpperCase(),
                               style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 10, letterSpacing: 1)
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
-                        Text(insight['subtitle'] ?? '', 
+                        Text(insight['subtitle'] ?? '',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 14, height: 1.4, fontWeight: FontWeight.w600, color: dt.textPrimary)
@@ -265,10 +265,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
         child: Column(
           children: [
-            Text(value, 
+            Text(value,
               style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 18)
-            ), 
-            const SizedBox(height: 6), 
+            ),
+            const SizedBox(height: 6),
             Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1.2))
           ],
         ),
@@ -398,9 +398,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
           width: navWidth,
           height: 70,
           decoration: BoxDecoration(
-            color: dt.cardBg.withValues(alpha: 0.95),
+            color: dt.cardBg.withOpacity(0.95),
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 30, offset: const Offset(0, 10))],
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 10))],
             border: Border.all(color: dt.cardBorder),
           ),
           child: Row(
@@ -455,7 +455,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.parentRed), borderRadius: BorderRadius.circular(20), border: Border.all(color: KagemaColors.parentRed.withValues(alpha: 0.3))),
+      decoration: BoxDecoration(color: dt.roleSoftBg(KagemaColors.parentRed), borderRadius: BorderRadius.circular(20), border: Border.all(color: KagemaColors.parentRed.withOpacity(0.3))),
       child: Row(
         children: [
           const Icon(Icons.error_outline_rounded, color: KagemaColors.parentRed),

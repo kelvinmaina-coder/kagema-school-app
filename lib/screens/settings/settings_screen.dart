@@ -40,14 +40,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return large;
   }
 
-  // Helper for responsive font size
-  double responsiveFontSize(double size) {
-    final width = MediaQuery.of(context).size.width;
-    if (width < 400) return size * 0.8;
-    if (width < 600) return size * 0.9;
-    return size;
-  }
-
   @override
   Widget build(BuildContext context) {
     final dt = context.dt;
@@ -60,7 +52,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final compColor = RoleColors.complement(widget.role);
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 400;
-    final isMediumScreen = screenWidth < 600;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -221,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           children: [
             Positioned(
               right: -20, top: -10,
-              child: Icon(Icons.settings_suggest_rounded, size: isSmallScreen ? 80 : 140, color: Colors.white.withValues(alpha: 0.12)),
+              child: Icon(Icons.settings_suggest_rounded, size: isSmallScreen ? 80 : 140, color: Colors.white.withOpacity(0.12)),
             ),
           ],
         ),
@@ -231,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
 
   Widget _buildProfileHeader(DT dt, AuthenticationService auth, GeminiThemeExtension? theme, Color roleColor, bool isSmallScreen) {
     final Color textColor = dt.dark ? Colors.white : dt.textPrimary;
-    final Color subTextColor = dt.dark ? Colors.white.withValues(alpha: 0.6) : dt.textMuted;
+    final Color subTextColor = dt.dark ? Colors.white.withOpacity(0.6) : dt.textMuted;
 
     String nodeId = auth.currentUserId?.substring(0, 8).toUpperCase() ?? 'SYS-04B';
 
@@ -247,13 +238,13 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(30),
-          splashColor: roleColor.withValues(alpha: 0.15),
-          highlightColor: roleColor.withValues(alpha: 0.05),
+          splashColor: roleColor.withOpacity(0.15),
+          highlightColor: roleColor.withOpacity(0.05),
           onTap: () => _showProfileDetailsSheet(dt, auth, roleColor, nodeId),
           child: Container(
             padding: EdgeInsets.all(paddingSize),
             decoration: BoxDecoration(
-              color: dt.dark ? Colors.transparent : dt.cardBg.withValues(alpha: 0.4),
+              color: dt.dark ? Colors.transparent : dt.cardBg.withOpacity(0.4),
               borderRadius: BorderRadius.circular(30),
             ),
             child: Column(
@@ -271,7 +262,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: roleColor.withValues(alpha: 0.35),
+                                color: roleColor.withOpacity(0.35),
                                 width: isSmallScreen ? 1.5 : 2,
                                 style: BorderStyle.solid,
                               ),
@@ -284,11 +275,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                             padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: roleColor.withValues(alpha: 0.6), width: isSmallScreen ? 2 : 2.5),
+                              border: Border.all(color: roleColor.withOpacity(0.6), width: isSmallScreen ? 2 : 2.5),
                             ),
                             child: CircleAvatar(
                               radius: isSmallScreen ? 24 : 32,
-                              backgroundColor: roleColor.withValues(alpha: 0.18),
+                              backgroundColor: roleColor.withOpacity(0.18),
                               child: Text(
                                   auth.currentUserName.isNotEmpty ? auth.currentUserName[0].toUpperCase() : '?',
                                   style: TextStyle(
@@ -322,16 +313,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Icon(Icons.expand_more_rounded, size: isSmallScreen ? 14 : 18, color: roleColor.withValues(alpha: 0.7)),
+                              Icon(Icons.expand_more_rounded, size: isSmallScreen ? 14 : 18, color: roleColor.withOpacity(0.7)),
                             ],
                           ),
                           SizedBox(height: isSmallScreen ? 4 : 6),
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 2 : 4),
                             decoration: BoxDecoration(
-                                color: roleColor.withValues(alpha: 0.12),
+                                color: roleColor.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: roleColor.withValues(alpha: 0.25), width: 0.8)
+                                border: Border.all(color: roleColor.withOpacity(0.25), width: 0.8)
                             ),
                             child: Text(
                                 widget.role.toUpperCase(),
@@ -345,7 +336,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                           ),
                           SizedBox(height: isSmallScreen ? 4 : 8),
                           Text(
-                              auth.currentUserPhone ?? 'NODE VERIFIED',
+                              auth.currentUserPhone ?? auth.currentUserEmail ?? 'NODE VERIFIED',
                               style: TextStyle(
                                   fontSize: isSmallScreen ? 8 : 10,
                                   color: subTextColor,
@@ -363,17 +354,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 Container(
                   padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                   decoration: BoxDecoration(
-                    color: dt.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02),
+                    color: dt.dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.02),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: roleColor.withValues(alpha: 0.1), width: 1),
+                    border: Border.all(color: roleColor.withOpacity(0.1), width: 1),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildDatabaseMetaItem(Icons.dns_rounded, 'NODE ID', nodeId, roleColor, dt, isSmallScreen),
-                      Container(width: 1, height: isSmallScreen ? 16 : 24, color: roleColor.withValues(alpha: 0.15)),
+                      Container(width: 1, height: isSmallScreen ? 16 : 24, color: roleColor.withOpacity(0.15)),
                       _buildDatabaseMetaItem(Icons.security_rounded, 'CLEARANCE', 'LEVEL ${widget.role.toUpperCase() == 'ADMIN' ? '5' : '2'}', roleColor, dt, isSmallScreen),
-                      Container(width: 1, height: isSmallScreen ? 16 : 24, color: roleColor.withValues(alpha: 0.15)),
+                      Container(width: 1, height: isSmallScreen ? 16 : 24, color: roleColor.withOpacity(0.15)),
                       _buildDatabaseMetaItem(Icons.cloud_done_rounded, 'STATUS', auth.isOffline ? 'OFFLINE' : 'CONNECTED', roleColor, dt, isSmallScreen),
                     ],
                   ),
@@ -386,8 +377,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ) ?? const SizedBox.shrink();
   }
 
+  // ============================================================
+  // ✅ FIXED: _showProfileDetailsSheet - Now scrollable & modern
+  // ============================================================
   void _showProfileDetailsSheet(DT dt, AuthenticationService auth, Color roleColor, String nodeId) {
     String userEmail = auth.currentUserEmail ?? 'node_admin@kagema.io';
+    String userName = auth.currentUserName.isNotEmpty ? auth.currentUserName : 'AUTHORIZED USER';
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
 
     showModalBottomSheet(
@@ -398,56 +393,224 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           decoration: BoxDecoration(
-              color: dt.pageBg.withValues(alpha: 0.95),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
-              border: Border.all(color: roleColor.withValues(alpha: 0.2), width: 1.5),
-              boxShadow: [
-                BoxShadow(color: roleColor.withValues(alpha: 0.15), blurRadius: 30, spreadRadius: 5)
-              ]
+            color: dt.pageBg.withOpacity(0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+            border: Border.all(color: roleColor.withOpacity(0.2), width: 1.5),
+            boxShadow: [
+              BoxShadow(color: roleColor.withOpacity(0.15), blurRadius: 30, spreadRadius: 5),
+            ],
           ),
           padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drag handle
               Container(
-                width: 50, height: 5,
-                decoration: BoxDecoration(color: dt.textMuted.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2.5)),
-              ),
-              SizedBox(height: isSmallScreen ? 16 : 24),
-              Text(
-                'PROFILE OVERVIEW',
-                style: TextStyle(
-                    fontSize: isSmallScreen ? 10 : 12,
-                    fontWeight: FontWeight.w900,
-                    color: roleColor,
-                    letterSpacing: isSmallScreen ? 2 : 4
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: dt.textMuted.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2.5),
                 ),
               ),
-              SizedBox(height: isSmallScreen ? 16 : 24),
+              SizedBox(height: isSmallScreen ? 12 : 16),
 
-              _buildProfileDetailRow(Icons.face_rounded, 'Name', auth.currentUserName.toUpperCase(), dt, roleColor, isSmallScreen),
-              _buildProfileDetailRow(Icons.alternate_email_rounded, 'Email', userEmail, dt, roleColor, isSmallScreen),
-              _buildProfileDetailRow(Icons.phone_android_rounded, 'Phone', auth.currentUserPhone ?? 'NO RECORDED PHONE', dt, roleColor, isSmallScreen),
-              _buildProfileDetailRow(Icons.gavel_rounded, 'Role', widget.role.toUpperCase(), dt, roleColor, isSmallScreen),
-              _buildProfileDetailRow(Icons.offline_bolt_rounded, 'Status', auth.isOffline ? 'OFFLINE' : 'ACTIVE', dt, KagemaColors.teacherGreen, isSmallScreen, isStatus: true),
-
-              SizedBox(height: isSmallScreen ? 20 : 32),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: roleColor,
-                  foregroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, isSmallScreen ? 44 : 54),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 2,
+              // ====== MODERN HEADER ======
+              Container(
+                padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12 : 16),
+                child: Row(
+                  children: [
+                    // Avatar with gradient
+                    Container(
+                      width: isSmallScreen ? 50 : 64,
+                      height: isSmallScreen ? 50 : 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [roleColor, roleColor.withOpacity(0.6)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: roleColor.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 22 : 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: isSmallScreen ? 14 : 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 14 : 18,
+                              fontWeight: FontWeight.w900,
+                              color: dt.textPrimary,
+                              letterSpacing: 0.5,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: isSmallScreen ? 2 : 4),
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: isSmallScreen ? 8 : 12,
+                                  vertical: isSmallScreen ? 2 : 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: roleColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  widget.role.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 8 : 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: roleColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: isSmallScreen ? 6 : 10),
+                              Icon(
+                                Icons.circle,
+                                size: isSmallScreen ? 6 : 8,
+                                color: auth.isOffline ? KagemaColors.parentRed : KagemaColors.teacherGreen,
+                              ),
+                              Text(
+                                auth.isOffline ? 'OFFLINE' : 'ACTIVE',
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 8 : 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: auth.isOffline ? KagemaColors.parentRed : KagemaColors.teacherGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                    'DISMISS NODE PROFILE',
-                    style: TextStyle(
+              ),
+
+              // Divider line
+              Container(
+                height: 1,
+                margin: EdgeInsets.symmetric(vertical: isSmallScreen ? 8 : 12),
+                color: roleColor.withOpacity(0.08),
+              ),
+
+              // ====== SCROLLABLE DETAILS ======
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildProfileDetailRow(
+                        Icons.face_rounded,
+                        'Name',
+                        userName.toUpperCase(),
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.alternate_email_rounded,
+                        'Email',
+                        userEmail,
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.phone_android_rounded,
+                        'Phone',
+                        auth.currentUserPhone ?? 'NO RECORDED PHONE',
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.calendar_month_rounded,
+                        'Joined',
+                        'N/A',
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.gavel_rounded,
+                        'Role',
+                        widget.role.toUpperCase(),
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.sync_lock_rounded,
+                        'Last Sync',
+                        'N/A',
+                        dt,
+                        roleColor,
+                        isSmallScreen,
+                      ),
+                      _buildProfileDetailRow(
+                        Icons.offline_bolt_rounded,
+                        'Status',
+                        auth.isOffline ? 'OFFLINE' : 'ACTIVE',
+                        dt,
+                        KagemaColors.teacherGreen,
+                        isSmallScreen,
+                        isStatus: true,
+                      ),
+                      SizedBox(height: isSmallScreen ? 16 : 20),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ====== BUTTON WITH SAFE AREA ======
+              SafeArea(
+                child: Padding(
+                  padding: EdgeInsets.only(top: isSmallScreen ? 8 : 12),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: roleColor,
+                      foregroundColor: Colors.white,
+                      minimumSize: Size(double.infinity, isSmallScreen ? 44 : 54),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 2,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'DISMISS NODE PROFILE',
+                      style: TextStyle(
                         fontWeight: FontWeight.w900,
                         letterSpacing: isSmallScreen ? 1 : 1.5,
-                        fontSize: isSmallScreen ? 11 : 13
-                    )
+                        fontSize: isSmallScreen ? 11 : 13,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               SizedBox(height: MediaQuery.of(context).padding.bottom + 10),
@@ -463,15 +626,15 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       margin: EdgeInsets.symmetric(vertical: isSmallScreen ? 4 : 8),
       padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16, vertical: isSmallScreen ? 10 : 14),
       decoration: BoxDecoration(
-        color: dt.cardBg.withValues(alpha: 0.6),
+        color: dt.cardBg.withOpacity(0.6),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: dt.dark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.02)),
+        border: Border.all(color: dt.dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.02)),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
-            decoration: BoxDecoration(color: roleColor.withValues(alpha: 0.12), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: roleColor.withOpacity(0.12), shape: BoxShape.circle),
             child: Icon(icon, color: roleColor, size: isSmallScreen ? 14 : 18),
           ),
           SizedBox(width: isSmallScreen ? 12 : 16),
@@ -488,7 +651,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           isStatus
               ? Container(
             padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 2 : 4),
-            decoration: BoxDecoration(color: roleColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: roleColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
             child: Text(
                 value,
                 style: TextStyle(
@@ -555,7 +718,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
-                color: roleColor.withValues(alpha: 0.08),
+                color: roleColor.withOpacity(0.08),
                 width: 1.0,
               ),
             ),
@@ -637,20 +800,20 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   Widget _buildSettingsGroup(DT dt, GeminiThemeExtension? theme, Color roleColor, List<Widget> tiles, bool isSmallScreen) {
     return Container(
       decoration: BoxDecoration(
-        color: dt.cardBg.withValues(alpha: 0.92),
+        color: dt.cardBg.withOpacity(0.92),
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
-          color: roleColor.withValues(alpha: 0.22),
+          color: roleColor.withOpacity(0.22),
           width: isSmallScreen ? 1.0 : 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: roleColor.withValues(alpha: 0.08),
+            color: roleColor.withOpacity(0.08),
             blurRadius: isSmallScreen ? 10 : 20,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: dt.dark ? 0.2 : 0.04),
+            color: Colors.black.withOpacity(dt.dark ? 0.2 : 0.04),
             blurRadius: isSmallScreen ? 8 : 15,
             offset: const Offset(0, 2),
           ),
@@ -670,7 +833,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: roleColor.withValues(alpha: 0.08),
+            color: roleColor.withOpacity(0.08),
             width: 1.0,
           ),
         ),
@@ -711,7 +874,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: roleColor.withValues(alpha: 0.08),
+            color: roleColor.withOpacity(0.08),
             width: 1.0,
           ),
         ),
@@ -759,9 +922,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         child: Container(
           padding: EdgeInsets.all(isSmallScreen ? 14 : 22),
           decoration: BoxDecoration(
-            color: KagemaColors.parentRed.withValues(alpha: 0.05),
+            color: KagemaColors.parentRed.withOpacity(0.05),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: KagemaColors.parentRed.withValues(alpha: 0.2)),
+            border: Border.all(color: KagemaColors.parentRed.withOpacity(0.2)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -792,7 +955,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               'KAGEMA INTELLIGENT SYSTEMS',
               style: TextStyle(
                   fontSize: isSmallScreen ? 6 : 8,
-                  color: dt.textMuted.withValues(alpha: 0.5),
+                  color: dt.textMuted.withOpacity(0.5),
                   fontWeight: FontWeight.w900,
                   letterSpacing: isSmallScreen ? 1 : 2
               )

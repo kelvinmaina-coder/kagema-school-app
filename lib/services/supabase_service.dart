@@ -15,13 +15,13 @@ class SupabaseService {
       final students = await client.from('students').select().count(CountOption.exact);
       final staff = await client.from('staff').select().count(CountOption.exact);
       final parents = await client.from('parents').select().count(CountOption.exact);
-      
+
       final feesData = await client.from('fees').select('amount_paid');
       double totalFees = 0;
       for (var f in feesData) {
         totalFees += (f['amount_paid'] as num? ?? 0).toDouble();
       }
-      
+
       return {
         'students': students.count,
         'staff': staff.count,
@@ -36,14 +36,14 @@ class SupabaseService {
   Future<Map<String, dynamic>> getSecretaryStats() async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final lastMonth = DateFormat('yyyy-MM-dd').format(DateTime.now().subtract(const Duration(days: 30)));
-    
+
     try {
       final v = await client.from('visitors').select().eq('date', today).count(CountOption.exact);
       final a = await client.from('appointments').select().like('appointment_date', '$today%').count(CountOption.exact);
       final s = await client.from('students').select().count(CountOption.exact);
       final n = await client.from('students').select().gte('admission_date', lastMonth).count(CountOption.exact);
       final ann = await client.from('notifications').select().count(CountOption.exact);
-      
+
       return {
         'visitors_today': v.count,
         'upcomingAppointments': a.count,
@@ -62,7 +62,7 @@ class SupabaseService {
   }
 
   Future<Map<String, dynamic>?> getStaffProfile(String id) async => await client.from('staff').select().eq('staff_id', id).maybeSingle();
-  
+
   Future<List<Map<String, dynamic>>> getTasks(String staffId) async {
     return List<Map<String, dynamic>>.from(await client.from('tasks').select().eq('assigned_to', staffId).order('due_date'));
   }
@@ -72,7 +72,7 @@ class SupabaseService {
   }
 
   Future<void> requestLeave(Map<String, dynamic> data) async => await client.from('leave_requests').insert(data);
-  
+
   Future<void> updateLeaveStatus(String id, String status) async {
     await client.from('leave_requests').update({'status': status}).eq('leave_id', id);
   }
@@ -108,7 +108,7 @@ class SupabaseService {
       final studentCount = await client.from('students').select().eq('grade', g).eq('stream', s).count(CountOption.exact);
       final attendance = await client.from('attendance').select().eq('grade', g).eq('stream', s).eq('date', today);
       final hw = await client.from('homework').select().eq('grade', g).eq('stream', s).count(CountOption.exact);
-      
+
       double rate = (studentCount.count ?? 0) == 0 ? 0 : (attendance.where((r) => r['status'] == 'Present').length / studentCount.count!) * 100;
       return {
         'totalStudents': studentCount.count ?? 0,
@@ -126,7 +126,51 @@ class SupabaseService {
   }
 
   Future<void> saveMarks(List<Map<String, dynamic>> m) async => await client.from('marks').upsert(m);
-  
+
+  // ============================================================
+  // ✅ NEW: Get marks by exam, grade, and stream
+  // ============================================================
+  Future<List<Map<String, dynamic>>> getMarksByExamGradeStream(
+      int examId,
+      String grade,
+      String stream,
+      ) async {
+    try {
+      final response = await client
+          .from('marks')
+          .select('*, students(name, admission_no)')
+          .eq('exam_id', examId)
+          .eq('grade', grade)
+          .eq('stream', stream);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ============================================================
+  // ✅ NEW: Get marks by exam, grade, stream, AND subject
+  // ============================================================
+  Future<List<Map<String, dynamic>>> getMarksByExamGradeStreamSubject(
+      int examId,
+      String grade,
+      String stream,
+      String subject,
+      ) async {
+    try {
+      final response = await client
+          .from('marks')
+          .select('*, students(name, admission_no)')
+          .eq('exam_id', examId)
+          .eq('grade', grade)
+          .eq('stream', stream)
+          .eq('subject', subject);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<Map<String, dynamic>>> getMarksFiltered({required String studentId, required String term, required int year}) async {
     return List<Map<String, dynamic>>.from(await client.from('marks').select().eq('student_id', studentId).eq('term', term).eq('year', year));
   }
@@ -145,7 +189,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getStudentsByParentPhone(String phone) async => await getParentChildren(phone);
 
   Future<List<Map<String, dynamic>>> getStudentMarks(String id) async => List<Map<String, dynamic>>.from(await client.from('marks').select().eq('student_id', id).order('year', ascending: false));
-  
+
   Future<List<Map<String, dynamic>>> getChildAttendance(String id) async => List<Map<String, dynamic>>.from(await client.from('attendance').select().eq('target_id', id).order('date', ascending: false));
 
   Future<Map<String, dynamic>> getStudentBalance(String id, String grade) async {
@@ -154,8 +198,8 @@ class SupabaseService {
     double totalFee = (struct?['total_fee'] as num? ?? 15000.0).toDouble();
     double totalPaid = paid.fold(0.0, (sum, item) => sum + (item['amount_paid'] as num? ?? 0).toDouble());
     return {
-      'total_fee': totalFee, 
-      'total_paid': totalPaid, 
+      'total_fee': totalFee,
+      'total_paid': totalPaid,
       'balance': totalFee - totalPaid,
       'status': (totalFee - totalPaid) <= 0 ? 'Cleared' : 'Pending'
     };
@@ -172,14 +216,14 @@ class SupabaseService {
     final expensesRes = await client.from('expenses').select('amount');
     double totalIncome = incomeRes.fold(0.0, (sum, item) => sum + (item['amount'] as num? ?? 0.0).toDouble());
     double totalWaivers = 0.0;
-    for (var item in feesRes) { 
+    for (var item in feesRes) {
       double amt = (item['amount_paid'] as num? ?? 0.0).toDouble();
       if (item['payment_method'] == 'Waiver') { totalWaivers += amt; } else { totalIncome += amt; }
     }
     double totalExpenses = expensesRes.fold(0.0, (sum, item) => sum + (item['amount'] as num? ?? 0.0).toDouble());
     return {
-      'total_income': totalIncome, 
-      'total_expenses': totalExpenses, 
+      'total_income': totalIncome,
+      'total_expenses': totalExpenses,
       'total_waivers': totalWaivers,
       'net_balance': totalIncome - totalExpenses
     };

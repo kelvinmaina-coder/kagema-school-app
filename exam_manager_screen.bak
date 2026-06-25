@@ -126,7 +126,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
     try {
       // 1. Fetch students for selected grade & stream
       final students = await SupabaseService.instance
-          .getStudentsByClass(_selectedGrade, _selectedStream);
+          .getStudentsByGradeAndStream(_selectedGrade, _selectedStream);
 
       // 2. Fetch existing marks for this exam, grade, stream
       final marks = await SupabaseService.instance
@@ -248,7 +248,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
                     hint: 'EXAM',
                     value: _selectedExamId,
                     items: _exams.map((e) => e['id'].toString()).toList(),
-                    labels: _exams.map<String>((e) => e['title']?.toString() ?? 'Exam').toList(),
+                    labels: _exams.map((e) => e['title'] ?? 'Exam').toList(),
                     onChanged: (v) {
                       setState(() {
                         _selectedExamId = v;
@@ -610,7 +610,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
                     border: Border.all(color: roleColor.withOpacity(0.2)),
                   ),
                   child: const Center(
-                    child: Icon(Icons.format_color_fill, size: 24),
+                    child: Icon(Icons.fill_rounded, size: 24),
                   ),
                 ),
               ),
@@ -632,7 +632,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: _submitting ? null : _saveMarks,
+                  onPressed: _submitting ? null : _submitMarks,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: roleColor,
                     elevation: 0,
@@ -749,7 +749,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
 
   // ==================== SUBMIT TO BACKEND ====================
 
-  Future<void> _saveMarks() async {
+  Future<void> _submitMarks() async {
     if (_selectedExamId == null || _selectedSubject == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select exam, grade, stream, and subject')),
@@ -790,7 +790,7 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
 
     try {
       // Submit to database
-      await SupabaseService.instance.saveMarks(records);
+      await SupabaseService.instance.submitMarks(records);
 
       if (mounted) {
         setState(() => _submitting = false);
@@ -924,4 +924,3 @@ class _ExamManagerScreenState extends State<ExamManagerScreen> {
     );
   }
 }
-

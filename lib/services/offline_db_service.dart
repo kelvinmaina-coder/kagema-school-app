@@ -10,7 +10,7 @@ class OfflineDbService {
   OfflineDbService._init();
 
   Future<Database?> get database async {
-    if (kIsWeb) return null; // sqflite is not supported on web
+    if (kIsWeb) return null; // Logic: Don't load sqflite on Web
     if (_database != null) return _database!;
     _database = await _initDB('kagema_offline.db');
     return _database!;
@@ -36,13 +36,8 @@ class OfflineDbService {
   }
 
   Future _createDB(Database db, int version) async {
-    // Table for Event Handling: Caching GET data
     await db.execute('CREATE TABLE cache (key TEXT PRIMARY KEY, data TEXT, timestamp TEXT)');
-    
-    // Table for Event Handling: Syncing POST/UPDATE actions (Sync Queue)
     await db.execute('CREATE TABLE sync_queue (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT, payload TEXT, timestamp TEXT)');
-    
-    // User profile for offline login persistence
     await db.execute('CREATE TABLE user_profile (id TEXT PRIMARY KEY, name TEXT, role TEXT, phone TEXT, last_login TEXT)');
     
     await _createStudentsTable(db);
@@ -78,7 +73,7 @@ class OfflineDbService {
     ''');
   }
 
-  // --- REGISTRY METHODS (LOCAL FIRST) ---
+  // --- SAFE WRAPPERS FOR WEB ---
 
   Future<void> saveStaffLocal(Map<String, dynamic> staff) async {
     if (kIsWeb) return;
@@ -172,8 +167,6 @@ class OfflineDbService {
     return await db.query('students', orderBy: 'grade ASC, stream ASC, name ASC');
   }
 
-  // --- EVENT HANDLING: CACHE METHODS ---
-
   Future<void> saveCache(String key, dynamic data) async {
     if (kIsWeb) return;
     final db = await database;
@@ -193,8 +186,6 @@ class OfflineDbService {
     if (maps.isNotEmpty) return jsonDecode(maps.first['data'] as String);
     return null;
   }
-
-  // --- EVENT HANDLING: SYNC QUEUE METHODS ---
 
   Future<void> addToQueue(String action, Map<String, dynamic> payload) async {
     if (kIsWeb) return;
@@ -220,8 +211,6 @@ class OfflineDbService {
     if (db == null) return;
     await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
   }
-
-  // --- USER PROFILE METHODS ---
 
   Future<Map<String, dynamic>?> getUserProfile() async {
     if (kIsWeb) return null;
