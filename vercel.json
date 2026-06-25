@@ -1,6 +1,0 @@
-{
-  "version": 2,
-  "buildCommand": "sed -i 's/\\r$//' deploy-vercel.sh && bash deploy-vercel.sh",
-  "outputDirectory": "build/web",
-  "framework": null
-}
