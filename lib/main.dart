@@ -13,7 +13,7 @@ import 'screens/secretary/secretary_dashboard.dart';
 import 'screens/staff/staff_dashboard.dart';
 import 'services/authentication_service.dart';
 import 'services/update_service.dart';
-import 'services/event_handler_service.dart'; // NEW: Event Nervous System
+import 'services/event_handler_service.dart';
 import 'app_theme.dart';
 import 'app_settings.dart';
 
@@ -30,7 +30,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    const supabaseUrl = 'https://nautmoivgssuuzvzlqgy.supabase.co'; 
+    const supabaseUrl = 'https://nautmoivgssuuzvzlqgy.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5hdXRtb2l2Z3NzdXV6dnpscWd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMjk2NzgsImV4cCI6MjA5NjYwNTY3OH0.FOWH8X-FM3p_VP7ewDF4efM6ja6nf3Ecw7_Rh4cTFPs';
 
     await Supabase.initialize(
@@ -50,7 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthenticationService()),
         ChangeNotifierProvider.value(value: appSettings),
         ChangeNotifierProvider(create: (_) => UpdateService()),
-        ChangeNotifierProvider(create: (_) => EventHandlerService()), // ENABLE EVENTS
+        ChangeNotifierProvider(create: (_) => EventHandlerService()),
       ],
       child: const KagemaSchoolApp(),
     ),
@@ -79,9 +79,9 @@ class KagemaSchoolApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/signup': (context) => const SignupScreen(),
         '/forgot_password': (context) => const ForgotPasswordScreen(),
-        '/admin_dashboard': (context) => const AdminDashboard(), 
+        '/admin_dashboard': (context) => const AdminDashboard(),
         '/teacher_dashboard': (context) => const TeacherDashboard(),
-        '/parent_dashboard': (context) => ParentDashboard(parentPhone: auth.currentUserPhone ?? ''), 
+        '/parent_dashboard': (context) => ParentDashboard(parentPhone: auth.currentUserPhone ?? ''),
         '/accountant_dashboard': (context) => const AccountantDashboard(),
         '/secretary_dashboard': (context) => const SecretaryDashboard(),
         '/staff_dashboard': (context) => StaffDashboard(),
@@ -121,10 +121,55 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get theme safely
     final theme = Theme.of(context);
     final gemini = theme.extension<GeminiThemeExtension>();
+
+    // If gemini is null, use a simple fallback
+    if (gemini == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0A0E1A),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/kagema_logo.png',
+                height: 200,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+              ),
+              const SizedBox(height: 32),
+              const Text(
+                'Kagema System',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 80),
+              const CircularProgressIndicator(color: Colors.white70),
+              const SizedBox(height: 32),
+              Text(
+                statusMessage.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // If gemini exists, use it
     return Scaffold(
-      body: gemini?.buildCreativeBackground(
+      body: gemini.buildCreativeBackground(
         isDark: true,
         child: Center(
           child: Column(
@@ -135,19 +180,36 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Image.asset(
                   'assets/kagema_logo.png',
                   height: 200,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, size: 70, color: Colors.white),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.school_rounded, size: 70, color: Colors.white),
                 ),
               ),
               const SizedBox(height: 32),
-              const Text('Kagema System', style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+              const Text(
+                'Kagema System',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -1,
+                ),
+              ),
               const SizedBox(height: 80),
               const CircularProgressIndicator(color: Colors.white70),
               const SizedBox(height: 32),
-              Text(statusMessage.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+              Text(
+                statusMessage.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
             ],
           ),
         ),
-      ) ?? const SizedBox(),
+      ),
     );
   }
 }

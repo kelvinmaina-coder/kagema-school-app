@@ -32,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  // Helper to get responsive value
   double responsiveValue(double small, double medium, double large) {
     final width = MediaQuery.of(context).size.width;
     if (width < 400) return small;
@@ -48,6 +47,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final settings = Provider.of<AppSettings>(context);
     final auth = Provider.of<AuthenticationService>(context);
     final updates = Provider.of<UpdateService>(context);
+
+    // âœ… ROLE-BASED COLORS - Each role gets its own color
     final roleColor = RoleColors.of(widget.role);
     final compColor = RoleColors.complement(widget.role);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -56,7 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: dt.pageBg,
-      appBar: _buildAppBar(theme, roleColor, isDark),
+      appBar: _buildAppBar(theme, roleColor, isDark, isSmallScreen),
       body: theme?.buildCreativeBackground(
         isDark: isDark,
         primaryBlob: roleColor,
@@ -166,9 +167,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                     ], isSmallScreen),
 
                     SizedBox(height: responsiveValue(32, 40, 48)),
-                    _buildLogoutButton(dt, auth, isSmallScreen),
+                    _buildLogoutButton(dt, auth, isSmallScreen, roleColor),
                     SizedBox(height: responsiveValue(20, 28, 32)),
-                    _buildAppInfo(settings, dt, isSmallScreen),
+                    _buildAppInfo(settings, dt, isSmallScreen, roleColor),
                     SizedBox(height: responsiveValue(60, 80, 120)),
                   ],
                 ),
@@ -180,10 +181,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  PreferredSizeWidget _buildAppBar(GeminiThemeExtension? theme, Color roleColor, bool isDark) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenWidth < 400;
-
+  // âœ… UPDATED: AppBar with role color
+  PreferredSizeWidget _buildAppBar(GeminiThemeExtension? theme, Color roleColor, bool isDark, bool isSmallScreen) {
     return AppBar(
       title: Text(
           isSmallScreen ? 'CTRL CTR' : 'CONTROL CENTER',
@@ -204,7 +203,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       ),
       flexibleSpace: Container(
         decoration: BoxDecoration(
-          gradient: theme?.primaryGradient,
+          gradient: LinearGradient(
+            colors: [roleColor, roleColor.withOpacity(0.7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(35)),
         ),
         child: Stack(
@@ -220,6 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
+  // âœ… UPDATED: Profile header with role color
   Widget _buildProfileHeader(DT dt, AuthenticationService auth, GeminiThemeExtension? theme, Color roleColor, bool isSmallScreen) {
     final Color textColor = dt.dark ? Colors.white : dt.textPrimary;
     final Color subTextColor = dt.dark ? Colors.white.withOpacity(0.6) : dt.textMuted;
@@ -377,9 +381,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     ) ?? const SizedBox.shrink();
   }
 
-  // ============================================================
-  // ✅ FIXED: _showProfileDetailsSheet - Now scrollable & modern
-  // ============================================================
+  // âœ… UPDATED: Profile details with role color
   void _showProfileDetailsSheet(DT dt, AuthenticationService auth, Color roleColor, String nodeId) {
     String userEmail = auth.currentUserEmail ?? 'node_admin@kagema.io';
     String userName = auth.currentUserName.isNotEmpty ? auth.currentUserName : 'AUTHORIZED USER';
@@ -404,7 +406,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Drag handle
               Container(
                 width: 50,
                 height: 5,
@@ -415,12 +416,10 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               ),
               SizedBox(height: isSmallScreen ? 12 : 16),
 
-              // ====== MODERN HEADER ======
               Container(
                 padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12 : 16),
                 child: Row(
                   children: [
-                    // Avatar with gradient
                     Container(
                       width: isSmallScreen ? 50 : 64,
                       height: isSmallScreen ? 50 : 64,
@@ -510,14 +509,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ),
               ),
 
-              // Divider line
               Container(
                 height: 1,
                 margin: EdgeInsets.symmetric(vertical: isSmallScreen ? 8 : 12),
                 color: roleColor.withOpacity(0.08),
               ),
 
-              // ====== SCROLLABLE DETAILS ======
               Flexible(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
@@ -549,25 +546,9 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                         isSmallScreen,
                       ),
                       _buildProfileDetailRow(
-                        Icons.calendar_month_rounded,
-                        'Joined',
-                        'N/A',
-                        dt,
-                        roleColor,
-                        isSmallScreen,
-                      ),
-                      _buildProfileDetailRow(
                         Icons.gavel_rounded,
                         'Role',
                         widget.role.toUpperCase(),
-                        dt,
-                        roleColor,
-                        isSmallScreen,
-                      ),
-                      _buildProfileDetailRow(
-                        Icons.sync_lock_rounded,
-                        'Last Sync',
-                        'N/A',
                         dt,
                         roleColor,
                         isSmallScreen,
@@ -587,7 +568,6 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 ),
               ),
 
-              // ====== BUTTON WITH SAFE AREA ======
               SafeArea(
                 child: Padding(
                   padding: EdgeInsets.only(top: isSmallScreen ? 8 : 12),
@@ -913,11 +893,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildLogoutButton(DT dt, AuthenticationService auth, bool isSmallScreen) {
+  // âœ… UPDATED: Logout button with role color
+  Widget _buildLogoutButton(DT dt, AuthenticationService auth, bool isSmallScreen, Color roleColor) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _confirmLogout(auth, dt),
+        onTap: () => _confirmLogout(auth, dt, roleColor),
         borderRadius: BorderRadius.circular(22),
         child: Container(
           padding: EdgeInsets.all(isSmallScreen ? 14 : 22),
@@ -947,7 +928,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildAppInfo(AppSettings settings, DT dt, bool isSmallScreen) {
+  // âœ… UPDATED: App info with role color
+  Widget _buildAppInfo(AppSettings settings, DT dt, bool isSmallScreen, Color roleColor) {
     return Center(
       child: Column(
         children: [
@@ -963,12 +945,16 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
           SizedBox(height: isSmallScreen ? 4 : 6),
           Container(
             padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 6 : 10, vertical: isSmallScreen ? 2 : 4),
-            decoration: BoxDecoration(color: dt.roleSoftBg(dt.textMuted), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(
+              color: roleColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: roleColor.withOpacity(0.1)),
+            ),
             child: Text(
                 'CORE v${settings.appVersion} [ENCRYPTED]',
                 style: TextStyle(
                     fontSize: isSmallScreen ? 6 : 8,
-                    color: dt.textMuted,
+                    color: roleColor,
                     fontWeight: FontWeight.bold,
                     letterSpacing: isSmallScreen ? 0.5 : 1
                 )
@@ -982,6 +968,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showAppearanceDialog(AppSettings settings) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
 
     showModalBottomSheet(
       context: context,
@@ -995,19 +982,56 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
-                child: Text(
-                    'ENVIRONMENT MODE',
-                    style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: isSmallScreen ? 2 : 3
-                    )
-                )
+            Container(
+              padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: roleColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                          'ENVIRONMENT MODE',
+                          style: TextStyle(
+                              fontSize: isSmallScreen ? 12 : 14,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: isSmallScreen ? 2 : 3
+                          )
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: roleColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.role.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        color: roleColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.wb_sunny_rounded, color: KagemaColors.accountantAmber),
+              leading: CircleAvatar(
+                radius: 16,
+                backgroundColor: KagemaColors.accountantAmber.withOpacity(0.15),
+                child: Icon(Icons.wb_sunny_rounded, color: KagemaColors.accountantAmber, size: 20),
+              ),
               title: Text(
                   'CRYSTAL LIGHT',
                   style: TextStyle(
@@ -1018,7 +1042,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               onTap: () { settings.setThemeMode(ThemeMode.light); Navigator.pop(context); },
             ),
             ListTile(
-              leading: const Icon(Icons.nightlight_round, color: KagemaColors.secretaryViolet),
+              leading: CircleAvatar(
+                radius: 16,
+                backgroundColor: KagemaColors.secretaryViolet.withOpacity(0.15),
+                child: Icon(Icons.nightlight_round, color: KagemaColors.secretaryViolet, size: 20),
+              ),
               title: Text(
                   'OLED DARK',
                   style: TextStyle(
@@ -1038,6 +1066,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showLanguageDialog(AppSettings settings) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
 
     showModalBottomSheet(
       context: context,
@@ -1046,22 +1075,41 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
         decoration: BoxDecoration(
           color: dt.pageBg,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+          border: Border.all(color: dt.cardBorder),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
-                child: Text(
-                    'LANGUAGE NODE',
-                    style: TextStyle(
-                        fontSize: isSmallScreen ? 12 : 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: isSmallScreen ? 2 : 3
-                    )
-                )
+            Container(
+              padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: roleColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                      'LANGUAGE NODE',
+                      style: TextStyle(
+                          fontSize: isSmallScreen ? 12 : 14,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: isSmallScreen ? 2 : 3
+                      )
+                  ),
+                ],
+              ),
             ),
             ListTile(
+                leading: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: roleColor.withOpacity(0.1),
+                  child: Text('EN', style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 12)),
+                ),
                 title: Text(
                     'ENGLISH (GLOBAL)',
                     style: TextStyle(
@@ -1072,6 +1120,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
                 onTap: () { settings.setLanguage('English'); Navigator.pop(context); }
             ),
             ListTile(
+                leading: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: roleColor.withOpacity(0.1),
+                  child: Text('SW', style: TextStyle(color: roleColor, fontWeight: FontWeight.w900, fontSize: 12)),
+                ),
                 title: Text(
                     'KISWAHILI (REGIONAL)',
                     style: TextStyle(
@@ -1091,6 +1144,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showEditNameDialog(AuthenticationService auth) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
     final ctrl = TextEditingController(text: auth.currentUserName);
 
     showDialog(
@@ -1098,18 +1152,38 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-            'IDENTITY SYNC',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1,
-              color: dt.textPrimary,
-              fontSize: isSmallScreen ? 16 : 20,
-            )
+        title: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: roleColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+                'IDENTITY SYNC',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                  color: dt.textPrimary,
+                  fontSize: isSmallScreen ? 16 : 20,
+                )
+            ),
+          ],
         ),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(labelText: 'Display Name'),
+          decoration: InputDecoration(
+            labelText: 'Display Name',
+            labelStyle: TextStyle(color: roleColor),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: roleColor),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
           style: TextStyle(
             fontWeight: FontWeight.w900,
             color: dt.textPrimary,
@@ -1128,10 +1202,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               )
           ),
           ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: roleColor),
               onPressed: () async { await auth.updateName(ctrl.text); Navigator.pop(context); },
               child: Text(
                   'SYNC',
                   style: TextStyle(
+                    color: Colors.white,
                     fontSize: isSmallScreen ? 12 : 14,
                   )
               )
@@ -1144,6 +1220,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showPasswordDialog(AuthenticationService auth) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
     final oldP = TextEditingController();
     final newP = TextEditingController();
 
@@ -1152,13 +1229,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-            'ACCESS KEY SYNC',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: dt.textPrimary,
-              fontSize: isSmallScreen ? 16 : 20,
-            )
+        title: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: roleColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+                'ACCESS KEY SYNC',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: dt.textPrimary,
+                  fontSize: isSmallScreen ? 16 : 20,
+                )
+            ),
+          ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1166,7 +1256,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             TextField(
               controller: oldP,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Current Secret'),
+              decoration: InputDecoration(
+                labelText: 'Current Secret',
+                labelStyle: TextStyle(color: roleColor),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: roleColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               style: TextStyle(
                 fontSize: isSmallScreen ? 14 : 16,
               ),
@@ -1175,7 +1272,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             TextField(
               controller: newP,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'New Secret'),
+              decoration: InputDecoration(
+                labelText: 'New Secret',
+                labelStyle: TextStyle(color: roleColor),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: roleColor),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               style: TextStyle(
                 fontSize: isSmallScreen ? 14 : 16,
               ),
@@ -1194,10 +1298,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               )
           ),
           ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: roleColor),
               onPressed: () async { await auth.changePassword(oldP.text, newP.text); Navigator.pop(context); },
               child: Text(
                   'APPLY',
                   style: TextStyle(
+                    color: Colors.white,
                     fontSize: isSmallScreen ? 12 : 14,
                   )
               )
@@ -1210,19 +1316,33 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showClearCacheDialog(AppSettings settings) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-            'PURGE CACHE?',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: dt.textPrimary,
-              fontSize: isSmallScreen ? 16 : 20,
-            )
+        title: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: roleColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+                'PURGE CACHE?',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: dt.textPrimary,
+                  fontSize: isSmallScreen ? 16 : 20,
+                )
+            ),
+          ],
         ),
         content: Text(
             'Optimize system performance by clearing temporary UI states.',
@@ -1243,10 +1363,12 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               )
           ),
           ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: roleColor),
               onPressed: () async { await settings.clearCache(); Navigator.pop(context); },
               child: Text(
                   'PURGE',
                   style: TextStyle(
+                    color: Colors.white,
                     fontSize: isSmallScreen ? 12 : 14,
                   )
               )
@@ -1259,19 +1381,33 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   void _showFactoryResetDialog(AppSettings settings) {
     final dt = context.dt;
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
+    final roleColor = RoleColors.of(widget.role);
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-            'CRITICAL WIPE?',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: KagemaColors.parentRed,
-              fontSize: isSmallScreen ? 16 : 20,
-            )
+        title: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: KagemaColors.parentRed,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+                'CRITICAL WIPE?',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: KagemaColors.parentRed,
+                  fontSize: isSmallScreen ? 16 : 20,
+                )
+            ),
+          ],
         ),
         content: Text(
             'This will erase all local session data and disconnect this node from the system.',
@@ -1311,7 +1447,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     );
   }
 
-  void _confirmLogout(AuthenticationService auth, DT dt) {
+  // âœ… UPDATED: Logout dialog with role color
+  void _confirmLogout(AuthenticationService auth, DT dt, Color roleColor) {
     final isSmallScreen = MediaQuery.of(context).size.width < 400;
 
     showDialog(
@@ -1319,13 +1456,26 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       builder: (context) => AlertDialog(
         backgroundColor: dt.cardBg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        title: Text(
-            'LOGOUT?',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: dt.textPrimary,
-              fontSize: isSmallScreen ? 16 : 20,
-            )
+        title: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 20,
+              decoration: BoxDecoration(
+                color: roleColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+                'LOGOUT?',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: dt.textPrimary,
+                  fontSize: isSmallScreen ? 16 : 20,
+                )
+            ),
+          ],
         ),
         content: Text(
             'End the current secure session?',
@@ -1346,6 +1496,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
               )
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: roleColor),
             onPressed: () {
               auth.logout();
               Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
@@ -1353,6 +1504,7 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             child: Text(
                 'LOGOUT',
                 style: TextStyle(
+                  color: Colors.white,
                   fontSize: isSmallScreen ? 12 : 14,
                 )
             ),

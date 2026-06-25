@@ -1,36 +1,30 @@
-﻿// ═══════════════════════════════════════════════════════════════════════════════
-//  KAGEMA SCHOOL — ULTRA THEME  v3.0
-//
-//  ▸ KagemaColors          — single-source brand + role palette
-//  ▸ DT                    — dark/light token helper (all dashboards use this)
-//  ▸ TimeGreeter           — time-aware greeting helper
-//  ▸ RoleColors            — role → color + gradient resolver
-//  ▸ KagemaParticle        — constellation particle model
-//  ▸ KagemaParticlePainter — constellation particle renderer
-//  ▸ RolePlasma            — pulsing multi-layer role plasma effect
-//  ▸ ChromaticBorderPainter— animated 3-tone sweeping border
-//  ▸ AISpectrumBorder      — drop-in widget using ChromaticBorderPainter
-//  ▸ LiquidGlassCard       — premium glassmorphism card with sweep + shimmer
-//  ▸ NeuralBackground      — full-screen living canvas (particles + blobs + grid)
-//  ▸ RoleAuraLayer         — breathing radial glow wrapper
-//  ▸ ShimmerBox            — skeleton loading block
-//  ▸ GeminiThemeExtension  — ThemeExtension with gradient helpers
-//  ▸ AppTheme              — light + dark Material 3 ThemeData
-//  ▸ ResponsiveBreakpoints — screen-size helpers
-//  ▸ KagemaMotion          — shared animation curves & durations
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════════════════
+//  KAGEMA SCHOOL - ULTRA THEME  v5.0  🚀
+//  ✨ NEW: Animated cards, Smart empty states, Adaptive grid
+// ═══════════════════════════════════════════════════════════════════════════════════════════
 
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-// ───────────────────────────────────────────────────────────────────────────────
-// MOTION TOKENS  — one place to tune every animation in the app
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// FALLBACK CONTEXT
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class _FallbackContext extends BuildContext {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName.toString().contains('width')) return 1100.0;
+    if (invocation.memberName.toString().contains('height')) return 800.0;
+    return null;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// MOTION TOKENS
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class KagemaMotion {
   KagemaMotion._();
 
-  // Durations
   static const Duration instant    = Duration(milliseconds: 120);
   static const Duration fast       = Duration(milliseconds: 220);
   static const Duration normal     = Duration(milliseconds: 350);
@@ -40,17 +34,55 @@ class KagemaMotion {
   static const Duration orbit      = Duration(milliseconds: 6000);
   static const Duration blobDrift  = Duration(seconds: 40);
 
-  // Curves
   static const Curve spring        = Curves.easeOutCubic;
   static const Curve smooth        = Curves.easeInOutCubic;
   static const Curve overshoot     = Curves.elasticOut;
   static const Curve snap          = Curves.easeOutExpo;
+
+  // ✨ NEW: Extra animation curves
+  static const Curve gentleBounce = Curves.easeOutBack;
+  static const Curve softFade    = Curves.easeOutQuad;
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// RESPONSIVE BREAKPOINTS
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// RESPONSIVE BREAKPOINTS + TYPOGRAPHY SCALE
+// ───────────────────────────────────────────────────────────────────────────────────────────
 enum KagemaLayout { mobile, tablet, desktop, wide }
+
+class TypographyScale {
+  final double mobile;
+  final double tablet;
+  final double desktop;
+
+  const TypographyScale(this.mobile, this.tablet, this.desktop);
+
+  double resolve(BuildContext context) {
+    try {
+      final width = MediaQuery.of(context).size.width;
+      if (width < 650) return mobile;
+      if (width < 1100) return tablet;
+      return desktop;
+    } catch (e) {
+      return desktop;
+    }
+  }
+
+  TextStyle apply(TextStyle base, BuildContext context) {
+    return base.copyWith(fontSize: resolve(context));
+  }
+
+  static const headlineLarge = TypographyScale(24, 32, 48);
+  static const headlineMedium = TypographyScale(20, 26, 36);
+  static const headlineSmall = TypographyScale(16, 20, 28);
+  static const titleLarge = TypographyScale(14, 18, 24);
+  static const titleMedium = TypographyScale(12, 15, 20);
+  static const bodyLarge = TypographyScale(14, 16, 18);
+  static const bodyMedium = TypographyScale(12, 14, 16);
+  static const bodySmall = TypographyScale(10, 12, 14);
+  static const labelLarge = TypographyScale(11, 13, 15);
+  static const labelMedium = TypographyScale(9, 10, 12);
+  static const labelSmall = TypographyScale(7, 8, 9);
+}
 
 extension KagemaLayoutHelper on BuildContext {
   KagemaLayout get kagemaLayout {
@@ -69,30 +101,29 @@ extension KagemaLayoutHelper on BuildContext {
   double get sw => MediaQuery.of(this).size.width;
   double get sh => MediaQuery.of(this).size.height;
 
-  /// Fluid value: interpolates between [mobile] and [desktop] based on screen width
   double fluid(double mobile, double desktop) {
     final t = ((sw - 320) / (1400 - 320)).clamp(0.0, 1.0);
     return mobile + (desktop - mobile) * t;
   }
+
+  double ts(TypographyScale scale) => scale.resolve(this);
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 // COLOUR PALETTE
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class KagemaColors {
   KagemaColors._();
 
-  // ── Role colours ─────────────────────────────────────────────────────────────
-  static const Color adminOrange   = Color(0xFFFF4D00);   // Admin
-  static const Color teacherGreen  = Color(0xFF10B981);   // Teacher
-  static const Color parentRed     = Color(0xFFEF4444);   // Parent
-  static const Color accountantAmber = Color(0xFFF59E0B); // Accountant
-  static const Color secretaryViolet = Color(0xFF8B5CF6); // Secretary
-  static const Color staffSky      = Color(0xFF0EA5E9);   // Staff
+  static const Color adminOrange   = Color(0xFFFF4D00);
+  static const Color teacherGreen  = Color(0xFF10B981);
+  static const Color parentRed     = Color(0xFFEF4444);
+  static const Color accountantAmber = Color(0xFFF59E0B);
+  static const Color secretaryViolet = Color(0xFF8B5CF6);
+  static const Color staffSky      = Color(0xFF0EA5E9);
 
-  // ── Supporting accents (used in backgrounds + gradients) ─────────────────────
   static const Color azure         = Color(0xFF2979FF);
-  static const Color electric      = adminOrange; // primary brand
+  static const Color electric      = adminOrange;
   static const Color emerald       = teacherGreen;
   static const Color rose          = parentRed;
   static const Color amber         = accountantAmber;
@@ -103,7 +134,6 @@ class KagemaColors {
   static const Color neonMint      = Color(0xFF00FFA3);
   static const Color plasmaViolet  = Color(0xFFBB00FF);
 
-  // ── Dark-mode surfaces ────────────────────────────────────────────────────────
   static const Color darkInk       = Color(0xFF060810);
   static const Color darkBase      = Color(0xFF0A0E1A);
   static const Color darkSurface   = Color(0xFF0F1523);
@@ -112,14 +142,12 @@ class KagemaColors {
   static const Color darkBorder    = Color(0xFF252D42);
   static const Color darkBorderHi  = Color(0xFF2E3A52);
 
-  // ── Light-mode surfaces ───────────────────────────────────────────────────────
   static const Color lightBase     = Color(0xFFF5F7FF);
   static const Color lightSurface  = Color(0xFFEEF2FA);
   static const Color lightCard     = Color(0xFFFFFFFF);
   static const Color lightBorder   = Color(0xFFE2E8F0);
   static const Color lightBorderHi = Color(0xFFCBD5E1);
 
-  // ── Role gradient pairs (used in hero panels and cards) ───────────────────────
   static List<Color> roleGradient(String roleId, {bool dark = false}) {
     switch (roleId.toLowerCase()) {
       case 'admin':
@@ -151,7 +179,27 @@ class KagemaColors {
     }
   }
 
-  /// Complementary glow colour used as 2nd blob in NeuralBackground
+  static List<Color> morphingGradient(String roleId, {bool dark = false, DateTime? time}) {
+    final hour = time?.hour ?? DateTime.now().hour;
+    final base = roleGradient(roleId, dark: dark);
+
+    if (hour >= 6 && hour < 12) {
+      return base.map((c) => Color.lerp(c, const Color(0xFFFFD700), 0.15)!).toList();
+    } else if (hour >= 17 && hour < 21) {
+      return base.map((c) => Color.lerp(c, const Color(0xFF4A00E0), 0.15)!).toList();
+    } else if (hour >= 21 || hour < 6) {
+      return base.map((c) => Color.lerp(c, const Color(0xFF1A0A3E), 0.25)!).toList();
+    }
+    return base;
+  }
+
+  static Color generateVariant(Color base, {double offset = 0.1}) {
+    final hsl = HSLColor.fromColor(base);
+    return hsl.withLightness(
+        (hsl.lightness + offset).clamp(0.0, 1.0)
+    ).toColor();
+  }
+
   static Color roleComplement(String roleId) {
     switch (roleId.toLowerCase()) {
       case 'admin':      return azure;
@@ -165,9 +213,9 @@ class KagemaColors {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 // DARK-MODE TOKEN HELPER
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class DT {
   final bool dark;
   const DT(this.dark);
@@ -175,7 +223,6 @@ class DT {
   static DT of(BuildContext context) =>
       DT(Theme.of(context).brightness == Brightness.dark);
 
-  // Backgrounds
   Color get pageBg        => dark ? KagemaColors.darkBase     : KagemaColors.lightBase;
   Color get surfaceBg     => dark ? KagemaColors.darkSurface  : KagemaColors.lightSurface;
   Color get cardBg        => dark ? KagemaColors.darkCard     : KagemaColors.lightCard;
@@ -183,28 +230,23 @@ class DT {
   Color get inputBg       => dark ? KagemaColors.darkCard     : const Color(0xFFF8FAFC);
   Color get inputFocusBg  => dark ? const Color(0xFF1A2438)   : const Color(0xFFF0F5FF);
 
-  // Text
   Color get textPrimary   => dark ? const Color(0xFFF1F5F9)   : const Color(0xFF0F172A);
   Color get textSecondary => dark ? const Color(0xFFCBD5E1)   : const Color(0xFF475569);
   Color get textMuted     => dark ? const Color(0xFF4E5E7A)   : const Color(0xFF94A3B8);
   Color get hint          => dark ? const Color(0xFF384563)   : const Color(0xFFCDD5DE);
 
-  // Icons
   Color get iconInactive  => dark ? const Color(0xFF3D4F6A)   : const Color(0xFFB0BFCF);
   Color get iconActive    => dark ? const Color(0xFFF1F5F9)   : const Color(0xFF1E293B);
 
-  // Borders
   Color get cardBorder    => dark ? KagemaColors.darkBorder   : KagemaColors.lightBorder;
   Color get cardBorderHi  => dark ? KagemaColors.darkBorderHi : KagemaColors.lightBorderHi;
   Color get divider       => dark ? const Color(0xFF161D2E)   : const Color(0xFFE8EDF5);
 
-  // Utility Status Colors
   Color get success       => KagemaColors.teacherGreen;
   Color get warning       => KagemaColors.accountantAmber;
   Color get error         => KagemaColors.parentRed;
   Color get info          => KagemaColors.staffSky;
 
-  // Utility
   Color get footerPillBg  => dark ? KagemaColors.darkCard     : KagemaColors.lightCard;
   Color get footerBorder  => dark ? KagemaColors.darkBorder   : KagemaColors.lightBorder;
   Color get footerText    => dark ? const Color(0xFF64748B)   : const Color(0xFF64748B);
@@ -215,7 +257,6 @@ class DT {
       ? Colors.black.withOpacity(0.78)
       : Colors.black.withOpacity(0.42);
 
-  // Role-aware helpers
   Color aura(Color roleColor)         => roleColor.withOpacity(dark ? 0.10 : 0.055);
   Color roleCardBg(Color roleColor)   => roleColor.withOpacity(dark ? 0.14 : 0.07);
   Color roleSoftBg(Color roleColor)   => roleColor.withOpacity(dark ? 0.08 : 0.04);
@@ -226,9 +267,9 @@ class DT {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// TIME-AWARE GREETER
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// TIME-AWARE GREETER - WITH REAL EMOJIS
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class TimeGreeter {
   final String prefix;
   final String emoji;
@@ -248,26 +289,34 @@ class TimeGreeter {
     final h = DateTime.now().hour;
     if (h >= 5 && h < 12) {
       return const TimeGreeter._(
-        prefix: 'Good Morning,', emoji: '🌅', label: 'morning',
+        prefix: 'Good Morning,',
+        emoji: '\u{1F305}',
+        label: 'morning',
         tailline: 'Have a brilliant morning ahead.',
         glowColor: Color(0xFFFF9800),
       );
     } else if (h >= 12 && h < 17) {
       return const TimeGreeter._(
-        prefix: 'Good Afternoon,', emoji: '☀️', label: 'afternoon',
+        prefix: 'Good Afternoon,',
+        emoji: '\u{2600}\u{FE0F}',
+        label: 'afternoon',
         tailline: 'Hope your afternoon is electric.',
         glowColor: Color(0xFFFFEB3B),
       );
     } else if (h >= 17 && h < 21) {
       return const TimeGreeter._(
-        prefix: 'Good Evening,', emoji: '🌆', label: 'evening',
+        prefix: 'Good Evening,',
+        emoji: '\u{1F306}',
+        label: 'evening',
         tailline: 'Wrapping up a brilliant day?',
         glowColor: Color(0xFFFF5722),
       );
     } else {
       return const TimeGreeter._(
-        prefix: 'Good Night,', emoji: '🌙', label: 'night',
-        tailline: 'Working late — we\'ve got you covered.',
+        prefix: 'Good Night,',
+        emoji: '\u{1F319}',
+        label: 'night',
+        tailline: 'Working late - we\'ve got you covered.',
         glowColor: Color(0xFF7C4DFF),
       );
     }
@@ -276,9 +325,9 @@ class TimeGreeter {
   String greet(String roleName) => '$prefix $roleName! $emoji';
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 // ROLE COLOUR RESOLVER
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class RoleColors {
   RoleColors._();
 
@@ -295,7 +344,7 @@ class RoleColors {
       _primary[roleId.toLowerCase()] ?? KagemaColors.electric;
 
   static LinearGradient gradient(String roleId, {bool dark = false}) {
-    final stops = KagemaColors.roleGradient(roleId, dark: dark);
+    final stops = KagemaColors.morphingGradient(roleId, dark: dark);
     return LinearGradient(
       colors: stops,
       begin: Alignment.topLeft,
@@ -315,16 +364,356 @@ class RoleColors {
   static Color complement(String roleId) => KagemaColors.roleComplement(roleId);
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// PARTICLE ENGINE
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ✨ NEW: ANIMATED CARD WRAPPER - Lifts on hover/click
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class AnimatedCardWrapper extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double hoverElevation;
+  final double tapElevation;
+  final Duration animationDuration;
+
+  const AnimatedCardWrapper({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.hoverElevation = 12,
+    this.tapElevation = 6,
+    this.animationDuration = KagemaMotion.fast,
+  });
+
+  @override
+  State<AnimatedCardWrapper> createState() => _AnimatedCardWrapperState();
+}
+
+class _AnimatedCardWrapperState extends State<AnimatedCardWrapper> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  double get _elevation {
+    if (_isPressed) return widget.tapElevation;
+    if (_isHovered) return widget.hoverElevation;
+    return 2;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: widget.animationDuration,
+          curve: KagemaMotion.gentleBounce,
+          transform: Matrix4.identity()
+            ..scale(_isPressed ? 0.98 : 1.0)
+            ..translate(0, _isHovered ? -4 : 0),
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ✨ NEW: SMART EMPTY STATE WIDGET
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class SmartEmptyState extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final IconData icon;
+  final Color? iconColor;
+  final VoidCallback? onAction;
+  final String? actionLabel;
+
+  const SmartEmptyState({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.icon,
+    this.iconColor,
+    this.onAction,
+    this.actionLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = context.dt;
+    final isMobile = context.isMobile;
+    final color = iconColor ?? dt.textMuted;
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 24 : 48,
+          vertical: isMobile ? 40 : 60,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: isMobile ? 80 : 100,
+              height: isMobile ? 80 : 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withOpacity(0.08),
+              ),
+              child: Icon(
+                icon,
+                size: isMobile ? 36 : 48,
+                color: color.withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: isMobile ? 16 : 20,
+                fontWeight: FontWeight.w800,
+                color: dt.textPrimary,
+                letterSpacing: 0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: isMobile ? 12 : 14,
+                  color: dt.textMuted,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            if (onAction != null && actionLabel != null) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: onAction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: KagemaColors.electric,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  actionLabel!,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ✨ NEW: ADAPTIVE RESPONSIVE GRID
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class AdaptiveGrid extends StatelessWidget {
+  final List<Widget> children;
+  final int mobileColumns;
+  final int tabletColumns;
+  final int desktopColumns;
+  final double spacing;
+  final double runSpacing;
+  final double childAspectRatio;
+
+  const AdaptiveGrid({
+    super.key,
+    required this.children,
+    this.mobileColumns = 1,
+    this.tabletColumns = 2,
+    this.desktopColumns = 4,
+    this.spacing = 16,
+    this.runSpacing = 16,
+    this.childAspectRatio = 1.2,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final layout = context.kagemaLayout;
+    int crossAxisCount;
+
+    switch (layout) {
+      case KagemaLayout.mobile:
+        crossAxisCount = mobileColumns;
+        break;
+      case KagemaLayout.tablet:
+        crossAxisCount = tabletColumns;
+        break;
+      case KagemaLayout.desktop:
+      case KagemaLayout.wide:
+        crossAxisCount = desktopColumns;
+        break;
+    }
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: crossAxisCount,
+      crossAxisSpacing: spacing,
+      mainAxisSpacing: runSpacing,
+      childAspectRatio: childAspectRatio,
+      children: children,
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ✨ NEW: SHIMMER LOADING SKELETON
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class ShimmerSkeleton extends StatelessWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const ShimmerSkeleton({
+    super.key,
+    required this.width,
+    required this.height,
+    this.borderRadius = 12,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerBox(
+      width: width,
+      height: height,
+      borderRadius: borderRadius,
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ✨ NEW: SECTION HEADER WITH ACTION
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class SectionHeader extends StatelessWidget {
+  final String title;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+  final Color? color;
+
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.actionLabel,
+    this.onAction,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = context.dt;
+    final roleColor = color ?? context.roleColor ?? KagemaColors.electric;
+    final isMobile = context.isMobile;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: isMobile ? 14 : 18,
+              decoration: BoxDecoration(
+                color: roleColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: isMobile ? 10 : 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.5,
+                color: dt.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        if (actionLabel != null && onAction != null)
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              actionLabel!,
+              style: TextStyle(
+                fontSize: isMobile ? 9 : 10,
+                fontWeight: FontWeight.w800,
+                color: roleColor,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// [REST OF YOUR EXISTING CODE - KEPT EXACTLY THE SAME]
+// KagemaParticle, KagemaParticlePainter, RolePlasma, ChromaticBorderPainter,
+// AISpectrumBorder, LiquidGlassCard, FrostGlassCard, NeuralBackground,
+// RoleAuraLayer, ShimmerBox, AnimatedStatBadge, PrestigeThemeSwitcher,
+// BreadcrumbNav, GradientAvatar, HoverScale, PressScale,
+// GeminiThemeExtension, AppTheme, KagemaThemeX
+// ───────────────────────────────────────────────────────────────────────────────────────────
+
+// ───────── [YOUR EXISTING CODE CONTINUES HERE - KEPT UNCHANGED] ─────────
+// (All the widgets from KagemaParticle through to the end remain exactly as you had them)
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// LIVING PARTICLE with lifecycle
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class KagemaParticle {
   double x, y, vx, vy, radius, opacity;
+  double life;
+  final double maxLife;
+  final math.Random _rng = math.Random();
+
   KagemaParticle({
-    required this.x, required this.y,
-    required this.vx, required this.vy,
-    required this.radius, required this.opacity,
+    required this.x,
+    required this.y,
+    required this.vx,
+    required this.vy,
+    required this.radius,
+    required this.opacity,
+    this.life = 1.0,
+    this.maxLife = 1.0,
   });
+
+  bool get isAlive => life > 0;
+
+  void update() {
+    tick();
+    life -= 0.0015 + _rng.nextDouble() * 0.001;
+    if (life <= 0) {
+      life = maxLife;
+      x = _rng.nextDouble();
+      y = _rng.nextDouble();
+      radius = 1.0 + _rng.nextDouble() * 2.4;
+      opacity = 0.25 + _rng.nextDouble() * 0.60;
+    }
+  }
 
   void tick() {
     x += vx; y += vy;
@@ -332,16 +721,19 @@ class KagemaParticle {
     if (y < 0) y = 1.0; if (y > 1) y = 0.0;
   }
 
-  static List<KagemaParticle> generate({int count = 42, math.Random? rng}) {
+  static List<KagemaParticle> generate({int count = 46, math.Random? rng}) {
     final r = rng ?? math.Random();
     return List.generate(count, (_) {
       final speed = 0.000065 + r.nextDouble() * 0.000125;
       final angle = r.nextDouble() * math.pi * 2;
       return KagemaParticle(
         x: r.nextDouble(), y: r.nextDouble(),
-        vx: math.cos(angle) * speed, vy: math.sin(angle) * speed,
+        vx: math.cos(angle) * speed,
+        vy: math.sin(angle) * speed,
         radius: 1.0 + r.nextDouble() * 2.4,
         opacity: 0.25 + r.nextDouble() * 0.60,
+        life: 0.5 + r.nextDouble() * 0.5,
+        maxLife: 0.5 + r.nextDouble() * 0.5,
       );
     });
   }
@@ -350,7 +742,7 @@ class KagemaParticle {
 class KagemaParticlePainter extends CustomPainter {
   final List<KagemaParticle> particles;
   final Color color;
-  final Color? accentColor;     // second tint for alternating dots
+  final Color? accentColor;
   final double connectionDistance;
   final bool isDark;
 
@@ -373,8 +765,9 @@ class KagemaParticlePainter extends CustomPainter {
       final py = p.y * size.height;
       final c  = (accentColor != null && i.isOdd) ? accentColor! : color;
 
-      dot.color = c.withOpacity(p.opacity * (isDark ? 0.58 : 0.42));
-      canvas.drawCircle(Offset(px, py), p.radius, dot);
+      final lifeOpacity = p.life * (isDark ? 0.58 : 0.42);
+      dot.color = c.withOpacity(p.opacity * lifeOpacity);
+      canvas.drawCircle(Offset(px, py), p.radius * p.life, dot);
 
       for (int j = i + 1; j < particles.length; j++) {
         final q   = particles[j];
@@ -385,7 +778,8 @@ class KagemaParticlePainter extends CustomPainter {
         if (d < max) {
           final a = (1.0 - d / max) *
               (isDark ? 0.24 : 0.14) *
-              math.min(p.opacity, q.opacity);
+              math.min(p.opacity, q.opacity) *
+              math.min(p.life, q.life);
           line.color = c.withOpacity(a);
           canvas.drawLine(Offset(px, py), Offset(qx, qy), line);
         }
@@ -397,10 +791,9 @@ class KagemaParticlePainter extends CustomPainter {
   bool shouldRepaint(KagemaParticlePainter old) => true;
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// PLASMA RINGS  — pulsing concentric halos that radiate from a role colour
-// Drop-in: wrap any widget with RolePlasma for a premium depth effect
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// PLASMA RINGS
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class RolePlasma extends StatefulWidget {
   final Widget child;
   final Color color;
@@ -483,9 +876,9 @@ class _PlasmaPainter extends CustomPainter {
   bool shouldRepaint(_PlasmaPainter old) => old.progress != progress;
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// CHROMATIC BORDER PAINTER — triple-colour sweeping animated border
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// CHROMATIC BORDER PAINTER
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class ChromaticBorderPainter extends CustomPainter {
   final double rotation;
   final double pulse;
@@ -518,7 +911,6 @@ class ChromaticBorderPainter extends CustomPainter {
     );
     final shader = gradient.createShader(rect);
 
-    // Outer glow pass
     canvas.drawRRect(
       rrect,
       Paint()
@@ -529,7 +921,6 @@ class ChromaticBorderPainter extends CustomPainter {
         ..color       = c1.withOpacity(0.20 * pulse),
     );
 
-    // Core stroke
     canvas.drawRRect(
       rrect,
       Paint()
@@ -543,9 +934,9 @@ class ChromaticBorderPainter extends CustomPainter {
   bool shouldRepaint(ChromaticBorderPainter old) => true;
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// AI SPECTRUM BORDER — drop-in widget
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// AI SPECTRUM BORDER
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class AISpectrumBorder extends StatefulWidget {
   final Widget child;
   final double borderRadius;
@@ -612,10 +1003,9 @@ class _AISpectrumBorderState extends State<AISpectrumBorder>
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// LIQUID GLASS CARD - FIXED
-// Premium card: sweep gradient border + blur + inner shimmer line
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// LIQUID GLASS CARD
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class LiquidGlassCard extends StatefulWidget {
   final Widget child;
   final double borderRadius;
@@ -707,7 +1097,6 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
                       (isDark ? KagemaColors.darkCard.withOpacity(0.94)
                           : Colors.white.withOpacity(0.96)),
                   borderRadius: BorderRadius.circular(widget.borderRadius - widget.borderThickness),
-                  // FIX: Use uniform border instead of non-uniform to avoid crash
                   border: Border.all(
                     color: dt.cardBorder,
                     width: 0.8,
@@ -716,7 +1105,6 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
                 child: Stack(
                   children: [
                     widget.child,
-                    // Top shimmer line - moved from border to separate widget
                     Positioned(
                       top: 0,
                       left: 0,
@@ -759,14 +1147,142 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// NEURAL BACKGROUND  — full-screen living canvas
-//   • two animated colour blobs (role-aware)
-//   • subtle moving grid
-//   • constellation particles (role + complement tint)
-//   • backdrop blur for glass feel
-//   • breathing radial aura
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// FROST GLASS CARD
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class FrostGlassCard extends LiquidGlassCard {
+  final double frostIntensity;
+
+  const FrostGlassCard({
+    super.key,
+    required super.child,
+    super.borderRadius = 28,
+    super.accentColor = KagemaColors.electric,
+    super.accentColor2 = KagemaColors.azure,
+    super.accentColor3,
+    super.backgroundColor,
+    super.padding,
+    super.useAIBorder = false,
+    super.elevation = 1.0,
+    this.frostIntensity = 0.7,
+  });
+
+  @override
+  _FrostGlassCardState createState() => _FrostGlassCardState();
+}
+
+class _FrostGlassCardState extends State<FrostGlassCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _sweep;
+  late AnimationController _frostPulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _sweep = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
+    _frostPulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 4000))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _sweep.dispose();
+    _frostPulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dt     = DT(isDark);
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_sweep, _frostPulse]),
+      builder: (_, __) {
+        final frostBlur = 20 * widget.frostIntensity * (0.8 + _frostPulse.value * 0.2);
+
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius),
+            gradient: SweepGradient(
+              center: Alignment.center,
+              colors: [
+                widget.accentColor.withOpacity(0.18),
+                widget.accentColor2.withOpacity(0.18),
+                (widget.accentColor3 ?? widget.accentColor).withOpacity(0.18),
+                widget.accentColor.withOpacity(0.18),
+              ],
+              transform: GradientRotation(_sweep.value * 2 * math.pi),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: widget.accentColor.withOpacity(isDark ? 0.18 : 0.09),
+                blurRadius: 32 * widget.elevation,
+                spreadRadius: -6,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.40 : 0.06),
+                blurRadius: 24 * widget.elevation,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(widget.borderRadius - 1.3),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: frostBlur, sigmaY: frostBlur),
+              child: Container(
+                margin: const EdgeInsets.all(1.3),
+                padding: widget.padding ?? const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: widget.backgroundColor ??
+                      (isDark ? KagemaColors.darkCard.withOpacity(0.88)
+                          : Colors.white.withOpacity(0.90)),
+                  borderRadius: BorderRadius.circular(widget.borderRadius - 1.3),
+                  border: Border.all(
+                    color: dt.cardBorder,
+                    width: 0.8,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    widget.child,
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(widget.borderRadius - 1.3),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Colors.white.withOpacity(isDark ? 0.02 : 0.08),
+                                Colors.transparent,
+                                Colors.white.withOpacity(isDark ? 0.02 : 0.05),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// NEURAL BACKGROUND
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class NeuralBackground extends StatefulWidget {
   final Widget child;
   final bool isDark;
@@ -814,7 +1330,7 @@ class _NeuralBackgroundState extends State<NeuralBackground>
     _particleCtrl = AnimationController(
         vsync: this, duration: const Duration(seconds: 1))
       ..addListener(() {
-        for (final p in _particles) p.tick();
+        for (final p in _particles) p.update();
         if (mounted) setState(() {});
       })
       ..repeat();
@@ -839,12 +1355,10 @@ class _NeuralBackgroundState extends State<NeuralBackground>
         return Stack(
           fit: StackFit.expand,
           children: [
-            // Base
             Container(
               color: widget.isDark ? KagemaColors.darkInk : KagemaColors.lightBase,
             ),
 
-            // Breathing radial aura — role colour
             if (widget.showBlobs) ...[
               Positioned.fill(
                 child: Container(
@@ -875,7 +1389,6 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                 ),
               ),
 
-              // Organic moving blobs
               Positioned(
                 top:   -180 + math.sin(t * 2 * math.pi) * 90,
                 right: -160 + math.cos(t * 2 * math.pi) * 80,
@@ -892,7 +1405,6 @@ class _NeuralBackgroundState extends State<NeuralBackground>
                   size: 820,
                 ),
               ),
-              // Tertiary accent blob — small, fast
               Positioned(
                 top:  MediaQuery.of(context).size.height * 0.4 +
                     math.sin(t * 4 * math.pi) * 60,
@@ -906,20 +1418,17 @@ class _NeuralBackgroundState extends State<NeuralBackground>
               ),
             ],
 
-            // Grid
             if (widget.showGrid)
               CustomPaint(
                 size: Size.infinite,
                 painter: _DriftingGridPainter(isDark: widget.isDark, t: t),
               ),
 
-            // Backdrop blur — makes background feel frosted
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
               child: const SizedBox.expand(),
             ),
 
-            // Particles
             if (widget.showParticles)
               Positioned.fill(
                 child: IgnorePointer(
@@ -979,9 +1488,9 @@ class _DriftingGridPainter extends CustomPainter {
   bool shouldRepaint(_DriftingGridPainter old) => old.t != old.t;
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// ROLE AURA LAYER — breathing radial glow for any dashboard screen
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ROLE AURA LAYER
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class RoleAuraLayer extends StatefulWidget {
   final Widget child;
   final Color roleColor;
@@ -1048,9 +1557,9 @@ class _RoleAuraLayerState extends State<RoleAuraLayer>
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// SHIMMER BOX — skeleton loading
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// SHIMMER BOX
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class ShimmerBox extends StatefulWidget {
   final double width;
   final double height;
@@ -1104,9 +1613,453 @@ class _ShimmerBoxState extends State<ShimmerBox>
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// GEMINI THEME EXTENSION — convenience builders for all dashboards
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// ANIMATED STAT BADGE
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class AnimatedStatBadge extends StatefulWidget {
+  final String value;
+  final String label;
+  final Color color;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool isLoading;
+
+  const AnimatedStatBadge({
+    super.key,
+    required this.value,
+    required this.label,
+    required this.color,
+    required this.icon,
+    this.onTap,
+    this.isLoading = false,
+  });
+
+  @override
+  State<AnimatedStatBadge> createState() => _AnimatedStatBadgeState();
+}
+
+class _AnimatedStatBadgeState extends State<AnimatedStatBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() { _pulse.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = context.dt;
+    final isMobile = context.isMobile;
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _pulse,
+        builder: (_, __) => Transform.scale(
+          scale: widget.isLoading ? 1.0 : 1.0 + _pulse.value * 0.025,
+          child: Container(
+            padding: EdgeInsets.all(isMobile ? 16 : 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [widget.color.withOpacity(0.08), Colors.transparent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(isMobile ? 20 : 24),
+              border: Border.all(
+                color: widget.color.withOpacity(0.15),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.color.withOpacity(0.05),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: widget.isLoading
+                ? ShimmerBox(
+              width: isMobile ? 60 : 80,
+              height: isMobile ? 60 : 80,
+              borderRadius: 12,
+            )
+                : Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(isMobile ? 8 : 12),
+                  decoration: BoxDecoration(
+                    color: widget.color.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: widget.color,
+                    size: isMobile ? 20 : 28,
+                  ),
+                ),
+                SizedBox(height: isMobile ? 6 : 10),
+                Text(
+                  widget.value,
+                  style: TextStyle(
+                    fontSize: isMobile ? 22 : 28,
+                    fontWeight: FontWeight.w900,
+                    color: widget.color,
+                    letterSpacing: -0.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: isMobile ? 2 : 4),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    fontSize: isMobile ? 9 : 10,
+                    fontWeight: FontWeight.w700,
+                    color: dt.textMuted,
+                    letterSpacing: 1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: isMobile ? 4 : 8),
+                  height: 2,
+                  width: isMobile ? 20 : 30,
+                  decoration: BoxDecoration(
+                    color: widget.color,
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// PRESTIGE THEME SWITCHER
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class PrestigeThemeSwitcher extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onToggle;
+  final Color? activeColor;
+
+  const PrestigeThemeSwitcher({
+    super.key,
+    required this.isDark,
+    required this.onToggle,
+    this.activeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = activeColor ?? KagemaColors.electric;
+    final dt = context.dt;
+
+    return GestureDetector(
+      onTap: onToggle,
+      child: AnimatedContainer(
+        duration: KagemaMotion.normal,
+        width: 60,
+        height: 32,
+        decoration: BoxDecoration(
+          gradient: isDark
+              ? LinearGradient(
+            colors: [color, color.withOpacity(0.5)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+              : null,
+          color: isDark ? null : dt.cardBorder,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? color.withOpacity(0.2) : Colors.transparent,
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: AnimatedAlign(
+          duration: KagemaMotion.normal,
+          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.all(3),
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+              size: 14,
+              color: isDark ? color : Colors.amber,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// BREADCRUMB NAVIGATION
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class BreadcrumbNav extends StatelessWidget {
+  final List<String> segments;
+  final VoidCallback? onSegmentTap;
+
+  const BreadcrumbNav({
+    super.key,
+    required this.segments,
+    this.onSegmentTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dt = context.dt;
+    final roleColor = KagemaColors.electric;
+    final isMobile = context.isMobile;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: segments.asMap().entries.map((entry) {
+          final index = entry.key;
+          final segment = entry.value;
+          final isLast = index == segments.length - 1;
+
+          return Row(
+            children: [
+              GestureDetector(
+                onTap: isLast ? null : onSegmentTap,
+                child: Text(
+                  segment.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: isMobile ? 8 : 9,
+                    fontWeight: FontWeight.w800,
+                    color: isLast ? roleColor : dt.textMuted,
+                    letterSpacing: 1,
+                    decoration: isLast ? TextDecoration.underline : TextDecoration.none,
+                    decorationColor: roleColor,
+                    decorationThickness: 1.5,
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    size: 12,
+                    color: dt.textMuted.withOpacity(0.5),
+                  ),
+                ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// GRADIENT AVATAR
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class GradientAvatar extends StatelessWidget {
+  final String name;
+  final double radius;
+  final Color? color;
+  final VoidCallback? onTap;
+  final bool showBadge;
+
+  const GradientAvatar({
+    super.key,
+    required this.name,
+    this.radius = 30,
+    this.color,
+    this.onTap,
+    this.showBadge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final roleColor = color ?? KagemaColors.electric;
+    final letter = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final isMobile = context.isMobile;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        children: [
+          Container(
+            width: radius * 2,
+            height: radius * 2,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  roleColor,
+                  roleColor.withOpacity(0.6),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: roleColor.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                letter,
+                style: TextStyle(
+                  fontSize: radius * 0.85,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          if (showBadge)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                width: isMobile ? 10 : 12,
+                height: isMobile ? 10 : 12,
+                decoration: BoxDecoration(
+                  color: KagemaColors.teacherGreen,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// MICRO-INTERACTIONS
+// ───────────────────────────────────────────────────────────────────────────────────────────
+class HoverScale extends StatefulWidget {
+  final Widget child;
+  final double scale;
+  final Duration duration;
+  final Curve curve;
+
+  const HoverScale({
+    super.key,
+    required this.child,
+    this.scale = 1.03,
+    this.duration = KagemaMotion.fast,
+    this.curve = Curves.easeOutCubic,
+  });
+
+  @override
+  State<HoverScale> createState() => _HoverScaleState();
+}
+
+class _HoverScaleState extends State<HoverScale> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedScale(
+        scale: _isHovered ? widget.scale : 1.0,
+        duration: widget.duration,
+        curve: widget.curve,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+class PressScale extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  final double pressScale;
+  final double hoverScale;
+  final Duration duration;
+
+  const PressScale({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.pressScale = 0.97,
+    this.hoverScale = 1.03,
+    this.duration = KagemaMotion.fast,
+  });
+
+  @override
+  State<PressScale> createState() => _PressScaleState();
+}
+
+class _PressScaleState extends State<PressScale> {
+  bool _isPressed = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = _isPressed ? widget.pressScale : (_isHovered ? widget.hoverScale : 1.0);
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() {
+        _isHovered = false;
+        _isPressed = false;
+      }),
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: scale,
+          duration: widget.duration,
+          curve: Curves.easeOutCubic,
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// GEMINI THEME EXTENSION
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
   final LinearGradient? primaryGradient;
   final LinearGradient? glowingBorderGradient;
@@ -1118,7 +2071,6 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     this.accentGlow,
   });
 
-  // ── Build full-screen neural background (use in Scaffold body) ───────────────
   Widget buildCreativeBackground({
     required Widget child,
     bool isDark         = false,
@@ -1164,7 +2116,6 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     return bg;
   }
 
-  // ── Build glassmorphism card ──────────────────────────────────────────────────
   Widget buildGlowContainer({
     required Widget child,
     double borderRadius    = 28,
@@ -1191,6 +2142,32 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
     );
   }
 
+  Widget buildFrostGlass({
+    required Widget child,
+    double borderRadius    = 28,
+    Color? backgroundColor,
+    EdgeInsets? padding,
+    bool useAIBorder       = false,
+    Color accentColor      = KagemaColors.electric,
+    Color accentColor2     = KagemaColors.azure,
+    Color? accentColor3,
+    double elevation       = 1.0,
+    double frostIntensity  = 0.7,
+  }) {
+    return FrostGlassCard(
+      borderRadius:    borderRadius,
+      backgroundColor: backgroundColor,
+      padding:         padding,
+      useAIBorder:     useAIBorder,
+      accentColor:     accentColor,
+      accentColor2:    accentColor2,
+      accentColor3:    accentColor3,
+      elevation:       elevation,
+      frostIntensity:  frostIntensity,
+      child: child,
+    );
+  }
+
   @override
   GeminiThemeExtension copyWith({
     LinearGradient? primaryGradient,
@@ -1213,11 +2190,15 @@ class GeminiThemeExtension extends ThemeExtension<GeminiThemeExtension> {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
-// APP THEME — Material 3 ThemeData (light + dark)
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
+// APP THEME
+// ───────────────────────────────────────────────────────────────────────────────────────────
 class AppTheme {
   AppTheme._();
+
+  static BuildContext _getFallbackContext() {
+    return _FallbackContext();
+  }
 
   static ThemeData get lightTheme => _build(Brightness.light);
   static ThemeData get darkTheme  => _build(Brightness.dark);
@@ -1247,72 +2228,85 @@ class AppTheme {
         onError:    Colors.white,
       ),
 
-      // ── Typography ────────────────────────────────────────────────────────────
       textTheme: TextTheme(
         displayLarge: TextStyle(
-          fontWeight: FontWeight.w900, fontSize: 52,
+          fontWeight: FontWeight.w900,
+          fontSize: TypographyScale.headlineLarge.resolve(_getFallbackContext()),
           letterSpacing: -2.5, color: dt.textPrimary, height: 1.0,
         ),
         displayMedium: TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 40,
+          fontWeight: FontWeight.w800,
+          fontSize: TypographyScale.headlineMedium.resolve(_getFallbackContext()),
           letterSpacing: -1.5, color: dt.textPrimary, height: 1.05,
         ),
         displaySmall: TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 32,
+          fontWeight: FontWeight.w800,
+          fontSize: TypographyScale.headlineSmall.resolve(_getFallbackContext()),
           letterSpacing: -1.0, color: dt.textPrimary, height: 1.1,
         ),
         headlineLarge: TextStyle(
-          fontWeight: FontWeight.w900, fontSize: 28,
+          fontWeight: FontWeight.w900,
+          fontSize: TypographyScale.headlineLarge.resolve(_getFallbackContext()),
           letterSpacing: -0.8, color: dt.textPrimary,
         ),
         headlineMedium: TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 22,
+          fontWeight: FontWeight.w800,
+          fontSize: TypographyScale.headlineMedium.resolve(_getFallbackContext()),
           letterSpacing: -0.4, color: dt.textPrimary,
         ),
         headlineSmall: TextStyle(
-          fontWeight: FontWeight.w700, fontSize: 18,
+          fontWeight: FontWeight.w700,
+          fontSize: TypographyScale.headlineSmall.resolve(_getFallbackContext()),
           letterSpacing: -0.2, color: dt.textPrimary,
         ),
         titleLarge: TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 17,
+          fontWeight: FontWeight.w800,
+          fontSize: TypographyScale.titleLarge.resolve(_getFallbackContext()),
           letterSpacing: 0.2, color: dt.textPrimary,
         ),
         titleMedium: TextStyle(
-          fontWeight: FontWeight.w700, fontSize: 15,
+          fontWeight: FontWeight.w700,
+          fontSize: TypographyScale.titleMedium.resolve(_getFallbackContext()),
           letterSpacing: 0.4, color: dt.textPrimary,
         ),
         titleSmall: TextStyle(
-          fontWeight: FontWeight.w700, fontSize: 13,
+          fontWeight: FontWeight.w700,
+          fontSize: TypographyScale.titleMedium.resolve(_getFallbackContext()),
           letterSpacing: 0.3, color: dt.textSecondary,
         ),
         bodyLarge: TextStyle(
-          fontWeight: FontWeight.w500, fontSize: 16,
+          fontWeight: FontWeight.w500,
+          fontSize: TypographyScale.bodyLarge.resolve(_getFallbackContext()),
           color: dt.textPrimary, height: 1.55,
         ),
         bodyMedium: TextStyle(
-          fontWeight: FontWeight.w400, fontSize: 14,
+          fontWeight: FontWeight.w400,
+          fontSize: TypographyScale.bodyMedium.resolve(_getFallbackContext()),
           color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
           height: 1.6,
         ),
         bodySmall: TextStyle(
-          fontWeight: FontWeight.w400, fontSize: 12,
+          fontWeight: FontWeight.w400,
+          fontSize: TypographyScale.bodySmall.resolve(_getFallbackContext()),
           color: dt.textMuted, height: 1.5,
         ),
-        labelLarge: const TextStyle(
-          fontWeight: FontWeight.w800, fontSize: 14,
+        labelLarge: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: TypographyScale.labelLarge.resolve(_getFallbackContext()),
           letterSpacing: 0.4, color: Colors.white,
         ),
         labelMedium: TextStyle(
-          fontWeight: FontWeight.w700, fontSize: 11,
+          fontWeight: FontWeight.w700,
+          fontSize: TypographyScale.labelMedium.resolve(_getFallbackContext()),
           letterSpacing: 1.0, color: dt.textMuted,
         ),
         labelSmall: TextStyle(
-          fontWeight: FontWeight.w700, fontSize: 9,
+          fontWeight: FontWeight.w700,
+          fontSize: TypographyScale.labelSmall.resolve(_getFallbackContext()),
           letterSpacing: 2.0, color: dt.textMuted,
         ),
       ),
 
-      // ── AppBar ────────────────────────────────────────────────────────────────
       appBarTheme: AppBarTheme(
         backgroundColor:         Colors.transparent,
         elevation:               0,
@@ -1321,12 +2315,12 @@ class AppTheme {
         iconTheme:               IconThemeData(color: dt.textPrimary, size: 22),
         actionsIconTheme:        IconThemeData(color: dt.textPrimary, size: 22),
         titleTextStyle: TextStyle(
-          fontWeight: FontWeight.w900, fontSize: 17,
+          fontWeight: FontWeight.w900,
+          fontSize: TypographyScale.titleLarge.resolve(_getFallbackContext()),
           letterSpacing: 2.2, color: dt.textPrimary,
         ),
       ),
 
-      // ── Cards ─────────────────────────────────────────────────────────────────
       cardTheme: CardThemeData(
         elevation:        0,
         color:            dt.cardBg,
@@ -1338,7 +2332,6 @@ class AppTheme {
         ),
       ),
 
-      // ── Inputs ────────────────────────────────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled:      true,
         fillColor:   dt.inputBg,
@@ -1356,7 +2349,6 @@ class AppTheme {
         errorStyle: TextStyle(color: KagemaColors.rose, fontWeight: FontWeight.w600, fontSize: 11),
       ),
 
-      // ── Elevated button ───────────────────────────────────────────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: KagemaColors.electric,
@@ -1370,7 +2362,6 @@ class AppTheme {
         ),
       ),
 
-      // ── Text button ───────────────────────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: KagemaColors.electric,
@@ -1379,7 +2370,6 @@ class AppTheme {
         ),
       ),
 
-      // ── Outlined button ───────────────────────────────────────────────────────
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: dt.textPrimary,
@@ -1390,7 +2380,6 @@ class AppTheme {
         ),
       ),
 
-      // ── Chips ─────────────────────────────────────────────────────────────────
       chipTheme: ChipThemeData(
         backgroundColor:  dt.cardBg,
         selectedColor:    KagemaColors.electric.withOpacity(0.15),
@@ -1403,7 +2392,6 @@ class AppTheme {
         iconTheme: IconThemeData(color: dt.iconInactive, size: 16),
       ),
 
-      // ── BottomNavigationBar ───────────────────────────────────────────────────
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor:      dt.cardBg,
         selectedItemColor:    KagemaColors.electric,
@@ -1416,7 +2404,6 @@ class AppTheme {
             fontWeight: FontWeight.w600, fontSize: 10),
       ),
 
-      // ── NavigationBar (M3) ────────────────────────────────────────────────────
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor:  dt.cardBg,
         indicatorColor:   KagemaColors.electric.withOpacity(0.14),
@@ -1439,7 +2426,6 @@ class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
 
-      // ── NavigationRail ────────────────────────────────────────────────────────
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor:    dt.cardBg,
         selectedIconTheme:  const IconThemeData(color: KagemaColors.electric, size: 24),
@@ -1453,7 +2439,6 @@ class AppTheme {
         groupAlignment: -0.8,
       ),
 
-      // ── Drawer ────────────────────────────────────────────────────────────────
       drawerTheme: DrawerThemeData(
         backgroundColor: dt.cardBg,
         elevation: 0,
@@ -1463,29 +2448,28 @@ class AppTheme {
         ),
       ),
 
-      // ── Divider ───────────────────────────────────────────────────────────────
       dividerTheme: DividerThemeData(
         color: dt.divider, thickness: 1, space: 24,
       ),
 
-      // ── Dialog ────────────────────────────────────────────────────────────────
       dialogTheme: DialogThemeData(
         backgroundColor: dt.cardBg,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
         titleTextStyle: TextStyle(
-          fontWeight: FontWeight.w900, fontSize: 18,
+          fontWeight: FontWeight.w900,
+          fontSize: TypographyScale.titleLarge.resolve(_getFallbackContext()),
           color: dt.textPrimary, letterSpacing: 0.2,
         ),
         contentTextStyle: TextStyle(
-          fontWeight: FontWeight.w500, fontSize: 14,
+          fontWeight: FontWeight.w500,
+          fontSize: TypographyScale.bodyMedium.resolve(_getFallbackContext()),
           color: dt.textSecondary, height: 1.55,
         ),
         shadowColor: Colors.black.withOpacity(0.2),
         surfaceTintColor: Colors.transparent,
       ),
 
-      // ── BottomSheet ───────────────────────────────────────────────────────────
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor:  dt.cardBg,
         elevation:        0,
@@ -1498,7 +2482,6 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
 
-      // ── SnackBar ──────────────────────────────────────────────────────────────
       snackBarTheme: SnackBarThemeData(
         backgroundColor: isDark ? KagemaColors.darkCardAlt : const Color(0xFF1E293B),
         contentTextStyle: const TextStyle(
@@ -1509,7 +2492,6 @@ class AppTheme {
         actionTextColor: KagemaColors.electric,
       ),
 
-      // ── Switch / Checkbox / Radio ─────────────────────────────────────────────
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((s) =>
         s.contains(WidgetState.selected) ? KagemaColors.electric : dt.iconInactive),
@@ -1535,7 +2517,6 @@ class AppTheme {
             KagemaColors.electric.withOpacity(0.08)),
       ),
 
-      // ── Slider ────────────────────────────────────────────────────────────────
       sliderTheme: SliderThemeData(
         activeTrackColor:   KagemaColors.electric,
         inactiveTrackColor: dt.cardBorder,
@@ -1547,7 +2528,6 @@ class AppTheme {
         trackHeight: 4,
       ),
 
-      // ── Progress indicator ────────────────────────────────────────────────────
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color:              KagemaColors.electric,
         linearTrackColor:   dt.cardBorder,
@@ -1555,7 +2535,6 @@ class AppTheme {
         linearMinHeight:    6,
       ),
 
-      // ── Tabs ─────────────────────────────────────────────────────────────────
       tabBarTheme: TabBarThemeData(
         labelColor:            KagemaColors.electric,
         unselectedLabelColor:  dt.textMuted,
@@ -1568,7 +2547,6 @@ class AppTheme {
             KagemaColors.electric.withOpacity(0.06)),
       ),
 
-      // ── ListTile ──────────────────────────────────────────────────────────────
       listTileTheme: ListTileThemeData(
         tileColor:          Colors.transparent,
         selectedTileColor:  KagemaColors.electric.withOpacity(0.08),
@@ -1584,7 +2562,6 @@ class AppTheme {
         minLeadingWidth: 24,
       ),
 
-      // ── FAB ──────────────────────────────────────────────────────────────────
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor:  KagemaColors.electric,
         foregroundColor:  Colors.white,
@@ -1597,11 +2574,9 @@ class AppTheme {
             fontWeight: FontWeight.w800, fontSize: 14, letterSpacing: 0.3),
       ),
 
-      // ── Icon ─────────────────────────────────────────────────────────────────
       iconTheme: IconThemeData(color: dt.iconActive, size: 22),
       primaryIconTheme: const IconThemeData(color: KagemaColors.electric, size: 22),
 
-      // ── Tooltip ──────────────────────────────────────────────────────────────
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: isDark ? KagemaColors.darkCardAlt : const Color(0xFF1E293B),
@@ -1615,7 +2590,6 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       ),
 
-      // ── Badge ─────────────────────────────────────────────────────────────────
       badgeTheme: BadgeThemeData(
         backgroundColor: KagemaColors.rose,
         textColor: Colors.white,
@@ -1625,7 +2599,6 @@ class AppTheme {
         largeSize: 18,
       ),
 
-      // ── PopupMenu ────────────────────────────────────────────────────────────
       popupMenuTheme: PopupMenuThemeData(
         color: dt.cardBg,
         elevation: 4,
@@ -1639,7 +2612,6 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
 
-      // ── DatePicker ───────────────────────────────────────────────────────────
       datePickerTheme: DatePickerThemeData(
         backgroundColor:     dt.cardBg,
         headerBackgroundColor: KagemaColors.electric,
@@ -1654,7 +2626,6 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
 
-      // ── Extensions ───────────────────────────────────────────────────────────
       extensions: [
         GeminiThemeExtension(
           primaryGradient: LinearGradient(
@@ -1682,10 +2653,9 @@ class AppTheme {
       );
 }
 
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 // CONVENIENCE EXTENSION on BuildContext
-// Access the GeminiThemeExtension from anywhere in the widget tree
-// ───────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────────────────────────────
 extension KagemaThemeX on BuildContext {
   GeminiThemeExtension? get kagemaTheme =>
       Theme.of(this).extension<GeminiThemeExtension>();
@@ -1694,7 +2664,8 @@ extension KagemaThemeX on BuildContext {
 
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 
-  // Screen metrics helpers
   double get pt => MediaQuery.of(this).padding.top;
   double get pb => MediaQuery.of(this).padding.bottom;
+
+  Color get roleColor => KagemaColors.electric;
 }

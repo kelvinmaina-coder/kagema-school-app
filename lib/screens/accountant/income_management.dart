@@ -236,7 +236,7 @@ class _IncomeManagementScreenState extends State<IncomeManagementScreen> {
                             title: Text(item['source']?.toString().toUpperCase() ?? 'INCOME', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text('${item['category']} • ${item['payment_method']}\n${item['date']}', 
+                              child: Text('${item['category']} â€¢ ${item['payment_method']}\n${item['date']}', 
                                 style: TextStyle(fontSize: 11, height: 1.4, fontWeight: FontWeight.w600, color: dt.textSecondary)
                               ),
                             ),

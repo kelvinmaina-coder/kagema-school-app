@@ -137,7 +137,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                                       ),
                                     ),
                                     title: Text(staff['name'].toString().toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
-                                    subtitle: Text('${staff['role']} • ${staff['department'] ?? 'General'}', 
+                                    subtitle: Text('${staff['role']} â€¢ ${staff['department'] ?? 'General'}', 
                                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)
                                     ),
                                     trailing: canManage 

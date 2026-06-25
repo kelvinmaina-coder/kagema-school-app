@@ -167,7 +167,7 @@ class _DocumentManagementScreenState extends State<DocumentManagementScreen> {
                     title: Text(doc['title']?.toString().toUpperCase() ?? 'DOCUMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
                     subtitle: Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text('${doc['category']} • ${doc['date']} • ${doc['size']}', 
+                      child: Text('${doc['category']} â€¢ ${doc['date']} â€¢ ${doc['size']}', 
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)
                       ),
                     ),

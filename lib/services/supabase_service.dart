@@ -128,7 +128,7 @@ class SupabaseService {
   Future<void> saveMarks(List<Map<String, dynamic>> m) async => await client.from('marks').upsert(m);
 
   // ============================================================
-  // ✅ NEW: Get marks by exam, grade, and stream
+  // âœ… NEW: Get marks by exam, grade, and stream
   // ============================================================
   Future<List<Map<String, dynamic>>> getMarksByExamGradeStream(
       int examId,
@@ -149,7 +149,7 @@ class SupabaseService {
   }
 
   // ============================================================
-  // ✅ NEW: Get marks by exam, grade, stream, AND subject
+  // âœ… NEW: Get marks by exam, grade, stream, AND subject
   // ============================================================
   Future<List<Map<String, dynamic>>> getMarksByExamGradeStreamSubject(
       int examId,

@@ -43,7 +43,7 @@ class _ReportsModuleScreenState extends State<ReportsModuleScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('✅ Report Generated Successfully!'), backgroundColor: dt.success),
+          SnackBar(content: const Text('âœ… Report Generated Successfully!'), backgroundColor: dt.success),
         );
       }
     } catch (e) {

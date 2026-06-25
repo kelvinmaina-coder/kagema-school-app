@@ -138,7 +138,7 @@ class _AttendanceViewerScreenState extends State<AttendanceViewerScreen> {
                                       ),
                                     ),
                                     title: Text(r['target_name']?.toString().toUpperCase() ?? 'PUPIL NAME', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
-                                    subtitle: Text('Grade: ${r['grade'] ?? "N/A"} • ${r['stream'] ?? "General"}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)),
+                                    subtitle: Text('Grade: ${r['grade'] ?? "N/A"} â€¢ ${r['stream'] ?? "General"}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)),
                                     trailing: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(color: dt.roleSoftBg(color), borderRadius: BorderRadius.circular(8)),

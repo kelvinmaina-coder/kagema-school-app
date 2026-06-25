@@ -96,7 +96,7 @@ class _ChildTimetableScreenState extends State<ChildTimetableScreen> {
                               child: const Icon(Icons.schedule_rounded, color: KagemaColors.staffSky, size: 24),
                             ),
                             title: Text(slot['subject'] ?? 'Logic', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary)),
-                            subtitle: Text('${slot['day']} • ${slot['time_slot']}', 
+                            subtitle: Text('${slot['day']} â€¢ ${slot['time_slot']}', 
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dt.textSecondary)
                             ),
                             trailing: Container(

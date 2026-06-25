@@ -96,7 +96,7 @@ class _ChildListScreenState extends State<ChildListScreen> {
                                       const SizedBox(height: 6),
                                       Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), borderRadius: BorderRadius.circular(8)), child: Text('ADM: ${s.admissionNumber}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: roleColor, letterSpacing: 1))),
                                       const SizedBox(height: 8),
-                                      Text('${s.grade} • ${s.stream}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: dt.textSecondary)),
+                                      Text('${s.grade} â€¢ ${s.stream}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: dt.textSecondary)),
                                       const SizedBox(height: 12),
                                       _infoRow(dt, Icons.cake_outlined, s.dateOfBirth),
                                       _infoRow(dt, Icons.wc_rounded, s.gender),

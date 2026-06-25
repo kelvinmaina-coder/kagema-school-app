@@ -315,16 +315,16 @@ class _ChildAttendanceScreenState extends State<ChildAttendanceScreen> {
                   ),
                   const SizedBox(height: 20),
                   if (record.subject != null && record.subject!.isNotEmpty)
-                    _buildDetailRow('📚 Subject', record.subject!, dt),
+                    _buildDetailRow('ðŸ“š Subject', record.subject!, dt),
                   const SizedBox(height: 12),
                   if (record.teacher != null && record.teacher!.isNotEmpty)
-                    _buildDetailRow('👨‍🏫 Teacher', record.teacher!, dt),
+                    _buildDetailRow('ðŸ‘¨â€ðŸ« Teacher', record.teacher!, dt),
                   const SizedBox(height: 12),
                   if (record.term != null && record.term!.isNotEmpty)
-                    _buildDetailRow('📅 Term', record.term!, dt),
+                    _buildDetailRow('ðŸ“… Term', record.term!, dt),
                   const SizedBox(height: 12),
                   if (record.notes != null && record.notes!.isNotEmpty)
-                    _buildDetailRow('📝 Notes', record.notes!, dt),
+                    _buildDetailRow('ðŸ“ Notes', record.notes!, dt),
                   const SizedBox(height: 40),
                   SizedBox(
                     width: double.infinity,
