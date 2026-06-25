@@ -212,7 +212,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
             title: Text(student.name.toUpperCase(), 
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: dt.textPrimary)
             ),
-            subtitle: Text('ADM: ${student.admissionNumber} â€¢ GRADE ${student.grade}', 
+            subtitle: Text('ADM: ${student.admissionNumber} • GRADE ${student.grade}', 
               style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 1)
             ),
             trailing: Column(
@@ -468,7 +468,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('KSH ${NumberFormat('#,###').format(p['amount_paid'])}', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: dt.textPrimary)),
-                                    Text('${p['payment_method'].toString().toUpperCase()} â€¢ ${p['receipt_number']}',
+                                    Text('${p['payment_method'].toString().toUpperCase()} • ${p['receipt_number']}',
                                       style: TextStyle(fontSize: 8, color: dt.textMuted, fontWeight: FontWeight.w900, letterSpacing: 1)
                                     ),
                                   ],

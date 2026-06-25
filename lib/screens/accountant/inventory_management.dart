@@ -301,7 +301,7 @@ class _InventoryManagementState extends State<InventoryManagement> {
           title: Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text('${item['category']} â€¢ ${item['quantity']} units', 
+            child: Text('${item['category']} • ${item['quantity']} units', 
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
             ),
           ),

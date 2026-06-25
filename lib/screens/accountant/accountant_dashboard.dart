@@ -136,7 +136,7 @@ class _AccountantDashboardState extends State<AccountantDashboard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${greeter.greet('Accountant')} ðŸ‘‹',
+                          '${greeter.greet('Accountant')} 👋',
                           style: TextStyle(
                             fontSize: isMobile ? 20 : 24,
                             fontWeight: FontWeight.bold,

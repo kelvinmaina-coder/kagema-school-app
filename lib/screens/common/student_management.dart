@@ -122,7 +122,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
                                 ),
                               ),
                               title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                              subtitle: Text('ADM: ${student.admissionNumber} â€¢ ${student.grade}', 
+                              subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', 
                                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey)
                               ),
                               trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),

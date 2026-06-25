@@ -237,7 +237,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              '${item['payment_date']?.toString().split(' ')[0]} â€¢ ${item['category'] ?? 'General'}',
+              '${item['payment_date']?.toString().split(' ')[0]} • ${item['category'] ?? 'General'}',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dt.textSecondary),
             ),
           ),

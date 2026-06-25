@@ -134,7 +134,7 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
                                           title: Text(h.title.toUpperCase(), 
                                             style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5, color: dt.textPrimary)
                                           ),
-                                          subtitle: Text('${h.subject.toUpperCase()} â€¢ DUE: ${h.dueDate}', 
+                                          subtitle: Text('${h.subject.toUpperCase()} • DUE: ${h.dueDate}', 
                                             style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: KagemaColors.secretaryViolet.withValues(alpha: 0.7), letterSpacing: 1)
                                           ),
                                           children: [

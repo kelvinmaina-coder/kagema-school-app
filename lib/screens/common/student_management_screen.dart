@@ -146,7 +146,7 @@ class _StudentManagementScreenState extends State<StudentManagementScreen> {
                                     title: Text(student.name.toUpperCase(), 
                                       style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)
                                     ),
-                                    subtitle: Text('ADM: ${student.admissionNumber} â€¢ ${student.grade}', 
+                                    subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', 
                                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: dt.textSecondary)
                                     ),
                                     trailing: Icon(Icons.chevron_right_rounded, color: dt.iconInactive),

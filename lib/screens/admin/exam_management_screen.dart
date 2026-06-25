@@ -494,7 +494,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                                     Padding(
                                       padding: const EdgeInsets.only(top: 6),
                                       child: Text(
-                                        'ðŸ“š ${exam['subjects']}',
+                                        '📚 ${exam['subjects']}',
                                         style: TextStyle(fontSize: 11, color: dt.textMuted),
                                       ),
                                     ),
@@ -502,7 +502,7 @@ class _ExamManagementScreenState extends State<ExamManagementScreen> {
                                     Padding(
                                       padding: const EdgeInsets.only(top: 2),
                                       child: Text(
-                                        'ðŸŽ¯ ${exam['target_class']}',
+                                        '🎯 ${exam['target_class']}',
                                         style: TextStyle(fontSize: 11, color: dt.textMuted),
                                       ),
                                     ),

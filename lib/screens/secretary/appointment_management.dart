@@ -255,7 +255,7 @@ class _AppointmentManagementScreenState extends State<AppointmentManagementScree
                               title: Text(appt['title']?.toString().toUpperCase() ?? 'APPOINTMENT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 4),
-                                child: Text('${appt['visitor_name']} \n${DateFormat('MMM dd â€¢ hh:mm a').format(appointmentDate)}', 
+                                child: Text('${appt['visitor_name']} \n${DateFormat('MMM dd • hh:mm a').format(appointmentDate)}', 
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.4, color: dt.textSecondary)
                                 ),
                               ),

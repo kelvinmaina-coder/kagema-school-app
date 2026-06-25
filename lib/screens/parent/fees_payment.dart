@@ -301,7 +301,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
             child: Icon(isWaiver ? Icons.auto_awesome_rounded : Icons.receipt_long_rounded, color: color, size: 20),
           ),
           title: Text('Ref: ${p['receipt_number']}', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
-          subtitle: Text('${p['payment_date'].toString().split('T')[0]} â€¢ ${p['payment_method']}', 
+          subtitle: Text('${p['payment_date'].toString().split('T')[0]} • ${p['payment_method']}', 
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)
           ),
           trailing: Text('Ksh ${p['amount_paid']}', 

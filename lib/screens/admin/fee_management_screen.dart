@@ -153,7 +153,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ðŸ“Š Report Summary'),
+        title: const Text('📊 Report Summary'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +164,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
             const SizedBox(height: 8),
             Text('Period: ${_selectedTerm} ${_selectedYear != 'All' ? _selectedYear : ''}'),
             const SizedBox(height: 16),
-            Text('âœ… Report ready for download', style: TextStyle(color: Colors.green)),
+            Text('✅ Report ready for download', style: TextStyle(color: Colors.green)),
           ],
         ),
         actions: [
@@ -176,7 +176,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('ðŸ“„ Report downloaded successfully!')),
+                const SnackBar(content: Text('📄 Report downloaded successfully!')),
               );
             },
             child: const Text('DOWNLOAD'),
@@ -479,7 +479,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
                 Row(
                   children: [
                     Text(
-                      '${p['payment_method'] ?? 'N/A'} â€¢ ${p['payment_date'] ?? ''}',
+                      '${p['payment_method'] ?? 'N/A'} • ${p['payment_date'] ?? ''}',
                       style: TextStyle(fontSize: 12, color: dt.textSecondary),
                     ),
                     const Spacer(),
@@ -632,7 +632,7 @@ class _FeeManagementScreenState extends State<FeeManagementScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Grade ${s['grade']} ${s['stream']} â€¢ ${s['admission_number']}',
+                'Grade ${s['grade']} ${s['stream']} • ${s['admission_number']}',
                 style: TextStyle(fontSize: 12, color: dt.textSecondary),
               ),
               const SizedBox(height: 8),

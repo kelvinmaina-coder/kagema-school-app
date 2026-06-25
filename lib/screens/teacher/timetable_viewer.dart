@@ -113,7 +113,7 @@ class _TimetableViewerState extends State<TimetableViewer> {
                                     child: Icon(Icons.timer_outlined, color: roleColor, size: 24),
                                   ),
                                   title: Text(item['subject']?.toString().toUpperCase() ?? 'DUTY', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: dt.textPrimary, letterSpacing: 0.5)),
-                                  subtitle: Text('${item['time_slot']} â€¢ ${item['grade']}', 
+                                  subtitle: Text('${item['time_slot']} • ${item['grade']}', 
                                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: dt.textSecondary)
                                   ),
                                   trailing: Container(

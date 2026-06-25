@@ -144,7 +144,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${greeter.greet(teacherName.split(' ')[0])} ðŸ‘‹',
+                          '${greeter.greet(teacherName.split(' ')[0])} 👋',
                           style: TextStyle(
                             fontSize: isMobile ? 20 : 24,
                             fontWeight: FontWeight.bold,

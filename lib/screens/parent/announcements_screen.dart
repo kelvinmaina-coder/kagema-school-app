@@ -270,7 +270,7 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> with SingleTi
   PreferredSizeWidget _buildAppBar(DT dt, bool isDark, Color roleColor, bool isSmallScreen) {
     return AppBar(
       title: Text(
-          isSmallScreen ? 'ðŸ“¢ NEWS' : 'SCHOOL ANNOUNCEMENTS',
+          isSmallScreen ? '📢 NEWS' : 'SCHOOL ANNOUNCEMENTS',
           style: TextStyle(
             fontWeight: FontWeight.w900,
             color: Colors.white,
@@ -406,9 +406,9 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> with SingleTi
   Widget _buildFilterChips(DT dt, Color roleColor, bool isSmallScreen) {
     final filters = [
       {'label': 'All', 'value': 'all'},
-      {'label': 'ðŸ”´ High', 'value': 'high'},
-      {'label': 'ðŸŸ¡ Medium', 'value': 'medium'},
-      {'label': 'ðŸŸ¢ Low', 'value': 'low'},
+      {'label': '🔴 High', 'value': 'high'},
+      {'label': '🟡 Medium', 'value': 'medium'},
+      {'label': '🟢 Low', 'value': 'low'},
     ];
 
     return SingleChildScrollView(

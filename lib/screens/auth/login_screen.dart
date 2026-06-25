@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import '../../services/authentication_service.dart';
 import '../parent/parent_dashboard.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 // RESPONSIVE BREAKPOINTS HELPER
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 enum ScreenLayout { mobile, tablet, desktop }
 
 extension LayoutHelper on BuildContext {
@@ -26,9 +26,9 @@ extension LayoutHelper on BuildContext {
   double get screenHeight => MediaQuery.of(this).size.height;
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// FEATURE #7 â€” TIME-AWARE GREETING HELPER
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
+// FEATURE #7 — TIME-AWARE GREETING HELPER
+// ─────────────────────────────────────────────────────────────────
 class _TimeGreeting {
   final String prefix;
   final String emoji;
@@ -44,34 +44,34 @@ class _TimeGreeting {
     if (hour >= 5 && hour < 12) {
       return const _TimeGreeting(
         prefix: 'Good Morning,',
-        emoji: 'ðŸŒ…',
+        emoji: '🌅',
         timeLabel: 'morning',
       );
     } else if (hour >= 12 && hour < 17) {
       return const _TimeGreeting(
         prefix: 'Good Afternoon,',
-        emoji: 'â˜€ï¸',
+        emoji: '☀️',
         timeLabel: 'afternoon',
       );
     } else if (hour >= 17 && hour < 21) {
       return const _TimeGreeting(
         prefix: 'Good Evening,',
-        emoji: 'ðŸŒ†',
+        emoji: '🌆',
         timeLabel: 'evening',
       );
     } else {
       return const _TimeGreeting(
         prefix: 'Good Night,',
-        emoji: 'ðŸŒ™',
+        emoji: '🌙',
         timeLabel: 'night',
       );
     }
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// FEATURE #1 â€” PARTICLE DATA MODEL
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
+// FEATURE #1 — PARTICLE DATA MODEL
+// ─────────────────────────────────────────────────────────────────
 class _Particle {
   double x, y, vx, vy, radius, opacity;
   _Particle({
@@ -142,9 +142,9 @@ class _ParticlePainter extends CustomPainter {
   bool shouldRepaint(_ParticlePainter oldDelegate) => true;
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 // DARK-MODE TOKEN HELPER
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 class _DT {
   final bool dark;
   const _DT(this.dark);
@@ -181,9 +181,9 @@ class _DT {
       dark ? const Color(0xFF0F172A) : const Color(0xFFF0F4F8);
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 // LOGIN SCREEN
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────────────────────────
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -200,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool isLoading = false;
   Map<String, dynamic>? cachedUser; // Personalized "Welcome Back"
 
-  // â”€â”€ Entry animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Entry animations ────────────────────────────────────────────
   late AnimationController _headerAnimController;
   late AnimationController _cardAnimController;
   late AnimationController _formAnimController;
@@ -214,22 +214,22 @@ class _LoginScreenState extends State<LoginScreen>
   late Animation<Offset> _formSlide;
   late Animation<double> _pulseAnim;
 
-  // â”€â”€ FEATURE #1 â€” Particle animation controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FEATURE #1 — Particle animation controller ──────────────────
   late AnimationController _particleController;
   final List<_Particle> _particles = [];
   final math.Random _rng = math.Random();
 
-  // â”€â”€ FEATURE #5 â€” Aura animation controller â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FEATURE #5 — Aura animation controller ──────────────────────
   late AnimationController _auraController;
   late Animation<double> _auraAnim;
 
-  // â”€â”€ Focus nodes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Focus nodes ─────────────────────────────────────────────────
   final FocusNode _idFocus = FocusNode();
   final FocusNode _passFocus = FocusNode();
   bool _idFocused = false;
   bool _passFocused = false;
 
-  // â”€â”€ Role data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Role data ───────────────────────────────────────────────────
   final List<Map<String, dynamic>> roles = [
     {
       'title': 'ADMIN',
@@ -242,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'admin',
       'hint': 'Email or Admin ID',
       'roleName': 'Admin',
-      'emoji': 'ðŸ‘‘',
+      'emoji': '👑',
       'sub': 'Manage your school from one powerful dashboard.',
       'accountLabel': 'your Admin account',
       'badge': 'Full Access',
@@ -258,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'teacher',
       'hint': 'Staff ID',
       'roleName': 'Teacher',
-      'emoji': 'ðŸŽ“',
+      'emoji': '🎓',
       'sub': 'Your students are ready for today.',
       'accountLabel': 'your Teacher account',
       'badge': 'Educator',
@@ -274,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'parent',
       'hint': 'Phone Number',
       'roleName': 'Parent',
-      'emoji': 'â¤ï¸',
+      'emoji': '❤️',
       'sub': 'Track your child\'s progress and stay connected.',
       'accountLabel': 'your Parent account',
       'badge': 'Guardian',
@@ -290,7 +290,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'accountant',
       'hint': 'Treasury ID',
       'roleName': 'Accountant',
-      'emoji': 'ðŸ’°',
+      'emoji': '💰',
       'sub': 'Finance reports and records await you.',
       'accountLabel': 'your Accountant account',
       'badge': 'Finance',
@@ -306,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'secretary',
       'hint': 'Office ID',
       'roleName': 'Secretary',
-      'emoji': 'ðŸ“‹',
+      'emoji': '📋',
       'sub': 'Manage schedules and keep things running smoothly.',
       'accountLabel': 'your Secretary account',
       'badge': 'Operations',
@@ -322,7 +322,7 @@ class _LoginScreenState extends State<LoginScreen>
       'id': 'staff',
       'hint': 'Staff ID',
       'roleName': 'Staff',
-      'emoji': 'ðŸŒŸ',
+      'emoji': '🌟',
       'sub': 'Your tasks and schedule are ready for you.',
       'accountLabel': 'your Staff account',
       'badge': 'Team Member',
@@ -336,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen>
       ? activeRole['darkLightColor'] as Color
       : activeRole['lightColor'] as Color;
 
-  // â”€â”€ FEATURE #7 â€” cached time greeting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FEATURE #7 — cached time greeting ──────────────────────────
   final _TimeGreeting _timeGreeting = _TimeGreeting.now;
 
   String _buildGreeting() {
@@ -354,11 +354,11 @@ class _LoginScreenState extends State<LoginScreen>
     if (hour >= 5 && hour < 12) timeSuffix = 'Have a great morning ahead.';
     else if (hour >= 12 && hour < 17) timeSuffix = 'Hope your afternoon is productive.';
     else if (hour >= 17 && hour < 21) timeSuffix = 'Wrapping up a great day?';
-    else timeSuffix = 'Working late â€” we\'ve got you covered.';
+    else timeSuffix = 'Working late — we\'ve got you covered.';
     return '${activeRole['sub']}\n$timeSuffix';
   }
 
-  // â”€â”€ FEATURE #1 â€” build particle list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── FEATURE #1 — build particle list ────────────────────────────
   void _initParticles({int count = 38}) {
     _particles.clear();
     for (int i = 0; i < count; i++) {
@@ -422,7 +422,7 @@ class _LoginScreenState extends State<LoginScreen>
     Future.delayed(const Duration(milliseconds: 400),
             () => _formAnimController.forward());
 
-    // FEATURE #1 â€” particle ticker
+    // FEATURE #1 — particle ticker
     _initParticles();
     _particleController = AnimationController(
       vsync: this,
@@ -435,7 +435,7 @@ class _LoginScreenState extends State<LoginScreen>
     })
       ..repeat();
 
-    // FEATURE #5 â€” aura pulse
+    // FEATURE #5 — aura pulse
     _auraController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 3000))
       ..repeat(reverse: true);
@@ -484,9 +484,9 @@ class _LoginScreenState extends State<LoginScreen>
     _formAnimController.forward();
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // BUILD
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final layout = context.layout;
@@ -552,9 +552,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // MOBILE LAYOUT
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildMobileLayout(_DT dt) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -589,9 +589,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // TABLET LAYOUT
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildTabletLayout(_DT dt) {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -641,9 +641,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // DESKTOP LAYOUT
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildDesktopLayout(_DT dt) {
     return Row(
       children: [
@@ -668,7 +668,7 @@ class _LoginScreenState extends State<LoginScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'KAGEMA SCHOOL â€” INTELLIGENT EDUCATION HUB',
+                    'KAGEMA SCHOOL — INTELLIGENT EDUCATION HUB',
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w800,
@@ -704,9 +704,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // DESKTOP HERO PANEL
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildDesktopHeroPanel(_DT dt) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -944,9 +944,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // HERO HEADER (mobile + tablet)
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildHeroHeader({required bool compact, required _DT dt}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -1167,9 +1167,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // ROLE SELECTOR SECTION
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildRoleSection({
     required int crossAxisCount,
     bool padded = true,
@@ -1306,9 +1306,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // AUTH FORM SECTION â€” with roleâ€‘color animated border on the outer card
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
+  // AUTH FORM SECTION — with role‑color animated border on the outer card
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildAuthSection({bool padded = true, required _DT dt}) {
     Widget content = AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -1434,7 +1434,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€ âœ… COMPLETELY BORDERLESS INPUT â€“ NO RED BOX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── ✅ COMPLETELY BORDERLESS INPUT – NO RED BOX ──────────────
   Widget _buildBorderlessInput({
     required FocusNode focus,
     required bool isFocused,
@@ -1466,7 +1466,7 @@ class _LoginScreenState extends State<LoginScreen>
           decoration: BoxDecoration(
             color: isFocused ? dt.inputFocusBg : dt.inputBg,
             borderRadius: BorderRadius.circular(18),
-            // â”€â”€â”€ NO BORDER AT ALL â”€â”€â”€
+            // ─── NO BORDER AT ALL ───
             border: Border.all(
               color: Colors.transparent,
               width: 0,
@@ -1623,9 +1623,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // FOOTER
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildFooter(_DT dt) {
     return Column(
       children: [
@@ -1683,9 +1683,9 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   // LOGIN HANDLER
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────
   void _handleLogin() async {
     setState(() => isLoading = true);
     final authService =

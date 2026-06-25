@@ -401,7 +401,7 @@ class _StaffDashboardState extends State<StaffDashboard>
   Widget _buildIDCard(DT dt, Color roleColor, GeminiThemeExtension? theme) {
     final name = _staffProfile?['name']?.toString() ?? 'Staff Member';
     final role = _staffProfile?['role']?.toString() ?? 'Staff';
-    final staffId = _staffProfile?['staff_id']?.toString() ?? 'â€”';
+    final staffId = _staffProfile?['staff_id']?.toString() ?? '—';
     final isMobile = context.sw < 600;
 
     return theme?.buildGlowContainer(
@@ -753,7 +753,7 @@ class _StaffDashboardState extends State<StaffDashboard>
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
-                'Due: ${t['due_date'] ?? 'â€”'}',
+                'Due: ${t['due_date'] ?? '—'}',
                 style: TextStyle(
                   fontSize: isMobile ? 10 : 11,
                   fontWeight: FontWeight.w600,
@@ -885,7 +885,7 @@ class _StaffDashboardState extends State<StaffDashboard>
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(
-                'Date: ${l['date'] ?? 'â€”'}',
+                'Date: ${l['date'] ?? '—'}',
                 style: TextStyle(
                   fontSize: isMobile ? 10 : 11,
                   fontWeight: FontWeight.w600,
@@ -954,7 +954,7 @@ class _StaffDashboardState extends State<StaffDashboard>
                 ),
               ),
               subtitle: Text(
-                '${a['date'] ?? 'â€”'}  Â·  ${a['time'] ?? 'â€”'}',
+                '${a['date'] ?? '—'}  ·  ${a['time'] ?? '—'}',
                 style: TextStyle(
                   fontSize: isMobile ? 10 : 11,
                   fontWeight: FontWeight.w600,

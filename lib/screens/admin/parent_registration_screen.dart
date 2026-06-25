@@ -278,7 +278,7 @@ class _ParentRegistrationScreenState extends State<ParentRegistrationScreen> {
                 final isSelected = _selectedChildren.any((s) => s.studentId == student.studentId);
                 return CheckboxListTile(
                   title: Text(student.name.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: dt.textPrimary, letterSpacing: 0.5)),
-                  subtitle: Text('ADM: ${student.admissionNumber} â€¢ ${student.grade}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: dt.textSecondary)),
+                  subtitle: Text('ADM: ${student.admissionNumber} • ${student.grade}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: dt.textSecondary)),
                   value: isSelected,
                   activeColor: KagemaColors.accountantAmber,
                   checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),

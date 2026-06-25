@@ -137,7 +137,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${greeter.greet('Admin')} ðŸ‘‹',
+                          '${greeter.greet('Admin')} 👋',
                           style: TextStyle(
                             fontSize: isMobile ? 20 : 24,
                             fontWeight: FontWeight.bold,

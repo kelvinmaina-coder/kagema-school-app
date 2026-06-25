@@ -223,7 +223,7 @@ class _ExpenseManagementScreenState extends State<ExpenseManagementScreen> {
                             title: Text(item['description']?.toString().toUpperCase() ?? 'EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: dt.textPrimary, letterSpacing: 0.5)),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text('${item['category']} â€¢ ${item['date']}', 
+                              child: Text('${item['category']} • ${item['date']}', 
                                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dt.textSecondary)
                               ),
                             ),

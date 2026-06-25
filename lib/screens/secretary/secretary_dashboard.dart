@@ -145,7 +145,7 @@ class _SecretaryDashboardState extends State<SecretaryDashboard> with TickerProv
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${greeter.greet('Secretary')} ðŸ‘‹',
+                          '${greeter.greet('Secretary')} 👋',
                           style: TextStyle(
                             fontSize: isMobile ? 20 : 24,
                             fontWeight: FontWeight.bold,
