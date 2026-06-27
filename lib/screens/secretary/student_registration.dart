@@ -83,7 +83,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEditing ? 'Student details updated successfully!' : 'Student registered successfully!', style: const TextStyle(fontWeight: FontWeight.w700)), 
+            content: Text(isEditing ? 'Student details updated successfully!' : 'Student registered successfully!', style: const TextStyle(fontWeight: FontWeight.w700)),
             backgroundColor: dt.success,
             behavior: SnackBarBehavior.floating,
           ),
@@ -95,8 +95,8 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       if (mounted) {
          ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Network Weak: Saved to device successfully.', style: TextStyle(fontWeight: FontWeight.w700)), 
-            backgroundColor: dt.warning, 
+            content: const Text('Network Weak: Saved to device successfully.', style: TextStyle(fontWeight: FontWeight.w700)),
+            backgroundColor: dt.warning,
             behavior: SnackBarBehavior.floating
           ),
         );
@@ -117,7 +117,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
-          colorScheme: context.isDark 
+          colorScheme: context.isDark
             ? ColorScheme.dark(primary: roleColor, onPrimary: Colors.white, surface: dt.cardBg, onSurface: dt.textPrimary)
             : ColorScheme.light(primary: roleColor, onPrimary: Colors.white, surface: dt.cardBg, onSurface: dt.textPrimary),
         ),
@@ -140,7 +140,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
       extendBodyBehindAppBar: true,
       backgroundColor: dt.pageBg,
       appBar: AppBar(
-        title: Text(isEditing ? 'EDIT STUDENT' : 'STUDENT REGISTRATION', 
+        title: Text(isEditing ? 'EDIT STUDENT' : 'STUDENT REGISTRATION',
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 3, color: Colors.white, fontSize: 16)
         ),
         centerTitle: true,
@@ -197,9 +197,9 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         ),
-                        label: _isSaving 
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
-                          : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION', 
+                        label: _isSaving
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                          : Text(isEditing ? 'UPDATE DETAILS' : 'CONFIRM REGISTRATION',
                               style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13)),
                       ),
                     ),
@@ -227,7 +227,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
           const SizedBox(height: 20),
           _buildField(dt, _admController, 'Admission Number', Icons.badge_outlined),
           const SizedBox(height: 20),
-          
+
           InkWell(
             onTap: _pickDob,
             borderRadius: BorderRadius.circular(20),
@@ -249,14 +249,14 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: dt.roleSoftBg(roleColor), borderRadius: BorderRadius.circular(8)),
-                      child: Text('${DateTime.now().year - _selectedDob!.year} YRS', 
+                      child: Text('${DateTime.now().year - _selectedDob!.year} YRS',
                         style: TextStyle(fontWeight: FontWeight.w900, color: roleColor, fontSize: 10)),
                     ),
                 ],
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
           Text('GUARDIAN INFORMATION', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: dt.textMuted, letterSpacing: 2)),
           const SizedBox(height: 24),
