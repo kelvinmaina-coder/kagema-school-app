@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+﻿import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -10,7 +10,7 @@ class OfflineDbService {
   OfflineDbService._init();
 
   Future<Database?> get database async {
-    if (kIsWeb) return null; // Logic: Don't load sqflite on Web
+    if (kIsWeb) return null;
     if (_database != null) return _database!;
     _database = await _initDB('kagema_offline.db');
     return _database!;
@@ -23,7 +23,7 @@ class OfflineDbService {
 
     return await openDatabase(
       path,
-      version: 4, 
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -73,8 +73,6 @@ class OfflineDbService {
     ''');
   }
 
-  // --- SAFE WRAPPERS FOR WEB ---
-
   Future<void> saveStaffLocal(Map<String, dynamic> staff) async {
     if (kIsWeb) return;
     final db = await database;
@@ -90,6 +88,30 @@ class OfflineDbService {
       'status': staff['status'],
       'last_updated': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteStaffLocal(String staffId) async {
+    if (kIsWeb) return;
+    final db = await database;
+    if (db == null) return;
+    await db.delete(
+      'staff',
+      where: 'staff_id = ?',
+      whereArgs: [staffId],
+    );
+  }
+
+  Future<Map<String, dynamic>?> getStaffLocal(String staffId) async {
+    if (kIsWeb) return null;
+    final db = await database;
+    if (db == null) return null;
+    final result = await db.query(
+      'staff',
+      where: 'staff_id = ?',
+      whereArgs: [staffId],
+    );
+    if (result.isNotEmpty) return result.first;
+    return null;
   }
 
   Future<void> saveParentLocal(Map<String, dynamic> parent) async {
