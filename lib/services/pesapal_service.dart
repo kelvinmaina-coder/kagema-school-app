@@ -1,14 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
 
 class PesapalService {
   static final PesapalService instance = PesapalService._init();
   PesapalService._init();
 
-  // CREDENTIALS - SANDBOX (Update for Production)
+  // CREDENTIALS - Using the ones found in your configuration
   final String _consumerKey = 'k0jh9KAXbWkEkq4AUFukHDczpAz4ypW';
   final String _consumerSecret = 'fasDpsXCrrFsmGozd/MEv5QcdzQ=';
+  
+  // Base URL - Keeping Sandbox for now, change to 'pay.pesapal.com' for Production
   final String _baseUrl = 'https://cybersandbox.pesapal.com/v3';
   
   String? _cachedIpnId;
@@ -20,7 +21,7 @@ class PesapalService {
         Uri.parse('$_baseUrl/api/Auth/RequestToken'),
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
         body: jsonEncode({'consumer_key': _consumerKey, 'consumer_secret': _consumerSecret}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body)['token'];
@@ -31,7 +32,7 @@ class PesapalService {
     }
   }
 
-  /// STEP 2: REGISTER/GET IPN ID (Cached for Efficiency)
+  /// STEP 2: REGISTER/GET IPN ID
   Future<String?> _getIpnId(String token) async {
     if (_cachedIpnId != null) return _cachedIpnId;
     
@@ -47,7 +48,7 @@ class PesapalService {
           'url': 'https://kagema-school.supabase.co/functions/v1/pesapal-ipn',
           'ipn_notification_type': 'GET'
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         _cachedIpnId = jsonDecode(response.body)['ipn_id'];
@@ -68,16 +69,20 @@ class PesapalService {
     required String studentName,
   }) async {
     final token = await _getAuthToken();
-    if (token == null) return {'success': false, 'message': 'AUTH_FAILED'};
+    if (token == null) return {'success': false, 'message': 'Authentication Failed. Please check your credentials.'};
 
     final ipnId = await _getIpnId(token);
-    if (ipnId == null) return {'success': false, 'message': 'IPN_REGISTRATION_FAILED'};
+    if (ipnId == null) return {'success': false, 'message': 'IPN Registration Failed.'};
 
-    // PHONE FORMATTING FOR STK PUSH (Must be 254...)
+    // STRICT PHONE FORMATTING (254XXXXXXXXX)
     String cleaned = phoneNumber.replaceAll(RegExp(r'\D'), '');
-    String formattedPhone = cleaned;
-    if (cleaned.startsWith('0')) formattedPhone = '254${cleaned.substring(1)}';
-    else if (!cleaned.startsWith('254')) formattedPhone = '254$cleaned';
+    if (cleaned.startsWith('0')) {
+      cleaned = '254${cleaned.substring(1)}';
+    } else if (cleaned.startsWith('+')) {
+      cleaned = cleaned.substring(1);
+    } else if (!cleaned.startsWith('254')) {
+      cleaned = '254$cleaned';
+    }
 
     try {
       final body = {
@@ -88,8 +93,8 @@ class PesapalService {
         "callback_url": "https://kagema-school-app.web.app/payment-status",
         "notification_id": ipnId,
         "billing_address": {
-          "email_address": email.isEmpty ? "finance@kagema.edu" : email,
-          "phone_number": formattedPhone,
+          "email_address": email.isEmpty || !email.contains('@') ? "finance@kagema.edu" : email,
+          "phone_number": cleaned,
           "country_code": "KE",
           "first_name": studentName.split(' ')[0],
           "last_name": studentName.contains(' ') ? studentName.split(' ').last : "Student",
@@ -106,7 +111,7 @@ class PesapalService {
           'Accept': 'application/json'
         },
         body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 20));
+      ).timeout(const Duration(seconds: 25));
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
@@ -116,9 +121,9 @@ class PesapalService {
           'order_tracking_id': data['order_tracking_id']
         };
       }
-      return {'success': false, 'message': data['message'] ?? 'TRANSACTION_ERROR'};
+      return {'success': false, 'message': data['message'] ?? 'Transaction Error'};
     } catch (e) {
-      return {'success': false, 'message': 'CONNECTION_TIMEOUT'};
+      return {'success': false, 'message': 'Connection Timeout. Please check your internet.'};
     }
   }
 }

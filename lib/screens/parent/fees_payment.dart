@@ -57,6 +57,9 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
     final amountController = TextEditingController(
       text: _balance > 0 ? _balance.toStringAsFixed(0) : ''
     );
+    final phoneController = TextEditingController(
+      text: widget.student.parentPhone
+    );
     bool isProcessing = false;
 
     showModalBottomSheet(
@@ -69,9 +72,24 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(width: 40, height: 4, decoration: BoxDecoration(color: dt.divider, borderRadius: BorderRadius.circular(10))),
-              const SizedBox(height: 32),
-              Text('M-PESA STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 13, color: dt.textPrimary)),
               const SizedBox(height: 24),
+              Text('M-PESA DIRECT PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 13, color: dt.textPrimary)),
+              const SizedBox(height: 24),
+              
+              // Phone Number Field
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: dt.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'M-PESA NUMBER',
+                  hintText: 'e.g. 0712345678',
+                  prefixIcon: Icon(Icons.phone_android, color: KagemaColors.teacherGreen),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Amount Field
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
@@ -83,6 +101,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
                 ),
               ),
               const SizedBox(height: 32),
+              
               if (isProcessing)
                 const CircularProgressIndicator(color: KagemaColors.teacherGreen)
               else
@@ -90,12 +109,12 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
                   width: double.infinity, height: 65,
                   child: ElevatedButton(
                     onPressed: () async {
-                      if (amountController.text.isEmpty) return;
+                      if (amountController.text.isEmpty || phoneController.text.isEmpty) return;
                       setModalState(() => isProcessing = true);
                       
                       try {
                         final response = await PesapalService.instance.initiatePayment(
-                          phoneNumber: widget.student.parentPhone,
+                          phoneNumber: phoneController.text,
                           amount: double.parse(amountController.text),
                           email: widget.student.parentEmail ?? 'finance@kagema.edu',
                           reference: "FEES-${widget.student.admissionNumber}-${DateTime.now().millisecondsSinceEpoch}",
@@ -106,12 +125,21 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
                           setModalState(() => isProcessing = false);
                           if (response['success']) {
                             final url = Uri.parse(response['redirect_url']);
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(url, mode: LaunchMode.externalApplication);
-                              Navigator.pop(context);
-                            } else {
-                              throw 'Could not launch payment gateway';
-                            }
+                            
+                            // IN-APP BROWSER MODE: Keeps the user in the app
+                            await launchUrl(
+                              url, 
+                              mode: LaunchMode.inAppBrowserView,
+                              browserConfiguration: const BrowserConfiguration(showTitle: true),
+                            );
+                            
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Complete the payment in the secure window.'),
+                                backgroundColor: KagemaColors.teacherGreen,
+                              )
+                            );
                           } else {
                             throw response['message'] ?? 'Gateway Error';
                           }
@@ -128,8 +156,9 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: KagemaColors.teacherGreen,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: const Text('AUTHORIZE PAYMENT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    child: const Text('PAY VIA M-PESA', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                   ),
                 ),
             ],
@@ -222,7 +251,7 @@ class _FeesPaymentScreenState extends State<FeesPaymentScreen> {
           onPressed: _showPaymentModal,
           backgroundColor: KagemaColors.teacherGreen,
           icon: const Icon(Icons.account_balance_wallet_rounded),
-          label: const Text('INITIATE STK PUSH', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
+          label: const Text('PAY FEES NOW', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 11)),
         ),
       ),
     );
